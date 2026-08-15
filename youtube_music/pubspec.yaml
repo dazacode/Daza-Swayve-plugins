@@ -1,0 +1,22 @@
+name: youtube_music
+description: >-
+  The Swayve reference plugin. Adds YouTube Music search, browsing and
+  playback to Swayve through the Swayve plugin SDK, in pure Dart.
+version: 0.1.0
+publish_to: none
+repository: https://github.com/dazacode/swayve-plugins
+issue_tracker: https://github.com/dazacode/swayve-plugins/issues
+
+environment:
+  sdk: ^3.6.0
+
+# Pure Dart. No Flutter, no HTTP stack, no media library: every capability
+# this plugin needs is host-mediated through `SwayvePluginContext`. See the
+# "Dependencies we deliberately do not have" section of README.md.
+dependencies:
+  swayve_plugin_sdk:
+    path: ../../packages/swayve_plugin_sdk
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

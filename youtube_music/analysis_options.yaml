@@ -1,0 +1,4 @@
+# The repository lint baseline. `public_member_api_docs` is scoped to the SDK,
+# so it is not enabled here — but every public member in `lib/` still carries a
+# doc comment, because this plugin is read as a worked example.
+include: ../../analysis_options.yaml

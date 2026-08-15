@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "app.swayve.plugins.youtube_music",
+  "name": "YouTube Music",
+  "description": "Adds YouTube Music search, browsing and playback to Swayve.",
+  "version": "0.1.0",
+  "author": { "name": "Swayve", "url": "https://github.com/dazacode/swayve-plugins" },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/dazacode/swayve-plugins/tree/main/plugins/youtube_music",
+  "repository": "https://github.com/dazacode/swayve-plugins",
+  "swayvePluginApi": 1,
+  "minimumSwayveVersion": "0.1.0",
+  "runtime": "compiled",
+  "platforms": ["android", "ios", "windows"],
+  "capabilities": ["search", "catalog", "streaming", "webview", "artwork"],
+  "permissions": ["network", "webview"],
+  "entrypoint": "youtube_music",
+  "media": { "streamable": true, "downloadable": false, "offlineCache": false },
+  "network": { "hosts": ["music.youtube.com", "www.youtube.com", "i.ytimg.com"] },
+  "timeouts": { "requestMs": 10000, "operationMs": 20000 },
+  "settings": [
+    {
+      "id": "region",
+      "type": "select",
+      "label": "Region",
+      "description": "Catalogue region sent to YouTube Music. Availability is regional.",
+      "default": "US",
+      "options": [
+        { "value": "US", "label": "United States" },
+        { "value": "GB", "label": "United Kingdom" },
+        { "value": "IN", "label": "India" }
+      ]
+    }
+  ],
+  "keywords": ["youtube", "music", "streaming", "search", "catalog"],
+  "icon": "assets/icon.svg"
+}

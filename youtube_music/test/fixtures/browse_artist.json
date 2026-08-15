@@ -1,0 +1,45 @@
+{
+  "responseContext": { "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D" },
+  "header": {
+    "musicImmersiveHeaderRenderer": {
+      "title": { "runs": [{ "text": "Aster Vale" }] },
+      "description": {
+        "runs": [
+          {
+            "text": "Aster Vale is an invented band. It exists only in this plugin's test fixtures, so that the parser can be exercised without contacting YouTube Music."
+          }
+        ]
+      },
+      "thumbnail": {
+        "musicThumbnailRenderer": {
+          "thumbnail": {
+            "thumbnails": [
+              {
+                "url": "https://lh3.googleusercontent.com/aVfixtureC=w540-h540-p-l90-rj",
+                "width": 540,
+                "height": 540
+              }
+            ]
+          }
+        }
+      },
+      "subscriptionButton": {
+        "subscribeButtonRenderer": {
+          "subscriberCountText": { "runs": [{ "text": "1.2M subscribers" }] }
+        }
+      }
+    }
+  },
+  "contents": {
+    "singleColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "selected": true,
+            "content": { "sectionListRenderer": { "contents": [] } }
+          }
+        }
+      ]
+    }
+  }
+}

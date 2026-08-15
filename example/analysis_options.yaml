@@ -1,0 +1,8 @@
+# The repository-wide lint baseline. A plugin has no reason to differ from it:
+# the point of a shared baseline is that a reviewer reading any plugin in this
+# repository is reading code held to the same standard.
+#
+# `public_member_api_docs` is not enabled here — the contract scopes that rule
+# to the SDK, whose members are a third-party API surface. This plugin is
+# documented at least as heavily anyway, because being read is its whole job.
+include: ../../analysis_options.yaml

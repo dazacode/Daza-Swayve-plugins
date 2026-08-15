@@ -1,0 +1,24 @@
+name: swayve_plugin_example
+description: >-
+  The reference Swayve plugin: pure Dart, fully offline, and small enough to
+  read end to end. Serves a hand-written fixture catalogue through the search
+  and catalog provider interfaces.
+version: 0.1.0
+publish_to: none
+repository: https://github.com/dazacode/swayve-plugins
+issue_tracker: https://github.com/dazacode/swayve-plugins/issues
+
+environment:
+  sdk: ^3.6.0
+
+# A plugin depends on the SDK and on nothing else. Every capability it needs
+# from the outside world — HTTP, storage, secrets, a web view — arrives through
+# `SwayvePluginContext`, so there is no reason to take a direct dependency on a
+# transport or a storage package. This plugin does not even use those.
+dependencies:
+  swayve_plugin_sdk:
+    path: ../../packages/swayve_plugin_sdk
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

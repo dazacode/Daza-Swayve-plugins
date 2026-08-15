@@ -70,6 +70,11 @@ void _requireBrowseShape(Map<String, Object?> body, String what) {
 /// response; they supply the track count and the release year when the header
 /// does not state them, and their artwork when the header's own image lives on
 /// a host the manifest does not declare.
+///
+/// They are also returned on the album rather than only read from, which is
+/// the difference between a host that can draw this release and one that has
+/// to guess at it from whatever songs it happens to be holding. See
+/// [_asListing] for what is stamped onto each of them on the way out.
 SwayveAlbum? parseAlbumDetail(
   Map<String, Object?> body,
   String browseId, {
@@ -92,9 +97,15 @@ SwayveAlbum? parseAlbumDetail(
     runsTextAt(header, const <Object>['secondSubtitle', 'runs']),
   );
   final List<SwayveArtistRef> artists = artistRefsFromRuns(subtitleRuns);
+  final SwayveMediaId id = YouTubeMusicIds.mediaId(browseId);
+  final SwayveImageRef? cover = YouTubeMusicArtwork.fromRenderer(
+        header,
+        size: SwayveArtworkSize.large,
+      ) ??
+      _artworkOfTracks(tracks);
 
   return SwayveAlbum(
-    id: YouTubeMusicIds.mediaId(browseId),
+    id: id,
     title: title,
     artists: artists.isNotEmpty
         ? artists
@@ -104,13 +115,54 @@ SwayveAlbum? parseAlbumDetail(
     year: yearFromSegments(segments) ?? yearFromSegments(secondSegments),
     trackCount: countFromSegments(secondSegments) ??
         (tracks.isEmpty ? null : tracks.length),
-    artwork: YouTubeMusicArtwork.fromRenderer(
-          header,
-          size: SwayveArtworkSize.large,
-        ) ??
-        _artworkOfTracks(tracks),
+    artwork: cover,
     availability: kYouTubeMusicAvailability,
+    tracks: _asListing(tracks, id: id, title: title, cover: cover),
   );
+}
+
+/// The album's tracks, each carrying the release it belongs to.
+///
+/// An album page's rows do not repeat the album's own name, its cover or a
+/// position — the page around them says all three, so InnerTube does not send
+/// them per row. That is fine for a list drawn under a header and wrong for a
+/// track handed to a host, which will file each one on its own and has no page
+/// left to read the missing half off.
+///
+/// So the release is stamped onto every row on the way out:
+///
+/// * **The album ref**, with its id. A host grouping by title alone cannot tell
+///   two different records with the same name apart, and one grouping by the
+///   track's own credited artist splits a record with a guest on it into
+///   several.
+/// * **The position**, from the payload order, when the row did not state one.
+///   It is the order the artist put the songs in, and it is the only ordering
+///   an album has — falling back to alphabetical would reorder every record in
+///   the library.
+/// * **The cover**, when the row has none of its own. Every song on a release
+///   shares its sleeve, and a page half of whose rows draw initials instead
+///   looks broken rather than sparse.
+///
+/// Nothing already present is overwritten. A row that stated its own album,
+/// number or image knows something this function is only inferring.
+List<SwayveTrack> _asListing(
+  List<SwayveTrack> tracks, {
+  required SwayveMediaId id,
+  required String title,
+  required SwayveImageRef? cover,
+}) {
+  if (tracks.isEmpty) return const <SwayveTrack>[];
+  final SwayveAlbumRef ref = SwayveAlbumRef(id: id, title: title);
+  return <SwayveTrack>[
+    for (int i = 0; i < tracks.length; i++)
+      tracks[i].copyWith(
+        album: tracks[i].album == null || tracks[i].album!.id == null
+            ? ref
+            : tracks[i].album,
+        trackNumber: tracks[i].trackNumber ?? i + 1,
+        artwork: tracks[i].artwork ?? cover,
+      ),
+  ];
 }
 
 /// Builds an artist from a browse response's header.

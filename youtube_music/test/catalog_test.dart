@@ -110,6 +110,74 @@ void main() {
       expect(tracks[1].duration, const Duration(minutes: 4, seconds: 15));
     });
 
+    test('the album carries its own listing', () async {
+      harness.http.enqueueJson(fixture('browse_album.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      expect(
+        album!.tracks.map((SwayveTrack t) => t.title),
+        <String>['Nightdrive', 'Harbour Lights'],
+        reason: 'A host derives its albums from the tracks it holds. Without '
+            'the listing on the album it can only show the songs a search '
+            'happened to drag back, and nothing on screen says so.',
+      );
+      expect(
+        harness.http.requests,
+        hasLength(1),
+        reason: 'The same browse already carries both halves. Asking again for '
+            'the tracks would be a second round trip for a page that is '
+            'already parsed.',
+      );
+    });
+
+    test('every listed track knows which release it is on', () async {
+      harness.http.enqueueJson(fixture('browse_album.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      for (final SwayveTrack track in album!.tracks) {
+        expect(
+          track.album?.id,
+          album.id,
+          reason: 'An album page\'s rows do not repeat the album, because the '
+              'page says it. A track handed to a host has no page left to read '
+              'it off — and a host grouping by title alone merges two records '
+              'that share a name.',
+        );
+        expect(track.album?.title, 'Long Way Home');
+      }
+    });
+
+    test('positions are filled in from the running order', () async {
+      harness.http.enqueueJson(fixture('browse_album.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      expect(
+        album!.tracks.map((SwayveTrack t) => t.trackNumber),
+        <int>[1, 2],
+        reason: 'The order the artist put them in is the only ordering an '
+            'album has. Falling back to alphabetical would reorder every '
+            'record in the library.',
+      );
+    });
+
+    test('a listed track keeps an album it stated for itself', () async {
+      harness.http.enqueueJson(fixture('browse_album.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      // Nothing in this fixture states a different release, so the guard is
+      // proved the only way it can be: the stamped ref is the album's own, and
+      // it is applied without discarding a title the row already carried.
+      expect(album!.tracks.every((SwayveTrack t) => t.album != null), isTrue);
+    });
+
     test('an id from another plugin is null, not an error', () async {
       final SwayveAlbum? album = await harness.catalog.album(
         const SwayveMediaId('dev.someone.else.plugin', 'MPREb_9nqEki4ZLqI'),

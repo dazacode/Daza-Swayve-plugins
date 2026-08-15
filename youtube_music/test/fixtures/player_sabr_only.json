@@ -1,0 +1,18 @@
+{
+  "responseContext": {},
+  "playabilityStatus": { "status": "OK" },
+  "streamingData": {
+    "expiresInSeconds": "21540",
+    "serverAbrStreamingUrl": "https://rr2---sn-a5m7lnld.googlevideo.com/videoplayback?fixture=sabr",
+    "adaptiveFormats": [
+      {
+        "itag": 140,
+        "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",
+        "bitrate": 130150,
+        "contentLength": "3449447",
+        "audioSampleRate": "44100",
+        "audioChannels": 2
+      }
+    ]
+  }
+}

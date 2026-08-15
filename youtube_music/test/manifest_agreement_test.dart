@@ -44,17 +44,38 @@ void main() {
       );
     });
 
-    test('the manifest promises streaming without downloads', () {
+    test('the manifest promises streaming and downloads', () {
       final Map<String, Object?> media =
           manifest['media']! as Map<String, Object?>;
       expect(media['streamable'], isTrue);
       expect(
         media['downloadable'],
-        isFalse,
-        reason: 'Playback resolves to an embedded player, which grants no '
-            'offline rights. Streamable must not imply downloadable.',
+        isTrue,
+        reason: 'Audio resolves to a direct media address, which is bytes a '
+            'host can keep. This was `false` while playback was embed-only, '
+            'and changing it was a deliberate policy decision — see the class '
+            'comment on YouTubeMusicStreamProvider. The two must agree, and '
+            'stream_test.dart holds the resolved source to the same figure.',
       );
-      expect(media['offlineCache'], isFalse);
+      expect(
+        media['offlineCache'],
+        isFalse,
+        reason: 'Downloads are the host keeping a file it fetched. This flag '
+            'is about the *plugin* keeping a cache of its own, which it does '
+            'not — it has no filesystem access and wants none.',
+      );
+    });
+
+    test('the media servers are declared', () {
+      expect(
+        manifestHosts,
+        contains('*.googlevideo.com'),
+        reason: 'A resolved audio address points at a rotating edge host. The '
+            'specific name is chosen per request by YouTube, so a wildcard is '
+            'the only honest way to declare it.',
+      );
+      expect(kYouTubeMusicAllowedHosts, containsAll(manifestHosts));
+      expect(manifestHosts, containsAll(kYouTubeMusicAllowedHosts));
     });
 
     test('the entrypoint names the directory and the library', () {

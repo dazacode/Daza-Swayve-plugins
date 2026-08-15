@@ -120,10 +120,22 @@ void main() {
       if (image != null) surfaced.add(image.uri);
     }
 
-    final SwayvePlayableSource source = await harness.stream.resolvePlayback(
+    // Both playback answers, because they surface different hosts: the embed
+    // is a page on youtube.com and the audio is a media server chosen by
+    // YouTube at resolve time. The second is the one this test exists for.
+    final SwayvePlayableSource embed = await harness.stream.resolvePlayback(
+      YouTubeMusicIds.mediaId('kJQP7kiw5Fk'),
+      hints: const SwayvePlaybackHints(preferAudioOnly: false),
+    );
+    surfaced.add(embed.embed!.uri);
+
+    harness.http
+      ..enqueueJson(fixture('player_visitor_id.json'))
+      ..enqueueJson(fixture('player_ok.json'));
+    final SwayvePlayableSource audio = await harness.stream.resolvePlayback(
       YouTubeMusicIds.mediaId('kJQP7kiw5Fk'),
     );
-    surfaced.add(source.embed!.uri);
+    surfaced.add(audio.uri!);
 
     expect(surfaced, isNotEmpty);
     for (final Uri uri in surfaced) {

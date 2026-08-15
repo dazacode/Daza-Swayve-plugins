@@ -1,23 +1,238 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
+import 'package:swayve_plugin_sdk/testing.dart' show SwayveLogLevel;
 import 'package:test/test.dart';
 import 'package:youtube_music/youtube_music.dart';
 
 import 'support.dart';
 
-SwayveHostInfo _host({Set<SwayveWebEmbedKind> embeds = const {}}) =>
+SwayveHostInfo _host({
+  Set<SwayveWebEmbedKind> embeds = const {},
+  SwayvePlatform platform = SwayvePlatform.android,
+}) =>
     SwayveHostInfo(
       swayveVersion: const Version(1, 1, 0),
       swayvePluginApi: 1,
-      platform: SwayvePlatform.android,
+      platform: platform,
       supportedEmbeds: embeds,
       locale: 'en-GB',
       region: 'GB',
     );
 
+/// The two responses a successful audio resolution needs, in order: the
+/// visitor identity, then the player itself.
+void _queueAudio(PluginHarness harness, {String player = 'player_ok.json'}) {
+  harness.http
+    ..enqueueJson(fixture('player_visitor_id.json'))
+    ..enqueueJson(fixture(player));
+}
+
+/// The video hints: what the host sends when somebody asks to *watch*.
+const SwayvePlaybackHints _watch = SwayvePlaybackHints(
+  preferAudioOnly: false,
+);
+
 void main() {
   final SwayveMediaId trackId = YouTubeMusicIds.mediaId('kJQP7kiw5Fk');
 
-  group('playback resolves to a web embed', () {
+  group('audio resolves to a direct media address', () {
+    test('returns a playable URL on a declared host', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(source.kind, SwayvePlayableKind.directUrl);
+      expect(source.isWebEmbed, isFalse);
+      expect(source.embed, isNull);
+      expect(source.uri, isNotNull);
+      expect(manifestAllowsHost(source.uri!.host), isTrue);
+    });
+
+    test('an Opus-capable host gets the best rendition', () async {
+      final PluginHarness harness = await PluginHarness.start(
+        host: _host(platform: SwayvePlatform.android),
+      );
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(source.uri!.queryParameters['itag'], '251');
+      expect(source.mimeType, 'audio/webm');
+    });
+
+    test('Apple platforms get AAC, which is the only one they can decode',
+        () async {
+      final PluginHarness harness = await PluginHarness.start(
+        host: _host(platform: SwayvePlatform.ios),
+      );
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(
+        source.uri!.queryParameters['itag'],
+        '140',
+        reason: 'Opus in WebM is the higher-bitrate rendition and Apple\'s '
+            'media stack cannot decode it. Preferring it there would hand back '
+            'a source that produces silence.',
+      );
+      expect(source.mimeType, 'audio/mp4');
+    });
+
+    test('a bitrate ceiling is honoured', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source = await harness.stream.resolvePlayback(
+        trackId,
+        hints: const SwayvePlaybackHints(maxBitrateKbps: 64),
+      );
+
+      expect(source.uri!.queryParameters['itag'], '139');
+    });
+
+    test('the source expires, and says so honestly', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(source.expiresIn, isNotNull);
+      expect(
+        source.expiresIn!.inSeconds,
+        21540 - kStreamExpiryMargin.inSeconds,
+        reason: 'The response states its own lifetime; the margin exists so a '
+            'source cannot go stale between being handed over and being used.',
+      );
+    });
+
+    test('it carries no headers of its own', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(
+        source.headers,
+        isEmpty,
+        reason: 'The address carries its own signature. A user agent or a '
+            'referer the service did not ask for is how a signed URL gets '
+            'refused.',
+      );
+    });
+
+    test('a duplicate itag is taken once', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(
+        source.uri!.queryParameters['sig'],
+        isNot('fixture-aac-drc'),
+        reason: 'The fixture lists itag 140 twice — plain, then with loudness '
+            'normalisation. The first is the one YouTube ranked higher.',
+      );
+    });
+
+    test('the audio path and the manifest agree about downloads', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+      final Map<String, Object?> media =
+          manifest['media']! as Map<String, Object?>;
+
+      expect(source.availability.streamable, media['streamable']);
+      expect(source.availability.downloadable, media['downloadable']);
+      expect(source.availability.onDevice, isFalse);
+    });
+  });
+
+  group('the visitor identity', () {
+    test('is minted before the first player request', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      await harness.stream.resolvePlayback(trackId);
+
+      expect(harness.requestedUrls, hasLength(2));
+      expect(harness.requestedUrls.first.path, '/youtubei/v1/visitor_id');
+      expect(harness.requestedUrls.last.path, '/youtubei/v1/player');
+    });
+
+    test('is reused rather than re-minted for a second track', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+      harness.http.enqueueJson(fixture('player_ok.json'));
+
+      await harness.stream.resolvePlayback(trackId);
+      await harness.stream
+          .resolvePlayback(YouTubeMusicIds.mediaId('dQw4w9WgXcQ'));
+
+      expect(
+        harness.requestedUrls
+            .where((Uri u) => u.path == '/youtubei/v1/visitor_id'),
+        hasLength(1),
+      );
+    });
+
+    test('reaches the wire on the player request', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      await harness.stream.resolvePlayback(trackId);
+
+      final Map<String, Object?> context =
+          harness.lastBody['context']! as Map<String, Object?>;
+      final Map<String, Object?> client =
+          context['client']! as Map<String, Object?>;
+      expect(client['visitorData'], isNotNull);
+      expect(client['clientName'], kPlayerClientName);
+    });
+
+    test('a refused session is retried once with a fresh identity', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      harness.http
+        ..enqueueJson(fixture('player_visitor_id.json'))
+        ..enqueueJson(fixture('player_login_required.json'))
+        ..enqueueJson(fixture('player_visitor_id.json'))
+        ..enqueueJson(fixture('player_ok.json'));
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(source.kind, SwayvePlayableKind.directUrl);
+      expect(
+        harness.requestedUrls
+            .where((Uri u) => u.path == '/youtubei/v1/visitor_id'),
+        hasLength(2),
+        reason: 'The recovery is a *different* identity, not the same request '
+            'again — so the cached one has to be dropped first.',
+      );
+    });
+  });
+
+  group('watching resolves to the embedded player', () {
     test('returns an embed the host can render', () async {
       final PluginHarness harness = await PluginHarness.start(
         host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
@@ -25,33 +240,31 @@ void main() {
       addTearDown(harness.stop);
 
       final SwayvePlayableSource source =
-          await harness.stream.resolvePlayback(trackId);
+          await harness.stream.resolvePlayback(trackId, hints: _watch);
 
       expect(source.kind, SwayvePlayableKind.webEmbed);
-      expect(source.isWebEmbed, isTrue);
       expect(source.uri, isNull);
-      expect(source.embed, isNotNull);
       expect(source.embed!.kind, SwayveWebEmbedKind.inAppWebView);
       expect(source.embed!.uri.host, 'www.youtube.com');
       expect(source.embed!.uri.path, '/embed/kJQP7kiw5Fk');
       expect(source.embed!.uri.queryParameters['enablejsapi'], '1');
       expect(source.embed!.controls, contains(SwayveEmbedControl.play));
-      expect(source.embed!.controls, contains(SwayveEmbedControl.pause));
     });
 
-    test('resolving costs no network request', () async {
+    test('costs no network request', () async {
       final PluginHarness harness = await PluginHarness.start(
         host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
       );
       addTearDown(harness.stop);
 
-      await harness.stream.resolvePlayback(trackId);
+      await harness.stream.resolvePlayback(trackId, hints: _watch);
 
       expect(
         harness.http.requests,
         isEmpty,
-        reason: 'resolvePlayback sits on the play path and is called again '
-            'whenever a source expires.',
+        reason: 'A host asking to watch wants the page. Asking YouTube for '
+            'audio streams first would be a round trip spent on an answer '
+            'about to be thrown away.',
       );
     });
 
@@ -62,7 +275,7 @@ void main() {
       addTearDown(harness.stop);
 
       final SwayvePlayableSource source =
-          await harness.stream.resolvePlayback(trackId);
+          await harness.stream.resolvePlayback(trackId, hints: _watch);
 
       expect(source.embed!.kind, SwayveWebEmbedKind.iframe);
     });
@@ -79,77 +292,104 @@ void main() {
       addTearDown(harness.stop);
 
       final SwayvePlayableSource source =
-          await harness.stream.resolvePlayback(trackId);
+          await harness.stream.resolvePlayback(trackId, hints: _watch);
 
       expect(source.embed!.kind, SwayveWebEmbedKind.inAppWebView);
     });
-  });
 
-  group('resolved sources never claim a download right', () {
-    test('availability is streamable and nothing more', () async {
+    test('an embed never claims a download right', () async {
       final PluginHarness harness = await PluginHarness.start(
         host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
       );
       addTearDown(harness.stop);
 
       final SwayvePlayableSource source =
-          await harness.stream.resolvePlayback(trackId);
+          await harness.stream.resolvePlayback(trackId, hints: _watch);
 
       expect(source.availability.streamable, isTrue);
       expect(
         source.availability.downloadable,
         isFalse,
-        reason: 'An embed is a page to render, not bytes to keep. The '
-            'manifest says downloadable: false and the resolved source must '
-            'agree with it.',
+        reason: 'A page is not bytes to keep, whatever the manifest allows '
+            'for the audio path. The SDK reads the resolved source as well as '
+            'the manifest precisely so the two can differ per resolution.',
       );
-      expect(source.availability.onDevice, isFalse);
       expect(source.expiresIn, isNull);
     });
+  });
 
-    test('it agrees with the manifest media block', () async {
+  group('it degrades rather than breaking', () {
+    test('extraction being closed falls back to the embed', () async {
       final PluginHarness harness = await PluginHarness.start(
         host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
       );
       addTearDown(harness.stop);
+      _queueAudio(harness, player: 'player_sabr_only.json');
 
       final SwayvePlayableSource source =
           await harness.stream.resolvePlayback(trackId);
-      final Map<String, Object?> media =
-          manifest['media']! as Map<String, Object?>;
 
-      expect(source.availability.streamable, media['streamable']);
-      expect(source.availability.downloadable, media['downloadable']);
+      expect(
+        source.kind,
+        SwayvePlayableKind.webEmbed,
+        reason: 'The day YouTube stops serving plain addresses to this '
+            'client, the plugin has to become what it used to be rather than '
+            'stop working.',
+      );
+    });
+
+    test('extraction being closed is reported to the host log', () async {
+      final PluginHarness harness = await PluginHarness.start(
+        host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
+      );
+      addTearDown(harness.stop);
+      _queueAudio(harness, player: 'player_sabr_only.json');
+
+      await harness.stream.resolvePlayback(trackId);
+
+      expect(
+        harness.context.fakeLogger.at(SwayveLogLevel.warn),
+        isNotEmpty,
+        reason: 'Playback carries on through the embed and downloads quietly '
+            'stop being possible. The log is the only evidence.',
+      );
+    });
+
+    test('a host with no embed gets unavailable when extraction closes',
+        () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness, player: 'player_sabr_only.json');
+
+      await expectLater(
+        harness.stream.resolvePlayback(trackId),
+        throwsA(isA<SwayvePluginUnavailableException>()),
+      );
+    });
+
+    test('a region-blocked track is unsupported, not unavailable', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness, player: 'player_unavailable.json');
+
+      await expectLater(
+        harness.stream.resolvePlayback(trackId),
+        throwsA(
+          isA<SwayvePluginUnsupportedException>().having(
+            (SwayvePluginUnsupportedException e) => e.message,
+            'message',
+            contains('country'),
+          ),
+        ),
+        reason: 'One song being blocked is a fact about that song. The host '
+            'drops it and plays the rest of the queue; treating it as a '
+            'source outage would stop the album.',
+      );
     });
   });
 
   group('it refuses rather than degrading', () {
-    test('a host with no embed support gets unsupported', () async {
-      final PluginHarness harness = await PluginHarness.start(host: _host());
-      addTearDown(harness.stop);
-
-      await expectLater(
-        harness.stream.resolvePlayback(trackId),
-        throwsA(isA<SwayvePluginUnsupportedException>()),
-      );
-    });
-
-    test('hints that forbid an embed get unsupported', () async {
-      final PluginHarness harness = await PluginHarness.start(
-        host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
-      );
-      addTearDown(harness.stop);
-
-      await expectLater(
-        harness.stream.resolvePlayback(
-          trackId,
-          hints: const SwayvePlaybackHints(allowWebEmbed: false),
-        ),
-        throwsA(isA<SwayvePluginUnsupportedException>()),
-      );
-    });
-
-    test('a non-track id gets unsupported, not a broken embed', () async {
+    test('a non-track id gets unsupported', () async {
       final PluginHarness harness = await PluginHarness.start(
         host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
       );
@@ -174,6 +414,32 @@ void main() {
           const SwayveMediaId('dev.someone.else.plugin', 'kJQP7kiw5Fk'),
         ),
         throwsA(isA<SwayvePluginUnsupportedException>()),
+      );
+    });
+
+    test('wanting video while forbidding an embed still returns audio',
+        () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source = await harness.stream.resolvePlayback(
+        trackId,
+        hints: const SwayvePlaybackHints(
+          preferAudioOnly: false,
+          allowWebEmbed: false,
+        ),
+      );
+
+      expect(
+        source.kind,
+        SwayvePlayableKind.directUrl,
+        reason: 'The SDK is explicit that every hint is soft except '
+            'allowWebEmbed: a provider that cannot honour one returns its '
+            'best available source rather than failing. The only video this '
+            'plugin has is an embed, and embeds were forbidden — so the audio '
+            'is the best available source, and refusing outright would be '
+            'reading a preference as a requirement.',
       );
     });
   });

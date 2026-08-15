@@ -94,6 +94,8 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
     _artwork = YouTubeMusicArtworkProvider(client: client, timeouts: timeouts);
     _stream = YouTubeMusicStreamProvider(
       host: context.host,
+      client: client,
+      log: context.log,
       timeouts: timeouts,
     );
 

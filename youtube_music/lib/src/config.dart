@@ -33,6 +33,12 @@ const List<String> kYouTubeMusicAllowedHosts = <String>[
   'music.youtube.com',
   'www.youtube.com',
   'i.ytimg.com',
+  // The media servers. A resolved audio URL points at a rotating edge host —
+  // `rr2---sn-a5m7lnld.googlevideo.com` and the like — and the HLS fallback at
+  // `manifest.googlevideo.com`, so the wildcard is the only honest way to
+  // declare them: the specific hostname is chosen per request by YouTube and
+  // is not knowable in advance.
+  '*.googlevideo.com',
 ];
 
 /// Whether [host] is covered by [kYouTubeMusicAllowedHosts].
@@ -64,6 +70,23 @@ final Uri kSearchEndpoint = Uri.parse('$kMusicOrigin/youtubei/v1/search');
 /// The InnerTube endpoint that answers a browse.
 final Uri kBrowseEndpoint = Uri.parse('$kMusicOrigin/youtubei/v1/browse');
 
+/// The origin the playback endpoints are asked against.
+///
+/// `www.youtube.com` rather than `music.youtube.com`, because the player
+/// endpoint is YouTube's rather than YouTube Music's — the music front end
+/// answers `UNPLAYABLE` for the client this plugin has to use. Both hosts are
+/// declared in the manifest.
+const String kWatchOrigin = 'https://www.youtube.com';
+
+/// The InnerTube endpoint that resolves a video to its media streams.
+final Uri kPlayerEndpoint = Uri.parse('$kWatchOrigin/youtubei/v1/player');
+
+/// The InnerTube endpoint that mints a visitor identity.
+///
+/// See [InnerTubeClient.visitorData] for why every player request needs one.
+final Uri kVisitorEndpoint =
+    Uri.parse('$kWatchOrigin/youtubei/v1/visitor_id');
+
 /// The InnerTube client identity YouTube Music's own web app uses.
 ///
 /// `WEB_REMIX` is the web player; the numeric name `67` is its InnerTube
@@ -78,6 +101,95 @@ const String kInnerTubeClientId = '67';
 
 /// The InnerTube client version this plugin presents.
 const String kInnerTubeClientVersion = '1.20240403.01.00';
+
+/// The InnerTube client the *player* endpoint is asked as.
+///
+/// ## Why this is a different client from [kInnerTubeClientName]
+///
+/// Search and browse are asked as `WEB_REMIX`, which is YouTube Music's own
+/// web app and the right client for the music catalogue. It is the wrong
+/// client for playback: it answers `UNPLAYABLE` on the player endpoint, and
+/// the browser clients that do answer hand back media URLs whose signature has
+/// to be reconstructed by executing a function out of a two-megabyte,
+/// deliberately obfuscated `base.js`. There is no way to do that from a pure
+/// Dart plugin with no JavaScript runtime, and the projects that do it in
+/// other languages now shell out to a real JS engine because maintaining an
+/// interpreter for it stopped being tractable.
+///
+/// `VISIONOS` is the one client that returns media URLs already signed: no
+/// cipher to solve, no throttling parameter to unscramble, and no
+/// proof-of-origin token — which cannot be obtained without running Google's
+/// own attestation JavaScript, so any client that requires one is closed to
+/// this plugin permanently.
+///
+/// ## What that means for how long this lasts
+///
+/// It is a door, and doors close. `ANDROID`, `IOS` and most recently
+/// `ANDROID_VR` all used to work this way and no longer do. Everything about
+/// this client is therefore a constant rather than a literal, so that
+/// following it to whatever replaces it is an edit to this block — and
+/// `YouTubeMusicStreamProvider` falls back to the embedded player rather than
+/// failing when extraction stops working, so the day it closes the plugin
+/// degrades instead of breaking.
+const String kPlayerClientName = 'VISIONOS';
+
+/// The numeric InnerTube client id matching [kPlayerClientName].
+const String kPlayerClientId = '101';
+
+/// The client version presented alongside [kPlayerClientName].
+const String kPlayerClientVersion = '1.02';
+
+/// The device this plugin claims to be when asking for playback.
+///
+/// Sent because the client identity is a set rather than a name: a context
+/// naming the client without the device it belongs to is one InnerTube may
+/// stop recognising, and these three cost nothing to send.
+const String kPlayerDeviceMake = 'Apple';
+const String kPlayerDeviceModel = 'RealityDevice17,1';
+const String kPlayerOsName = 'visionOS';
+const String kPlayerOsVersion = '26.5.23O471';
+
+/// The client a visitor identity is minted as.
+///
+/// The plain web client, because that is what the endpoint expects and the
+/// identity it returns is not client-specific.
+const String kVisitorClientName = 'WEB';
+
+/// The version presented when minting a visitor identity.
+const String kVisitorClientVersion = '2.20260708.00.00';
+
+/// How long a resolved media URL is treated as good for.
+///
+/// The player response states its own figure and this plugin passes that on;
+/// this is the floor used when it says nothing. Six hours is what the `expire`
+/// parameter on a live URL actually carries, and the margin below it exists
+/// because the host re-resolves *after* the deadline rather than before.
+const Duration kStreamLifetime = Duration(hours: 6);
+
+/// Taken off a stated lifetime before it is handed to the host.
+///
+/// A URL that expires while a queue is being loaded, or while somebody is
+/// reading a track list before pressing play, is a URL that was technically
+/// valid when it was handed over and dead by the time it was used. Two minutes
+/// is longer than any of those gaps and shorter than anything a listener would
+/// notice as a needless re-resolution.
+const Duration kStreamExpiryMargin = Duration(minutes: 2);
+
+/// The largest body YouTube will serve at full speed.
+///
+/// Beyond roughly ten mebibytes in one response the media servers throttle to
+/// a little above real-time playback — a deliberate measure, and one that
+/// turns a three-second download into a two-minute one. Anything fetching a
+/// whole file must ask for it in pieces no larger than this.
+///
+/// The SDK has nowhere to say this, and it deliberately should not: a chunk
+/// size is a property of one service's edge servers, and a host that took
+/// instructions about request shapes from a plugin would be letting the plugin
+/// drive its transport. What the host does instead is chunk every plugin
+/// download as a matter of policy, which is good manners against any service
+/// and happens to be exactly what this one requires. This constant is what the
+/// plugin's own tests measure that policy against.
+const int kStreamChunkBytes = 10 * 1024 * 1024;
 
 /// The default region, identical to the `region` setting's `default` in
 /// `plugin.json`.

@@ -1,0 +1,66 @@
+{
+  "responseContext": {
+    "visitorData": "CgtGSVhUVVJFVklTSVQoyYCD1AYyCgoCVVMSBBoAIBA%3D"
+  },
+  "playabilityStatus": {
+    "status": "OK",
+    "playableInEmbed": true
+  },
+  "streamingData": {
+    "expiresInSeconds": "21540",
+    "adaptiveFormats": [
+      {
+        "itag": 251,
+        "url": "https://rr2---sn-a5m7lnld.googlevideo.com/videoplayback?expire=1786852685&itag=251&mime=audio%2Fwebm&sig=fixture-opus",
+        "mimeType": "audio/webm; codecs=\"opus\"",
+        "bitrate": 141234,
+        "averageBitrate": 136002,
+        "contentLength": "3612884",
+        "audioQuality": "AUDIO_QUALITY_MEDIUM",
+        "audioSampleRate": "48000",
+        "audioChannels": 2
+      },
+      {
+        "itag": 140,
+        "url": "https://rr2---sn-a5m7lnld.googlevideo.com/videoplayback?expire=1786852685&itag=140&mime=audio%2Fmp4&sig=fixture-aac",
+        "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",
+        "bitrate": 130150,
+        "averageBitrate": 129474,
+        "contentLength": "3449447",
+        "audioQuality": "AUDIO_QUALITY_MEDIUM",
+        "audioSampleRate": "44100",
+        "audioChannels": 2
+      },
+      {
+        "itag": 139,
+        "url": "https://rr2---sn-a5m7lnld.googlevideo.com/videoplayback?expire=1786852685&itag=139&mime=audio%2Fmp4&sig=fixture-heaac",
+        "mimeType": "audio/mp4; codecs=\"mp4a.40.5\"",
+        "bitrate": 50102,
+        "averageBitrate": 49512,
+        "contentLength": "1319012",
+        "audioQuality": "AUDIO_QUALITY_LOW",
+        "audioSampleRate": "22050",
+        "audioChannels": 2
+      },
+      {
+        "itag": 140,
+        "url": "https://rr2---sn-a5m7lnld.googlevideo.com/videoplayback?expire=1786852685&itag=140&mime=audio%2Fmp4&sig=fixture-aac-drc",
+        "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",
+        "bitrate": 130150,
+        "contentLength": "3449447",
+        "audioSampleRate": "44100",
+        "audioChannels": 2,
+        "isDrc": true
+      },
+      {
+        "itag": 137,
+        "url": "https://rr2---sn-a5m7lnld.googlevideo.com/videoplayback?expire=1786852685&itag=137&mime=video%2Fmp4&sig=fixture-video",
+        "mimeType": "video/mp4; codecs=\"avc1.640020\"",
+        "bitrate": 3410489,
+        "contentLength": "92112345",
+        "qualityLabel": "1080p"
+      }
+    ],
+    "hlsManifestUrl": "https://manifest.googlevideo.com/api/manifest/hls_variant/fixture/file/index.m3u8"
+  }
+}

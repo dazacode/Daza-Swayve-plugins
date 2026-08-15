@@ -15,8 +15,15 @@
   "capabilities": ["search", "catalog", "streaming", "webview", "artwork"],
   "permissions": ["network", "webview"],
   "entrypoint": "youtube_music",
-  "media": { "streamable": true, "downloadable": false, "offlineCache": false },
-  "network": { "hosts": ["music.youtube.com", "www.youtube.com", "i.ytimg.com"] },
+  "media": { "streamable": true, "downloadable": true, "offlineCache": false },
+  "network": {
+    "hosts": [
+      "music.youtube.com",
+      "www.youtube.com",
+      "i.ytimg.com",
+      "*.googlevideo.com"
+    ]
+  },
   "timeouts": { "requestMs": 10000, "operationMs": 20000 },
   "settings": [
     {

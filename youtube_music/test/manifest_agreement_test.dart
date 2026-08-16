@@ -85,15 +85,27 @@ void main() {
       expect(id.split('.').last, manifest['entrypoint']);
     });
 
-    test('the region setting matches what the client reads', () {
+    /// The declared setting with this id. Looked up rather than indexed, so
+    /// that adding a setting cannot break the assertions about another one.
+    Map<String, Object?> setting(String id) {
       final List<Object?> settings = manifest['settings']! as List<Object?>;
-      final Map<String, Object?> region =
-          settings.first! as Map<String, Object?>;
-      expect(region['id'], 'region');
+      return settings
+          .cast<Map<String, Object?>>()
+          .firstWhere((Map<String, Object?> entry) => entry['id'] == id);
+    }
+
+    test('the region setting matches what the client reads', () {
+      final Map<String, Object?> region = setting(kRegionSettingId);
       expect(region['type'], 'select');
-      expect(region['default'], 'US');
+      expect(region['default'], kDefaultRegion);
       final List<Object?> options = region['options']! as List<Object?>;
       expect(options, isNotEmpty);
+    });
+
+    test('the video setting matches what the search provider reads', () {
+      final Map<String, Object?> videos = setting(kIncludeVideosSettingId);
+      expect(videos['type'], 'bool');
+      expect(videos['default'], kDefaultIncludeVideos);
     });
   });
 

@@ -89,7 +89,11 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
     );
     _client = client;
 
-    _search = YouTubeMusicSearchProvider(client: client, timeouts: timeouts);
+    _search = YouTubeMusicSearchProvider(
+      client: client,
+      settings: context.settings,
+      timeouts: timeouts,
+    );
     _catalog = YouTubeMusicCatalogProvider(client: client, timeouts: timeouts);
     _artwork = YouTubeMusicArtworkProvider(client: client, timeouts: timeouts);
     _stream = YouTubeMusicStreamProvider(

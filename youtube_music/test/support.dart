@@ -153,6 +153,19 @@ final class PluginHarness {
     return body is Map<String, Object?> ? body : const <String, Object?>{};
   }
 
+  /// The decoded body of the request at [index], in the order they were made.
+  ///
+  /// [lastBody] is the wrong question for anything that makes more than one
+  /// request per call — a search for songs also searches the videos — because
+  /// it can only ever describe the last of them.
+  Map<String, Object?> bodyAt(int index) {
+    if (index < 0 || index >= http.requests.length) {
+      return const <String, Object?>{};
+    }
+    final Object? body = http.requests[index].body;
+    return body is Map<String, Object?> ? body : const <String, Object?>{};
+  }
+
   /// Tears everything down. Call it in a test's teardown.
   Future<void> stop() async {
     await plugin.dispose();

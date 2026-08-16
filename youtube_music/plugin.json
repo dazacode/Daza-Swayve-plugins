@@ -51,6 +51,13 @@
   },
   "settings": [
     {
+      "id": "includeVideos",
+      "type": "bool",
+      "label": "Include YouTube videos",
+      "description": "Search video uploads as well as the official catalogue. Finds remixes, demos, live versions and unreleased tracks that were never put on a streaming service.",
+      "default": true
+    },
+    {
       "id": "region",
       "type": "select",
       "label": "Region",

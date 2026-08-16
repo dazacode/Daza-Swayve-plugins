@@ -20,7 +20,11 @@ void main() {
         SwayveArtworkSize.thumbnail: '/vi/kJQP7kiw5Fk/default.jpg',
         SwayveArtworkSize.medium: '/vi/kJQP7kiw5Fk/mqdefault.jpg',
         SwayveArtworkSize.large: '/vi/kJQP7kiw5Fk/hqdefault.jpg',
-        SwayveArtworkSize.original: '/vi/kJQP7kiw5Fk/maxresdefault.jpg',
+        // `hqdefault` rather than `maxresdefault`: the larger variants are only
+        // generated for videos uploaded above that resolution, so asking for
+        // one is a 404 for a great deal of the catalogue — and a 404 draws the
+        // placeholder rather than a smaller picture.
+        SwayveArtworkSize.original: '/vi/kJQP7kiw5Fk/hqdefault.jpg',
       };
 
       for (final MapEntry<SwayveArtworkSize, String> entry
@@ -144,7 +148,7 @@ void main() {
       );
     });
 
-    test('an image on a declared host is kept', () {
+    test('the sleeve beats the video frame, whatever their stated sizes', () {
       final SwayveImageRef? image = YouTubeMusicArtwork.fromThumbnails(
         <Object?>[
           <String, Object?>{
@@ -162,8 +166,42 @@ void main() {
       );
 
       expect(image, isNotNull);
-      expect(image!.uri.host, 'i.ytimg.com');
-      expect(image.width, 480);
+      expect(
+        image!.uri.host,
+        'lh3.googleusercontent.com',
+        reason: 'Choosing by stated width alone is how a 480-pixel video frame '
+            'beat a 120-pixel sleeve, and it is what made covers look '
+            'low-resolution and stretched: the frame is 16:9 and is only ever '
+            'the sizes YouTube publishes, while the sleeve is square and can '
+            'be asked for at any size for free.',
+      );
+      expect(
+        image.width,
+        544,
+        reason: 'Asked for at the size it will be drawn at rather than '
+            'accepted at the size the payload happened to mention.',
+      );
+    });
+
+    test('a video frame is still used when there is no sleeve', () {
+      final SwayveImageRef? image = YouTubeMusicArtwork.fromThumbnails(
+        <Object?>[
+          <String, Object?>{
+            'url': 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg',
+            'width': 480,
+            'height': 360,
+          },
+        ],
+        size: SwayveArtworkSize.large,
+      );
+
+      expect(image, isNotNull);
+      expect(
+        image!.uri.host,
+        'i.ytimg.com',
+        reason: 'A track that is genuinely a video rather than a release has no '
+            'square art at all, and a frame from it beats a placeholder.',
+      );
     });
 
     test('search results carry the square art, not a video frame', () async {

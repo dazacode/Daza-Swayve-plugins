@@ -31,26 +31,54 @@ const List<String> _artistHeaderKeys = <String>[
   'musicResponsiveHeaderRenderer',
 ];
 
+/// The renderer under [node] named by one of [keys], or `null`.
+Map<String, Object?>? _headerIn(Object? node, List<String> keys) {
+  final Map<String, Object?> map = mapOf(node);
+  if (map.isEmpty) return null;
+  for (final String key in keys) {
+    final Object? found = map[key];
+    if (found != null) return mapOf(found);
+  }
+  return null;
+}
+
+/// The entity header of a browse response, wherever this response put it.
+///
+/// Three shapes are in circulation and all three still arrive. The oldest hangs
+/// the header off the body under `header`. The two-column layout puts it in the
+/// first column's section list — which is a *list*, and not always one whose
+/// first entry is the header, so every entry is probed rather than index zero
+/// alone. A response that describes the entity only in its second column is
+/// covered too, because an album browse that carries its listing there
+/// sometimes carries the description with it.
 Map<String, Object?>? _header(Map<String, Object?> body, List<String> keys) {
-  for (final List<Object> base in const <List<Object>>[
-    <Object>['header'],
-    <Object>[
+  final Map<String, Object?>? direct = _headerIn(body['header'], keys);
+  if (direct != null) return direct;
+
+  final List<Object?> sections = <Object?>[
+    for (final Object? tab in listAt(body, const <Object>[
       'contents',
       'twoColumnBrowseResultsRenderer',
       'tabs',
-      0,
-      'tabRenderer',
-      'content',
+    ]))
+      ...listAt(tab, const <Object>[
+        'tabRenderer',
+        'content',
+        'sectionListRenderer',
+        'contents',
+      ]),
+    ...listAt(body, const <Object>[
+      'contents',
+      'twoColumnBrowseResultsRenderer',
+      'secondaryContents',
       'sectionListRenderer',
       'contents',
-      0,
-    ],
-  ]) {
-    final Map<String, Object?> node = mapAt(body, base);
-    for (final String key in keys) {
-      final Object? found = node[key];
-      if (found != null) return mapOf(found);
-    }
+    ]),
+  ];
+
+  for (final Object? section in sections) {
+    final Map<String, Object?>? found = _headerIn(section, keys);
+    if (found != null) return found;
   }
   return null;
 }

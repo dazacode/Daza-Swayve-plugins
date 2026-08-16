@@ -45,12 +45,22 @@ void main() {
       );
     });
 
-    test('limit truncates the page', () async {
+    test('limit never costs the page items the cursor has passed', () async {
       harness.http.enqueueJson(fixture('browse_home.json'));
       final SwayvePage<SwayveAlbum> page = await harness.catalog.albums(
         const SwayveBrowseRequest(limit: 0),
       );
-      expect(page.items, isEmpty);
+
+      expect(
+        page.items,
+        hasLength(1),
+        reason: 'One response is many shelves and the continuation token it '
+            'carries points past all of them, so an item dropped here is an '
+            'item nothing ever asks for again — the next page resumes after '
+            'it. A host that cannot hold them all can take what it wants off '
+            'the front; discarding them here is a decision nothing can undo, '
+            'and it is what left albums with songs missing.',
+      );
     });
 
     test('a cursor is handed straight back to the service', () async {
@@ -255,6 +265,62 @@ void main() {
     test('a media id round-trips through its uri form', () {
       final SwayveMediaId id = YouTubeMusicIds.mediaId('kJQP7kiw5Fk');
       expect(SwayveMediaId.parse(id.uri), id);
+    });
+
+    test('a video id that looks like a browse prefix is still a track', () {
+      // Every one of these is eleven base64url characters, which is what a
+      // video id is, and each begins with the letters a browse id is
+      // namespaced by. Classified by prefix they came out as playlists and
+      // artists, and the consequences were all silent: the stream provider
+      // refused to play them for "not being a track", and the artwork provider
+      // spent a browse request on an id no browse resolves.
+      for (final String id in const <String>[
+        'PLxKq2n8Qm4',
+        'RDh1sT0pQwZ',
+        'UCn3dK9wVbX',
+        'VLm2QpX7nRt',
+      ]) {
+        expect(
+          YouTubeMusicIds.classify(id),
+          YouTubeMusicIdKind.track,
+          reason: '$id is eleven characters, so it is a video id. No browse '
+              'id is eleven characters — release ids are seventeen, channel '
+              'ids twenty-four, playlist ids thirty-four and up — so the '
+              'shape is decisive and the prefix is not.',
+        );
+      }
+    });
+  });
+
+  group('the two-column browse response', () {
+    test('an album lists its songs from the second column', () async {
+      harness.http.enqueueJson(fixture('browse_album_two_column.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      expect(album, isNotNull);
+      expect(album!.title, 'Long Way Home');
+      expect(
+        album.tracks.map((SwayveTrack t) => t.title),
+        <String>['Nightdrive', 'Harbour Lights'],
+        reason: 'YouTube Music now describes a release in one column and lists '
+            'its songs in the other. Reading only the first gave an album that '
+            'looked healthy — right title, right sleeve, right year — and '
+            'arrived with no tracks at all, so the page drew whatever songs a '
+            'search had happened to drag back and said nothing about the rest.',
+      );
+    });
+
+    test('the header is found in the first column', () async {
+      harness.http.enqueueJson(fixture('browse_album_two_column.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      expect(album!.artists.single.name, 'Aster Vale');
+      expect(album.year, 2019);
+      expect(album.trackCount, 12);
     });
   });
 }

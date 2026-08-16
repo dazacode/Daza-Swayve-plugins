@@ -77,6 +77,7 @@ List<Object?>? _sections(Map<String, Object?> body) {
   for (final List<Object> tabsPath in const <List<Object>>[
     <Object>['contents', 'tabbedSearchResultsRenderer', 'tabs'],
     <Object>['contents', 'singleColumnBrowseResultsRenderer', 'tabs'],
+    <Object>['contents', 'twoColumnBrowseResultsRenderer', 'tabs'],
   ]) {
     final List<Object?> tabs = listAt(body, tabsPath);
     if (tabs.isEmpty) continue;
@@ -91,8 +92,42 @@ List<Object?>? _sections(Map<String, Object?> body) {
         ]),
       );
     }
+    // The second column, which is where the songs are.
+    //
+    // YouTube Music now answers an album or playlist browse with
+    // `twoColumnBrowseResultsRenderer`: the release is described in one column
+    // and its track listing lives in the other, under `secondaryContents`. The
+    // header parser already read the description half, so an album looked
+    // healthy — right title, right sleeve, right year — and arrived with an
+    // empty track list, because nothing here ever walked the half holding the
+    // songs. A page that then drew whatever tracks a search had happened to
+    // drag back is exactly the "album with songs missing" this fixes.
+    //
+    // Appended rather than returned on its own: a two-column response can carry
+    // shelves in both halves, and taking one column would trade a listing that
+    // is missing its songs for one that is missing everything else.
+    sections.addAll(
+      listAt(body, const <Object>[
+        'contents',
+        'twoColumnBrowseResultsRenderer',
+        'secondaryContents',
+        'sectionListRenderer',
+        'contents',
+      ]),
+    );
     if (sections.isNotEmpty) return sections;
   }
+
+  // The same second column, for a body that carries one without any tabs
+  // alongside it.
+  final List<Object?> secondary = listAt(body, const <Object>[
+    'contents',
+    'twoColumnBrowseResultsRenderer',
+    'secondaryContents',
+    'sectionListRenderer',
+    'contents',
+  ]);
+  if (secondary.isNotEmpty) return secondary;
 
   final List<Object?> flat = listAt(body, const <Object>[
     'contents',

@@ -25,21 +25,35 @@ import 'json_path.dart';
 abstract final class YouTubeMusicArtwork {
   /// The `i.ytimg.com` variant that best serves [size], with its real pixel
   /// dimensions.
+  /// The `i.ytimg.com` variant serving [size].
+  ///
+  /// `original` stops at `hqdefault` rather than reaching for
+  /// `maxresdefault`. The larger variants are only generated for videos
+  /// uploaded above that resolution, so `maxresdefault` is a 404 for a great
+  /// deal of the catalogue — and a 404 here is not a smaller image, it is no
+  /// image: the host fetches the URL it was given, gets nothing, and draws the
+  /// placeholder with the initials on it. `hqdefault` exists for every video
+  /// YouTube has ever served.
   static _Variant _variantFor(SwayveArtworkSize size) => switch (size) {
         SwayveArtworkSize.thumbnail => const _Variant('default', 120, 90),
         SwayveArtworkSize.medium => const _Variant('mqdefault', 320, 180),
-        SwayveArtworkSize.large => const _Variant('hqdefault', 480, 360),
-        SwayveArtworkSize.original =>
-          const _Variant('maxresdefault', 1280, 720),
+        SwayveArtworkSize.large || SwayveArtworkSize.original =>
+          const _Variant('hqdefault', 480, 360),
       };
 
-  /// The approximate width [size] is asking for, used to choose among the
-  /// variable-sized images a payload happens to carry.
+  /// The approximate width [size] is asking for.
+  ///
+  /// Used both to choose among the variable-sized images a payload happens to
+  /// carry and, for the hosts that allow it, to ask for that width directly.
+  /// The second use is why `original` is a real number: it used to be a
+  /// sentinel meaning "the biggest one mentioned", which picked correctly and
+  /// then handed back whatever small rendition a list response had named. 1200
+  /// is above the largest sleeve YouTube Music itself requests and is served.
   static int targetWidth(SwayveArtworkSize size) => switch (size) {
         SwayveArtworkSize.thumbnail => 120,
         SwayveArtworkSize.medium => 320,
         SwayveArtworkSize.large => 544,
-        SwayveArtworkSize.original => 1 << 20,
+        SwayveArtworkSize.original => 1200,
       };
 
   /// The thumbnail for a video id at [size].
@@ -111,17 +125,36 @@ abstract final class YouTubeMusicArtwork {
   /// The best allowed image from an InnerTube `thumbnails` array, or `null`.
   ///
   /// Returns `null` when the array is empty **or** when every candidate lives
-  /// on a host the manifest does not declare. YouTube Music serves most album
-  /// and artist art from `lh3.googleusercontent.com`, which this manifest does
-  /// not list, so in practice that second case is the common one — see the
-  /// README section "Artwork the plugin will not show you".
+  /// on a host the manifest does not declare. The sleeve host is declared, so
+  /// that second case is now rare rather than the norm it used to be; artist
+  /// portraits served from `yt3.ggpht.com` are the remaining example, and they
+  /// stay dropped because widening the allowlist for a decorative image is not
+  /// a trade worth asking the user to agree to.
   static SwayveImageRef? fromThumbnails(
     List<Object?> thumbnails, {
     SwayveArtworkSize size = SwayveArtworkSize.medium,
   }) {
     final int target = targetWidth(size);
-    SwayveImageRef? best;
-    int bestDistance = -1;
+    // Two candidates rather than one, because the payload frequently carries
+    // both kinds and they are not interchangeable.
+    //
+    // A renderer's `thumbnails` array can hold the record's square sleeve (on
+    // `lh3.googleusercontent.com`) and a frame from the video (on
+    // `i.ytimg.com`), and picking whichever one's stated width happened to land
+    // closest to the target is how a sleeve loses to a frame. That is the
+    // low-resolution, letterboxed, stretched-looking cover: it is not a
+    // compressed sleeve, it is a screenshot of a video being drawn as one.
+    //
+    // Width is the wrong tiebreak between the two anyway. A sleeve URL can be
+    // rewritten to any size for free — see [resized] — so a 60-pixel sleeve is
+    // a 544-pixel sleeve one string away, while a frame is only ever the sizes
+    // YouTube publishes. The sleeve therefore wins on principle and the frame
+    // is kept only as the answer for a track that has no record behind it.
+    SwayveImageRef? sleeve;
+    int sleeveDistance = -1;
+    SwayveImageRef? frame;
+    int frameDistance = -1;
+
     for (final Object? entry in thumbnails) {
       final String? raw = stringAt(entry, const <Object>['url']);
       if (raw == null) continue;
@@ -129,23 +162,35 @@ abstract final class YouTubeMusicArtwork {
       if (uri == null || !uri.hasScheme || !isAllowedHost(uri.host)) continue;
       final int? width = intAt(entry, const <Object>['width']);
       final int distance = ((width ?? 0) - target).abs();
-      if (best == null || distance < bestDistance) {
-        best = SwayveImageRef(
-          uri: uri,
-          width: width,
-          height: intAt(entry, const <Object>['height']),
-        );
-        bestDistance = distance;
+      final SwayveImageRef candidate = SwayveImageRef(
+        uri: uri,
+        width: width,
+        height: intAt(entry, const <Object>['height']),
+      );
+
+      if (_resizableHosts.contains(uri.host.toLowerCase())) {
+        if (sleeve == null || distance < sleeveDistance) {
+          sleeve = candidate;
+          sleeveDistance = distance;
+        }
+      } else if (frame == null || distance < frameDistance) {
+        frame = candidate;
+        frameDistance = distance;
       }
     }
+
     // Asked for at the size it is going to be drawn at, rather than accepted
     // at the size the payload happened to mention. A list sends 60-pixel
     // thumbnails because it was describing a list; the same picture at 544 is
     // one string away and costs no request. See [resized].
-    if (best == null) return null;
-    return size == SwayveArtworkSize.original
-        ? best
-        : resized(best, target);
+    //
+    // `original` is included rather than excepted. It used to be handed back
+    // untouched on the reasoning that the source asset is whatever the payload
+    // named — but the payload names a rendition, not an asset, so "original"
+    // was returning the largest *thumbnail* mentioned in a list response and
+    // the now-playing screen was upscaling a 226-pixel image to fill a phone.
+    if (sleeve != null) return resized(sleeve, target);
+    return frame;
   }
 
   /// The best allowed image from a renderer's thumbnail block, or `null`.

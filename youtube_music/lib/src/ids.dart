@@ -36,8 +36,24 @@ abstract final class YouTubeMusicIds {
   static final RegExp _videoId = RegExp(r'^[A-Za-z0-9_-]{11}$');
 
   /// The kind [value] denotes, or `null` when it is not one of ours.
+  ///
+  /// **The video shape is tested first, and that order is load-bearing.** A
+  /// video id is any eleven base64url characters, which means a perfectly
+  /// ordinary one can begin with the same letters a browse id is namespaced by
+  /// — `PLxKq2n8Qm4`, `RDh1sT0pQwZ`, `UCn3dK9wVbX` are all valid, playable
+  /// recordings. Checking the prefixes first classified those as playlists and
+  /// artists, and every consequence of that was silent: the stream provider
+  /// refused to play them because they were "not a track", the artwork provider
+  /// spent a browse request on an id no browse would ever resolve, and a song
+  /// that reached a track list simply stopped working when it was tapped.
+  ///
+  /// Testing the shape first cannot make the opposite mistake. A browse id is
+  /// never eleven characters — `MPRE` release ids are seventeen, `UC` channel
+  /// ids twenty-four, `PL` and `OLAK` playlist ids thirty-four and up — so the
+  /// eleven-character window belongs to video ids alone.
   static YouTubeMusicIdKind? classify(String value) {
     if (value.isEmpty) return null;
+    if (_videoId.hasMatch(value)) return YouTubeMusicIdKind.track;
     if (value.startsWith('MPRE')) return YouTubeMusicIdKind.album;
     if (value.startsWith('UC')) return YouTubeMusicIdKind.artist;
     if (value.startsWith('VL') ||
@@ -46,7 +62,6 @@ abstract final class YouTubeMusicIds {
         value.startsWith('OLAK')) {
       return YouTubeMusicIdKind.playlist;
     }
-    if (_videoId.hasMatch(value)) return YouTubeMusicIdKind.track;
     return null;
   }
 

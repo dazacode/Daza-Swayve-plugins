@@ -28,7 +28,11 @@ export 'src/config.dart'
     show
         YouTubeMusicTimeouts,
         isAllowedHost,
+        kDefaultIncludeVideos,
+        kDefaultRegion,
+        kIncludeVideosSettingId,
         kPlayerClientName,
+        kRegionSettingId,
         kStreamChunkBytes,
         kStreamExpiryMargin,
         kStreamLifetime,

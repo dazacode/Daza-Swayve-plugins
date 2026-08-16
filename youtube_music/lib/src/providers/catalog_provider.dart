@@ -82,6 +82,32 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
         (ItemCollector items) => items.tracks,
       );
 
+  /// One page of a feed.
+  ///
+  /// ## Why [SwayveBrowseRequest.limit] does not cut this list
+  ///
+  /// The obvious reading of `limit` is a knife: parse the response, take that
+  /// many, hand back the cursor. That reading loses music, and it is what put
+  /// songs missing from albums.
+  ///
+  /// One InnerTube response is many shelves, and the single continuation token
+  /// it carries points past **all** of them. So taking fifty of eighty and
+  /// reporting that cursor meant the next page resumed after the eightieth: the
+  /// thirty in between were not slow to arrive, they were gone, and nothing
+  /// would ever ask for them again. A host assembling albums out of the songs
+  /// it has been handed then drew a twelve-track record with the four that
+  /// survived the cut, with nothing on screen to say the rest existed.
+  ///
+  /// There is no way to resume mid-shelf — InnerTube's cursor is the only
+  /// bookmark it offers and it has one granularity — so the choice is between
+  /// dropping items and returning more than were asked for. This returns more.
+  /// A caller that genuinely cannot hold them can still take what it wants off
+  /// the front, which is a decision it can make without losing anything;
+  /// discarding them here is a decision nothing can undo.
+  ///
+  /// `limit` therefore reaches the service as it always did — it is the shelf
+  /// size the feed is asked for — and is not applied a second time to the
+  /// answer.
   Future<SwayvePage<T>> _page<T>(
     String operation,
     SwayveBrowseRequest request,
@@ -100,10 +126,8 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
           );
           cancel?.throwIfCancelled();
           final ParsedFeed feed = parseFeed(body, what: operation);
-          final int limit = request.limit < 0 ? 0 : request.limit;
-          final List<T> items = select(feed.items);
           return SwayvePage<T>(
-            items: List<T>.unmodifiable(items.take(limit)),
+            items: List<T>.unmodifiable(select(feed.items)),
             // A cursor is only useful if the caller can act on it. Reporting
             // one when the feed is exhausted would make `hasMore` lie.
             cursor: feed.cursor,
@@ -129,11 +153,10 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
             cancel: cancel,
           );
           cancel?.throwIfCancelled();
-          final ParsedFeed? feed = tryParseFeed(body);
           return parseAlbumDetail(
             body,
             id.value,
-            tracks: feed?.items.tracks ?? const <SwayveTrack>[],
+            tracks: await _listing(body, id.value, cancel: cancel),
           );
         },
       );
@@ -182,7 +205,73 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
             cancel: cancel,
           );
           cancel?.throwIfCancelled();
-          return tryParseFeed(body)?.items.tracks ?? const <SwayveTrack>[];
+          return _listing(body, id.value, cancel: cancel);
         },
       );
+
+  /// Every track a browse response lists, following its continuations.
+  ///
+  /// A release's songs are the one listing that has to arrive complete. A feed
+  /// cut short is a shelf somebody can scroll for more; a track list cut short
+  /// is a record that is missing songs, with nothing on screen to say so — and
+  /// InnerTube pages an album's rows like anything else once it is long enough,
+  /// so a single response is not the whole record for box sets, deluxe editions
+  /// or any playlist worth the name.
+  ///
+  /// Bounded by [_maxListingPages] rather than run to exhaustion: this is the
+  /// listing of one release, so the bound is generous enough that reaching it
+  /// means something is wrong rather than that somebody owns a long record.
+  ///
+  /// A continuation that fails is swallowed. What has been gathered so far is a
+  /// truer answer than an exception — the first page is the one that matters,
+  /// and losing the whole album because its fourth page timed out would trade a
+  /// small gap for a total one.
+  Future<List<SwayveTrack>> _listing(
+    Map<String, Object?> body,
+    String browseId, {
+    SwayveCancellationToken? cancel,
+  }) async {
+    final ParsedFeed? first = tryParseFeed(body);
+    if (first == null) return const <SwayveTrack>[];
+
+    final List<SwayveTrack> tracks = <SwayveTrack>[...first.items.tracks];
+    final Set<String> seen = <String>{
+      for (final SwayveTrack track in tracks) track.id.value,
+    };
+    String? cursor = first.cursor;
+
+    for (int page = 0; page < _maxListingPages && cursor != null; page++) {
+      cancel?.throwIfCancelled();
+      final ParsedFeed next;
+      try {
+        next = parseFeed(
+          await _client.browse(browseId, continuation: cursor, cancel: cancel),
+          what: 'albumTracks',
+        );
+      } on SwayvePluginException {
+        break;
+      }
+      // A continuation that returns nothing new is a continuation that is not
+      // advancing, and following it again would be an infinite request loop
+      // against somebody else's service.
+      bool grew = false;
+      for (final SwayveTrack track in next.items.tracks) {
+        if (seen.add(track.id.value)) {
+          tracks.add(track);
+          grew = true;
+        }
+      }
+      if (!grew) break;
+      cursor = next.cursor;
+    }
+
+    return tracks;
+  }
+
+  /// How many continuations a track listing will follow.
+  ///
+  /// Ten pages is several hundred rows — longer than any album and longer than
+  /// most playlists — so hitting it means the listing is not terminating rather
+  /// than that it is genuinely this long.
+  static const int _maxListingPages = 10;
 }

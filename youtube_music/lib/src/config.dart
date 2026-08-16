@@ -200,6 +200,15 @@ const Duration kStreamExpiryMargin = Duration(minutes: 2);
 /// plugin's own tests measure that policy against.
 const int kStreamChunkBytes = 10 * 1024 * 1024;
 
+/// The id of the `includeVideos` setting, identical to `plugin.json`.
+const String kIncludeVideosSettingId = 'includeVideos';
+
+/// Whether video results are searched for when the setting says nothing.
+///
+/// On, because the music that is only on YouTube is the reason somebody adds
+/// this plugin rather than using the catalogue they already have.
+const bool kDefaultIncludeVideos = true;
+
 /// The default region, identical to the `region` setting's `default` in
 /// `plugin.json`.
 const String kDefaultRegion = 'US';
@@ -253,6 +262,23 @@ abstract final class YouTubeMusicFeeds {
 abstract final class YouTubeMusicSearchFilters {
   /// Songs only.
   static const String songs = 'EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D';
+
+  /// Videos only — the "Videos" chip.
+  ///
+  /// A different catalogue from [songs], and the reason this constant exists.
+  /// The songs filter returns the official music catalogue: licensed releases,
+  /// with an album behind them. An enormous amount of music is not in it —
+  /// unreleased tracks, remixes, demos, live rips, edits, and everything an
+  /// artist put on YouTube and nowhere else — and all of it is uploaded as a
+  /// video. Searching only the catalogue means those songs simply do not exist
+  /// as far as this plugin is concerned, however precisely somebody types the
+  /// title.
+  ///
+  /// What comes back is a rougher class of result — no album, a 16:9 thumbnail
+  /// rather than a sleeve, and a title somebody typed by hand — which is why
+  /// the host is told which shelf each track came from rather than handed one
+  /// merged list. See [kYouTubeKindKey].
+  static const String videos = 'EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D';
 
   /// Albums only.
   static const String albums = 'EgWKAQIYAWoKEAkQBRAKEAMQBA%3D%3D';

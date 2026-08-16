@@ -27,8 +27,8 @@ import '../parsing/item_parser.dart';
 /// catalogue means a song somebody can hear on YouTube right now returns "no
 /// matches" here. Both shelves are searched and both are returned, each track
 /// published as [SwayveTrackKind.video] so a host can tell them apart. Turned
-/// off by
-/// the `includeVideos` setting for somebody who wants the catalogue alone.
+/// off by the `include_videos` setting, for somebody who wants the catalogue
+/// alone.
 ///
 /// **`limit` is a ceiling per kind, not a total** — that is what the SDK says
 /// it means, and returning twenty tracks *and* twenty albums for `limit: 20`

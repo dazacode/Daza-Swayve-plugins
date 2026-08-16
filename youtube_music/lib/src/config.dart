@@ -200,8 +200,11 @@ const Duration kStreamExpiryMargin = Duration(minutes: 2);
 /// plugin's own tests measure that policy against.
 const int kStreamChunkBytes = 10 * 1024 * 1024;
 
-/// The id of the `includeVideos` setting, identical to `plugin.json`.
-const String kIncludeVideosSettingId = 'includeVideos';
+/// The id of the `include_videos` setting, identical to `plugin.json`.
+// Snake case because the manifest schema requires it of every setting id
+// (`^[a-z][a-z0-9_]*$`), and `test/manifest_agreement_test.dart` compares
+// this constant against the manifest rather than trusting them to match.
+const String kIncludeVideosSettingId = 'include_videos';
 
 /// Whether video results are searched for when the setting says nothing.
 ///

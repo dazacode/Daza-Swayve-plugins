@@ -304,10 +304,23 @@ abstract class _ItemReader {
       duration: explicitDuration ?? durationFromSegments(segments),
       trackNumber: trackNumber,
       year: yearFromSegments(segments),
-      // Track art is derived from the video id rather than taken from the
-      // payload, so it always lands on `i.ytimg.com` — a host the manifest
-      // declares. See `YouTubeMusicArtwork`.
-      artwork: YouTubeMusicArtwork.forVideo(videoId),
+      // The record's own sleeve first, and the video's frame only if there
+      // isn't one.
+      //
+      // The order matters more than it looks. `i.ytimg.com` publishes frames
+      // from the video — 16:9, letterboxed, and often a still of whatever was
+      // on screen — while the payload carries the square cover the service
+      // actually draws. Anything rendering a sleeve gets the first as a
+      // stretched, low-resolution mess and the second as the artwork.
+      //
+      // The fallback is still worth having: a track that is genuinely a video
+      // rather than a release may carry no square art at all, and a frame from
+      // it beats a placeholder with initials on it.
+      artwork: artwork(size: SwayveArtworkSize.large) ??
+          YouTubeMusicArtwork.forVideo(
+            videoId,
+            size: SwayveArtworkSize.large,
+          ),
       explicit: hasExplicitBadge(badges),
       availability: kYouTubeMusicAvailability,
       extra: <String, Object?>{

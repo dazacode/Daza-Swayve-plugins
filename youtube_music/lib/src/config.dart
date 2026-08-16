@@ -33,6 +33,15 @@ const List<String> kYouTubeMusicAllowedHosts = <String>[
   'music.youtube.com',
   'www.youtube.com',
   'i.ytimg.com',
+  // Where the square cover art lives. `i.ytimg.com` only publishes video
+  // frames — 16:9, letterboxed, and stretched into a mess by anything that
+  // draws a sleeve — so without this host the plugin can describe a song's
+  // artwork but never its record's.
+  //
+  // Declared rather than assumed: this widens the network reach the user
+  // granted, and it is listed in the manifest as well so that the permission
+  // screen shows it before anybody agrees to it.
+  'lh3.googleusercontent.com',
   // The media servers. A resolved audio URL points at a rotating edge host —
   // `rr2---sn-a5m7lnld.googlevideo.com` and the like — and the HLS fallback at
   // `manifest.googlevideo.com`, so the wildcard is the only honest way to

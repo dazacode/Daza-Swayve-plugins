@@ -154,7 +154,10 @@ void main() {
       expect(isAllowedHost(host.toUpperCase()), isTrue);
     }
     for (final String host in <String>[
-      'lh3.googleusercontent.com',
+      // `lh3.googleusercontent.com` used to be here, as the example of a host
+      // the plugin could see referenced and was not permitted to reach. It is
+      // declared now — it is where the square cover art lives — so what proves
+      // the rule is the neighbours below, which are all still refused.
       'evil.example.com',
       'music.youtube.com.evil.example.com',
       'youtube.com',

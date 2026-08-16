@@ -237,18 +237,30 @@ allowlist, and the consequences are visible:
   costs **zero requests**, which matters: artwork is asked for once per visible
   row, and a provider that fetched to answer would turn one scroll into fifty
   requests against a rate-limited service.
-* **Album and artist artwork usually does not.** YouTube Music serves it from
-  `lh3.googleusercontent.com`, which this manifest does not declare, so those
-  references are dropped and the provider reports `null` — an absent fact,
-  which is what a null optional means in the SDK.
+* **Album and artist artwork works too, as of the cover-art change.** YouTube
+  Music serves it from `lh3.googleusercontent.com`, and that host is now
+  declared in `network.hosts`.
 
-That is a real functional gap, stated plainly rather than papered over. Closing
-it is a one-line manifest change (`"lh3.googleusercontent.com"` in
-`network.hosts`) — and it is deliberately *not* made here, because widening the
-hosts a plugin may reach is a change the user should see and approve, not
-something a plugin author slips in to make a grid look nicer. If the host grows
-a way to surface "this plugin wants one more image host", that is when to
-revisit it.
+  It was deliberately left out for a long time, on the reasoning that widening
+  the hosts a plugin may reach is a change the user should see and approve
+  rather than something a plugin author slips in to make a grid look nicer.
+  That reasoning still stands; the difference is that the approval was asked
+  for and given. The cost of leaving it out had also become clear: without it
+  the only artwork a track could carry was a frame from
+  `i.ytimg.com/vi/<videoId>/`, which is 16:9 and letterboxed, so anything
+  drawing a record sleeve was stretching a video still into a square.
+
+  Track art now prefers the square cover from the payload and falls back to the
+  derived frame only when there is none — a track that is genuinely a video
+  rather than a release. Both still cost zero requests.
+
+* **Sizes are asked for, not accepted.** Google's image URLs carry their
+  rendition in a suffix on the last path segment (`…/AAxyz=w60-h60-l90-rj`), so
+  `YouTubeMusicArtwork.resized` rewrites it to the size the image is actually
+  going to be drawn at. A payload offers 60-pixel thumbnails because it was
+  describing a list; the same picture at 544 is one string away and costs no
+  request. Hosts that do not size their URLs this way are left alone, since
+  rewriting one of those turns a working image into a 404.
 
 ---
 
@@ -256,14 +268,22 @@ revisit it.
 
 Two deliberate changes, both called out here because a manifest is a promise:
 
-1. **`network.hosts`** is `["music.youtube.com", "www.youtube.com", "i.ytimg.com"]`
-   rather than `["music.youtube.com", "*.googlevideo.com", "i.ytimg.com"]`.
-   * `*.googlevideo.com` was **removed**. It is the media-CDN host reached only
-     by stream extraction, which this plugin refuses to do. Declaring it would
-     advertise precisely the capability the previous section explains we do not
-     have, and least privilege means not asking for reach you will not use.
+1. **`network.hosts`** is `["music.youtube.com", "www.youtube.com",
+   "i.ytimg.com", "lh3.googleusercontent.com", "*.googlevideo.com"]` rather than
+   the example's `["music.youtube.com", "*.googlevideo.com", "i.ytimg.com"]`.
    * `www.youtube.com` was **added**. It is where the official embedded player
-     lives, and the plugin hands its URL to the host.
+     lives, and the plugin hands its URL to the host. It is also where the
+     player endpoint answers, the music front end having refused the client
+     this plugin has to use.
+   * `lh3.googleusercontent.com` was **added**, for the square cover art. See
+     the artwork section above for why it was left out for as long as it was.
+   * `*.googlevideo.com` is **kept**, and this is the entry worth reading
+     twice: it is the media CDN a resolved audio URL points at. The plugin was
+     originally written to refuse stream extraction entirely and this host was
+     removed to match, on the principle that you do not ask for reach you will
+     not use. Extraction was added later, so the reach is used, and the
+     declaration is once again the honest one. The wildcard is unavoidable —
+     the specific edge host is chosen per request by YouTube.
 2. **`webview` is declared as a capability**, not only as a permission. It is
    the one entry in the v1 capability vocabulary with no provider interface
    behind it — the host does the rendering — but the permission has to be

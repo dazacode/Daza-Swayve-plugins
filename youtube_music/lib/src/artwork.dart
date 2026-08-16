@@ -59,6 +59,55 @@ abstract final class YouTubeMusicArtwork {
     );
   }
 
+  /// Google's image hosts, whose URLs state the size they will serve.
+  ///
+  /// Kept separate from the manifest allowlist because it answers a different
+  /// question. That list is about what the plugin may *reach*; this is about
+  /// which URLs can be *rewritten*, and rewriting the size suffix of a host
+  /// that does not use one would produce a 404 out of a working image.
+  static const Set<String> _resizableHosts = <String>{
+    'lh3.googleusercontent.com',
+  };
+
+  /// [image] rewritten to serve a square of [width] pixels, where it can be.
+  ///
+  /// Google's image URLs carry their rendition in a suffix on the last path
+  /// segment — `…/AAxyz=w60-h60-l90-rj` — and changing it changes what is
+  /// served. It costs no request to ask for a bigger one, which is the whole
+  /// point: the payload offers a 60-pixel thumbnail because it was drawn in a
+  /// list, and the same picture at 544 is one string away.
+  ///
+  /// The options are the ones YouTube Music's own web player asks for:
+  ///
+  /// * `w`/`h` — the box to fit, in pixels.
+  /// * `l90` — JPEG quality 90. The default is lower and visibly soft once the
+  ///   image is being drawn large.
+  /// * `rj` — return JPEG, rather than letting the server pick a format the
+  ///   host's image decoder may not read.
+  ///
+  /// Anything on another host is returned unchanged rather than guessed at.
+  static SwayveImageRef resized(SwayveImageRef image, int width) {
+    final Uri uri = image.uri;
+    if (!_resizableHosts.contains(uri.host.toLowerCase())) return image;
+    if (uri.pathSegments.isEmpty) return image;
+
+    final String last = uri.pathSegments.last;
+    final int marker = last.indexOf('=');
+    final String base = marker == -1 ? last : last.substring(0, marker);
+    if (base.isEmpty) return image;
+
+    return SwayveImageRef(
+      uri: uri.replace(
+        pathSegments: <String>[
+          ...uri.pathSegments.take(uri.pathSegments.length - 1),
+          '$base=w$width-h$width-l90-rj',
+        ],
+      ),
+      width: width,
+      height: width,
+    );
+  }
+
   /// The best allowed image from an InnerTube `thumbnails` array, or `null`.
   ///
   /// Returns `null` when the array is empty **or** when every candidate lives
@@ -89,7 +138,14 @@ abstract final class YouTubeMusicArtwork {
         bestDistance = distance;
       }
     }
-    return best;
+    // Asked for at the size it is going to be drawn at, rather than accepted
+    // at the size the payload happened to mention. A list sends 60-pixel
+    // thumbnails because it was describing a list; the same picture at 544 is
+    // one string away and costs no request. See [resized].
+    if (best == null) return null;
+    return size == SwayveArtworkSize.original
+        ? best
+        : resized(best, target);
   }
 
   /// The best allowed image from a renderer's thumbnail block, or `null`.

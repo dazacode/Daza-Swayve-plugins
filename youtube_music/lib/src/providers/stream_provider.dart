@@ -191,6 +191,13 @@ final class YouTubeMusicStreamProvider implements SwayveStreamProvider {
 
     return SwayvePlayableSource.directUrl(
       chosen.url,
+      // The length of the audio this address points at, which the same response
+      // stated. Worth handing over rather than leaving the host to work out:
+      // the only alternative it has is to ask its own engine once the media
+      // loads, and for something arriving over a network that answer can be
+      // provisional while the stream buffers. A host that writes the first
+      // figure it hears into its library has recorded a guess as a fact.
+      duration: streams.duration,
       // None. The address carries its own signature and is bound to the
       // address it was resolved from; sending a user agent or a referer the
       // service did not ask for is how a signed URL gets refused.

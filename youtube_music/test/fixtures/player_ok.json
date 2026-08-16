@@ -6,6 +6,11 @@
     "status": "OK",
     "playableInEmbed": true
   },
+  "videoDetails": {
+    "videoId": "dQw4w9WgXcQ",
+    "title": "Nightdrive",
+    "lengthSeconds": "187"
+  },
   "streamingData": {
     "expiresInSeconds": "21540",
     "adaptiveFormats": [

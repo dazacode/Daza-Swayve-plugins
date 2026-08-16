@@ -117,6 +117,48 @@ void main() {
       );
     });
 
+    test('it states how long the audio runs', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      _queueAudio(harness);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(
+        source.duration,
+        const Duration(seconds: 187),
+        reason: 'The response states the length of the recording in the same '
+            'breath as the address, and a host with no such figure has to ask '
+            'its own engine once the media loads — which for a network source '
+            'can be provisional while the stream buffers. Every other length '
+            'this plugin knows is read off a line of display text, rounded at '
+            'best and describing a different upload at worst.',
+      );
+    });
+
+    test('a length that means nothing is not stated', () async {
+      final PluginHarness harness = await PluginHarness.start(host: _host());
+      addTearDown(harness.stop);
+      final Map<String, Object?> body = Map<String, Object?>.from(
+        fixture('player_ok.json')! as Map<String, Object?>,
+      )..['videoDetails'] = <String, Object?>{'lengthSeconds': '0'};
+      harness.http
+        ..enqueueJson(fixture('player_visitor_id.json'))
+        ..enqueueJson(body);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(trackId);
+
+      expect(
+        source.duration,
+        isNull,
+        reason: 'A live stream reports zero, and zero is not a duration — it '
+            'is the absence of one. Passing it on would have the host draw a '
+            'scrubber permanently at its end.',
+      );
+    });
+
     test('it carries no headers of its own', () async {
       final PluginHarness harness = await PluginHarness.start(host: _host());
       addTearDown(harness.stop);

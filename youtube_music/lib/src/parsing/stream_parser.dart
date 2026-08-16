@@ -89,13 +89,28 @@ final class YouTubeAudioStream {
 /// Everything a player response said, once it has been believed.
 final class YouTubePlayerStreams {
   /// Creates a parsed player response.
-  const YouTubePlayerStreams({required this.audio, required this.expiresIn});
+  const YouTubePlayerStreams({
+    required this.audio,
+    required this.expiresIn,
+    this.duration,
+  });
 
   /// Every audio-only rendition, in the order YouTube listed them.
   final List<YouTubeAudioStream> audio;
 
   /// How long these addresses stay good for.
   final Duration expiresIn;
+
+  /// How long the recording runs, as the player response states it.
+  ///
+  /// The one exact figure in this whole area, and the reason it is carried:
+  /// every other length this plugin knows is read off a line of display text —
+  /// `Artist • Album • 3:16` — which is rounded at best and describes a
+  /// different upload of the same song at worst. This is the length of the
+  /// audio the addresses above actually point at.
+  ///
+  /// Null when the response did not say, which is not something to fail over.
+  final Duration? duration;
 
   /// The best rendition for a host with the given capability.
   ///
@@ -266,7 +281,21 @@ YouTubePlayerStreams parsePlayerResponse(Map<String, Object?> response) {
   return YouTubePlayerStreams(
     audio: audio,
     expiresIn: _expiry(response),
+    duration: _statedDuration(response),
   );
+}
+
+/// The recording's length, as `videoDetails` states it.
+///
+/// Whole seconds, which is what the field carries. Null for anything missing,
+/// unparseable or nonsensical — a live stream reports zero, and zero is not a
+/// duration, it is the absence of one.
+Duration? _statedDuration(Map<String, Object?> response) {
+  final int? seconds = int.tryParse(
+    stringAt(response, const <Object>['videoDetails', 'lengthSeconds']) ?? '',
+  );
+  if (seconds == null || seconds <= 0) return null;
+  return Duration(seconds: seconds);
 }
 
 /// How long the addresses in [response] are good for.

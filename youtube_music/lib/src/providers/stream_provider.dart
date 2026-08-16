@@ -1,6 +1,7 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import '../config.dart';
+import '../embed_document.dart';
 import '../errors.dart';
 import '../ids.dart';
 import '../innertube_client.dart';
@@ -257,7 +258,23 @@ final class YouTubeMusicStreamProvider implements SwayveStreamProvider {
       );
     }
     return SwayvePlayableSource.webEmbed(
-      SwayveWebEmbed(kind: kind, uri: uri, controls: embedControls),
+      SwayveWebEmbed(
+        kind: kind,
+        uri: uri,
+        controls: embedControls,
+        // The adapter page, so the host can drive this rather than only look
+        // at it. Every YouTube-specific line in the playback path is in
+        // `embed_document.dart`; what crosses to the host is the vocabulary in
+        // `SwayveEmbedBridge` and nothing else.
+        //
+        // The origin has to be the address the host loads the page under, and
+        // it is: the host is told to use `uri` as the base. YouTube's API
+        // refuses a frame whose stated origin disagrees with where it runs.
+        document: youTubeEmbedDocument(
+          videoId: id.value,
+          origin: uri.origin,
+        ),
+      ),
       // An embed URL does not expire: it is a page, and the player behind it
       // re-resolves its own media. Claiming an expiry would make the host
       // re-resolve for nothing.

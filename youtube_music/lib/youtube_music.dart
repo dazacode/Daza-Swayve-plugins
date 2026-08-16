@@ -36,6 +36,7 @@ export 'src/config.dart'
         kYouTubeMusicPluginId,
         kYouTubeMusicPluginName,
         kYouTubeMusicPluginVersion;
+export 'src/embed_document.dart' show youTubeEmbedDocument;
 export 'src/ids.dart' show YouTubeMusicIdKind, YouTubeMusicIds;
 export 'src/providers/artwork_provider.dart';
 export 'src/providers/catalog_provider.dart';

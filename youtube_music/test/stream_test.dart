@@ -32,6 +32,8 @@ const SwayvePlaybackHints _watch = SwayvePlaybackHints(
 );
 
 void main() {
+  _embedDocumentTests();
+
   final SwayveMediaId trackId = YouTubeMusicIds.mediaId('kJQP7kiw5Fk');
 
   group('audio resolves to a direct media address', () {
@@ -440,6 +442,98 @@ void main() {
             'plugin has is an embed, and embeds were forbidden — so the audio '
             'is the best available source, and refusing outright would be '
             'reading a preference as a requirement.',
+      );
+    });
+  });
+}
+
+/// The adapter page, which is what lets a host draw its own transport over a
+/// player the host knows nothing about.
+void _embedDocumentTests() {
+  group('the adapter page', () {
+    String documentFor(String videoId) => youTubeEmbedDocument(
+          videoId: videoId,
+          origin: 'https://www.youtube.com',
+        );
+
+    test('it defines the bridge object the host calls', () {
+      final String page = documentFor('kJQP7kiw5Fk');
+
+      expect(page, contains('window.${SwayveEmbedBridge.objectName} ='));
+      for (final String function in <String>[
+        SwayveEmbedBridge.play,
+        SwayveEmbedBridge.pause,
+        SwayveEmbedBridge.seek,
+        SwayveEmbedBridge.setMuted,
+      ]) {
+        expect(
+          page,
+          contains('$function:'),
+          reason: 'A control the embed declares and the page does not define '
+              'is a button that does nothing.',
+        );
+      }
+    });
+
+    test('it posts to the channel the host registers', () {
+      expect(
+        documentFor('kJQP7kiw5Fk'),
+        contains('window.${SwayveEmbedBridge.channelName}.postMessage'),
+      );
+    });
+
+    test("it turns the service's own controls off", () {
+      final String page = documentFor('kJQP7kiw5Fk');
+
+      expect(
+        page,
+        contains('controls: 0'),
+        reason: 'Two sets of controls on one video disagree the moment either '
+            'is touched, and the one underneath is the one nobody asked for.',
+      );
+      expect(page, contains('rel: 0'));
+      expect(page, contains('iv_load_policy: 3'));
+      expect(page, contains('playsinline: 1'));
+    });
+
+    test('it states the origin it is loaded under', () {
+      expect(
+        documentFor('kJQP7kiw5Fk'),
+        contains('origin: "https://www.youtube.com"'),
+        reason: 'The API refuses a frame whose stated origin disagrees with '
+            'where it is running.',
+      );
+    });
+
+    test('the video id is encoded, not interpolated', () {
+      // Not a real id — YouTube's are eleven characters of [A-Za-z0-9_-] — but
+      // this file writes JavaScript by concatenation, and the moment one value
+      // is trusted the next one is too.
+      final String page = documentFor('a"); evil(); //');
+
+      expect(page, contains(r'videoId: "a\"); evil(); //"'));
+    });
+
+    test('the embed carries the page and its controls together', () async {
+      final PluginHarness harness = await PluginHarness.start(
+        host: _host(embeds: const {SwayveWebEmbedKind.inAppWebView}),
+      );
+      addTearDown(harness.stop);
+
+      final SwayvePlayableSource source =
+          await harness.stream.resolvePlayback(
+        YouTubeMusicIds.mediaId('kJQP7kiw5Fk'),
+        hints: _watch,
+      );
+
+      final SwayveWebEmbed embed = source.embed!;
+      expect(embed.document, isNotNull);
+      expect(embed.controls, isNotEmpty);
+      expect(
+        embed.isDrivable,
+        isTrue,
+        reason: 'Controls without a document is a promise with no way to keep '
+            'it, and a document without controls declares nothing drivable.',
       );
     });
   });

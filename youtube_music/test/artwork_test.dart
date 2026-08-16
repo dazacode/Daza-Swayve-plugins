@@ -199,7 +199,8 @@ void main() {
       expect(
         image!.uri.host,
         'i.ytimg.com',
-        reason: 'A track that is genuinely a video rather than a release has no '
+        reason:
+            'A track that is genuinely a video rather than a release has no '
             'square art at all, and a frame from it beats a placeholder.',
       );
     });

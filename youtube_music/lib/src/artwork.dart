@@ -37,7 +37,8 @@ abstract final class YouTubeMusicArtwork {
   static _Variant _variantFor(SwayveArtworkSize size) => switch (size) {
         SwayveArtworkSize.thumbnail => const _Variant('default', 120, 90),
         SwayveArtworkSize.medium => const _Variant('mqdefault', 320, 180),
-        SwayveArtworkSize.large || SwayveArtworkSize.original =>
+        SwayveArtworkSize.large ||
+        SwayveArtworkSize.original =>
           const _Variant('hqdefault', 480, 360),
       };
 

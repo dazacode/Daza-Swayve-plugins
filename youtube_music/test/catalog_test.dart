@@ -444,9 +444,7 @@ void main() {
       );
 
       expect(
-        page.items
-            .firstWhere((SwayveTrack t) => t.title == 'Petal')
-            .kind,
+        page.items.firstWhere((SwayveTrack t) => t.title == 'Petal').kind,
         SwayveTrackKind.song,
         reason: 'An "art track" is the audio-only rendition YouTube Music '
             'generates for a licensed release — a still sleeve and the '

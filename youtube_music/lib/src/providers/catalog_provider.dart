@@ -122,7 +122,9 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
     // out of playlists, so the feed is not asked again — it would hand back the
     // same shelves and the same playlists a second time.
     final _TrackQueue? resuming = _TrackQueue.decode(request.cursor);
-    if (resuming != null) return _tracksFromPlaylists(resuming, request, cancel);
+    if (resuming != null) {
+      return _tracksFromPlaylists(resuming, request, cancel);
+    }
 
     final Map<String, Object?> body = await _client.browse(
       feedFor(request.sort),
@@ -214,9 +216,8 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
       items: List<SwayveTrack>.unmodifiable(tracks),
       // Null at the end, so `hasMore` does not promise a page that would come
       // back empty for ever.
-      cursor: exhausted
-          ? null
-          : _TrackQueue(playlists: queue, feed: feed).encode(),
+      cursor:
+          exhausted ? null : _TrackQueue(playlists: queue, feed: feed).encode(),
     );
   }
 

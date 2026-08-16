@@ -562,8 +562,7 @@ void _embedDocumentTests() {
       );
       addTearDown(harness.stop);
 
-      final SwayvePlayableSource source =
-          await harness.stream.resolvePlayback(
+      final SwayvePlayableSource source = await harness.stream.resolvePlayback(
         YouTubeMusicIds.mediaId('kJQP7kiw5Fk'),
         hints: _watch,
       );

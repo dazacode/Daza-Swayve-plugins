@@ -93,8 +93,7 @@ final Uri kPlayerEndpoint = Uri.parse('$kWatchOrigin/youtubei/v1/player');
 /// The InnerTube endpoint that mints a visitor identity.
 ///
 /// See [InnerTubeClient.visitorData] for why every player request needs one.
-final Uri kVisitorEndpoint =
-    Uri.parse('$kWatchOrigin/youtubei/v1/visitor_id');
+final Uri kVisitorEndpoint = Uri.parse('$kWatchOrigin/youtubei/v1/visitor_id');
 
 /// The InnerTube client identity YouTube Music's own web app uses.
 ///

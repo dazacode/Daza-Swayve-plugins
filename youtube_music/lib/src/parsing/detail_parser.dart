@@ -145,7 +145,13 @@ SwayveAlbum? parseAlbumDetail(
         (tracks.isEmpty ? null : tracks.length),
     artwork: cover,
     availability: kYouTubeMusicAvailability,
-    tracks: _asListing(tracks, id: id, title: title, cover: cover),
+    tracks: _asListing(
+      tracks,
+      id: id,
+      title: title,
+      cover: cover,
+      credited: artists,
+    ),
   );
 }
 
@@ -170,14 +176,24 @@ SwayveAlbum? parseAlbumDetail(
 /// * **The cover**, when the row has none of its own. Every song on a release
 ///   shares its sleeve, and a page half of whose rows draw initials instead
 ///   looks broken rather than sparse.
+/// * **The credit**, when the row names nobody. An album page's rows are the
+///   clearest case of the problem this function exists for: the two-column
+///   layout gives each song a title, a running time and an empty second
+///   column, because the artist is written once in the header above them.
+///   A host filing those rows on their own had nothing to credit them to and
+///   wrote "Unknown artist" onto every song of every record opened this way —
+///   on the row, in the grouping keys and on the Now Playing screen.
 ///
 /// Nothing already present is overwritten. A row that stated its own album,
-/// number or image knows something this function is only inferring.
+/// number, image or artist knows something this function is only inferring —
+/// which is what keeps a guest feature credited to the guest rather than
+/// overwritten with whoever the record belongs to.
 List<SwayveTrack> _asListing(
   List<SwayveTrack> tracks, {
   required SwayveMediaId id,
   required String title,
   required SwayveImageRef? cover,
+  List<SwayveArtistRef> credited = const <SwayveArtistRef>[],
 }) {
   if (tracks.isEmpty) return const <SwayveTrack>[];
   final SwayveAlbumRef ref = SwayveAlbumRef(id: id, title: title);
@@ -189,6 +205,7 @@ List<SwayveTrack> _asListing(
             : tracks[i].album,
         trackNumber: tracks[i].trackNumber ?? i + 1,
         artwork: tracks[i].artwork ?? cover,
+        artists: tracks[i].artists.isEmpty ? credited : tracks[i].artists,
       ),
   ];
 }

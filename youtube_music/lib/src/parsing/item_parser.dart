@@ -82,7 +82,9 @@ final class ItemCollector {
     }
     switch (endpoint.kind) {
       case YouTubeMusicIdKind.track:
-        tracks.add(reader.toTrack(endpoint.id, title));
+        tracks.add(
+          reader.toTrack(endpoint.id, title, kind: endpoint.trackKind),
+        );
       case YouTubeMusicIdKind.album:
         albums.add(reader.toAlbum(endpoint.id, title));
       case YouTubeMusicIdKind.artist:
@@ -95,11 +97,45 @@ final class ItemCollector {
 
 /// What an item's navigation endpoint resolved to.
 final class _Endpoint {
-  const _Endpoint(this.kind, this.id);
+  const _Endpoint(this.kind, this.id, {this.trackKind});
 
   final YouTubeMusicIdKind kind;
   final String id;
+
+  /// For a track, whether the recording is a song or an upload — when the
+  /// endpoint said. Null everywhere else and whenever it did not say.
+  final SwayveTrackKind? trackKind;
 }
+
+/// Whether a `musicVideoType` describes a song or something that is watched.
+///
+/// ## Why this is the right question to ask, and where it used to be asked
+///
+/// This distinction used to be drawn one level up, by which search shelf a row
+/// arrived on: the "Songs" chip stamped [SwayveTrackKind.song] and the "Videos"
+/// chip stamped [SwayveTrackKind.video]. That is a true fact about a search and
+/// no help at all anywhere else — a browse, a playlist and an album page have
+/// no chips, so every row from every one of them was filed as a song. A
+/// library assembled by browsing therefore claimed that a chart of music videos
+/// was ninety songs, and a host offering to separate the two had nothing to
+/// separate them by.
+///
+/// The payload has always carried the answer per row. `ATV` is an "art track",
+/// which is what YouTube Music calls the audio-only rendition it generates for
+/// a licensed release — a still sleeve and the recording, which is a song by
+/// any reading. Everything else is something somebody filmed or uploaded:
+/// `OMV` an official music video, `UGC` a user upload.
+///
+/// Unknown values fall to [SwayveTrackKind.song] rather than to video. It is
+/// the SDK's own default, it is what an id with no music config at all gets,
+/// and of the two possible mistakes it is much the smaller: a video filed as a
+/// song is a row in the wrong list, while a song filed as a video disappears
+/// out of the list somebody was looking at.
+SwayveTrackKind _trackKindFor(String? musicVideoType) =>
+    switch (musicVideoType) {
+      null || 'MUSIC_VIDEO_TYPE_ATV' => SwayveTrackKind.song,
+      _ => SwayveTrackKind.video,
+    };
 
 /// The endpoint carried by [node], or `null` when there is not a usable one.
 _Endpoint? _readEndpoint(Object? node) {
@@ -108,7 +144,18 @@ _Endpoint? _readEndpoint(Object? node) {
     'videoId',
   ]);
   if (videoId != null && videoId.isNotEmpty) {
-    return _Endpoint(YouTubeMusicIdKind.track, videoId);
+    return _Endpoint(
+      YouTubeMusicIdKind.track,
+      videoId,
+      trackKind: _trackKindFor(
+        stringAt(node, const <Object>[
+          'watchEndpoint',
+          'watchEndpointMusicSupportedConfigs',
+          'watchEndpointMusicConfig',
+          'musicVideoType',
+        ]),
+      ),
+    );
   }
   final String? browseId = stringAt(node, const <Object>[
     'browseEndpoint',
@@ -287,13 +334,20 @@ abstract class _ItemReader {
 
   int? get trackNumber => null;
 
-  SwayveTrack toTrack(String videoId, String title) {
+  SwayveTrack toTrack(String videoId, String title, {SwayveTrackKind? kind}) {
     final List<String> segments = subtitleSegments(subtitleText);
     final List<SwayveArtistRef> artists = artistRefsFromRuns(subtitleRuns);
     final String? playlist = playlistId;
     return SwayveTrack(
       id: YouTubeMusicIds.mediaId(videoId),
       title: title,
+      // What the row itself said. A search still overwrites this with the
+      // shelf it came from, deliberately: the "Videos" chip is a stronger
+      // statement than any one row's config, since it is the index being
+      // searched rather than an attribute of the recording. Everything that is
+      // not a search — a browse, a playlist, an album — has no shelf to read
+      // and this is the whole of the answer there.
+      kind: kind ?? SwayveTrackKind.song,
       artists: artists.isNotEmpty
           ? artists
           : <SwayveArtistRef>[

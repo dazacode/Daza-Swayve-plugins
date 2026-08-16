@@ -88,6 +88,29 @@ String youTubeEmbedDocument({
     }
   }
 
+  // The player's own reason, in a sentence somebody can act on.
+  //
+  // Worth the lines. "This video cannot be played here" was what every failure
+  // used to say, and it is the least useful of the true things available: the
+  // player states a numbered reason, and the numbers mean genuinely different
+  // situations — one is a bad id, one is a video that has been taken down, and
+  // two of them mean the owner allows this video on YouTube and nowhere else.
+  // Told which, the host can offer the way out that actually works instead of
+  // leaving somebody tapping a picture that was never going to play.
+  //
+  // 101 and 150 are the same refusal reported two ways, which is a quirk of
+  // the API rather than a distinction worth carrying.
+  function describeError(code) {
+    switch (code) {
+      case 2: return 'YouTube did not recognise this video.';
+      case 5: return 'This video will not play in an embedded player.';
+      case 100: return 'This video is no longer on YouTube.';
+      case 101:
+      case 150: return 'The owner of this video only allows it to be watched on YouTube.';
+      default: return 'This video cannot be played here.';
+    }
+  }
+
   // Position is polled rather than pushed because the API has no event for it.
   // Four times a second is finer than a scrubber can show and costs nothing;
   // it runs only while playing, so a paused video is silent.
@@ -149,9 +172,9 @@ String youTubeEmbedDocument({
           if (event.data === 0) { post('ended'); return; }
           post('state');
         },
-        onError: function () {
+        onError: function (event) {
           stopTicking();
-          post('error', { message: 'This video cannot be played here.' });
+          post('error', { message: describeError(event && event.data) });
         }
       }
     });

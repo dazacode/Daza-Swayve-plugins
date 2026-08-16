@@ -322,5 +322,157 @@ void main() {
       expect(album.year, 2019);
       expect(album.trackCount, 12);
     });
+
+    test('a row with no credit of its own is credited to the record', () async {
+      harness.http.enqueueJson(fixture('browse_album_two_column.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      for (final SwayveTrack track in album!.tracks) {
+        expect(
+          track.artists.map((SwayveArtistRef a) => a.name),
+          contains('Aster Vale'),
+          reason: 'The two-column layout gives each song a title, a running '
+              'time and an empty second column — the artist is written once, '
+              'in the header above them. A host filing those rows on their own '
+              'had nobody to credit them to and wrote "Unknown artist" onto '
+              'every song of every record opened this way.',
+        );
+      }
+    });
+  });
+
+  group('a feed with no songs on it', () {
+    test('follows the playlists it does carry', () async {
+      harness.http
+        ..enqueueJson(fixture('browse_charts_no_songs.json'))
+        ..enqueueJson(fixture('browse_chart_playlist.json'));
+
+      // Asked for exactly what one playlist holds, so the page is filled by
+      // the first one opened and the second stays where it is. The unbounded
+      // request is a different test — see the cursor one below — and mixing
+      // the two here would make this assert the paging as well as the hop.
+      final SwayvePage<SwayveTrack> page = await harness.catalog.tracks(
+        const SwayveBrowseRequest(limit: 2),
+      );
+
+      expect(
+        page.items.map((SwayveTrack t) => t.title),
+        <String>['Reap What You Sow', 'Petal'],
+        reason: 'Signed out, the charts feed is about a hundred rows and not '
+            'one of them carries a video id — the shelves are top albums, top '
+            'artists and playlists. So this returned an empty page, always, '
+            'and the only thing that ever put a song in a plugin library was '
+            'somebody typing a search.',
+      );
+      expect(
+        harness.lastBody['browseId'],
+        'VLPLfixtureTrending20',
+        reason: 'The first playlist the feed named, browsed under its VL id. '
+            'The album on the same shelf is not a playlist and must not be '
+            'browsed as though it were.',
+      );
+    });
+
+    test('the songs it finds that way arrive whole', () async {
+      harness.http
+        ..enqueueJson(fixture('browse_charts_no_songs.json'))
+        ..enqueueJson(fixture('browse_chart_playlist.json'));
+
+      // Asked for exactly what one playlist holds, so the page is filled by
+      // the first one opened and the second stays where it is. The unbounded
+      // request is a different test — see the cursor one below — and mixing
+      // the two here would make this assert the paging as well as the hop.
+      final SwayvePage<SwayveTrack> page = await harness.catalog.tracks(
+        const SwayveBrowseRequest(limit: 2),
+      );
+
+      final SwayveTrack first = page.items.first;
+      expect(first.artists.single.name, 'Pooh Shiesty');
+      expect(first.duration, const Duration(minutes: 3, seconds: 38));
+    });
+
+    test('a feed that does carry songs is served straight through', () async {
+      harness.http.enqueueJson(fixture('browse_home.json'));
+      final SwayvePage<SwayveTrack> page = await harness.catalog.tracks(
+        SwayveBrowseRequest.first,
+      );
+
+      expect(page.items.single.title, 'Nightdrive');
+      expect(
+        harness.http.requests,
+        hasLength(1),
+        reason: 'The playlist hop is a fallback, not the design. A feed with a '
+            'song shelf on it must not cost an extra round trip.',
+      );
+    });
+
+    test('the cursor resumes in the playlists rather than the feed', () async {
+      harness.http
+        ..enqueueJson(fixture('browse_charts_no_songs.json'))
+        ..enqueueJson(fixture('browse_chart_playlist.json'));
+      final SwayvePage<SwayveTrack> first = await harness.catalog.tracks(
+        const SwayveBrowseRequest(limit: 1),
+      );
+
+      expect(first.cursor, isNotNull);
+      expect(first.hasMore, isTrue);
+
+      harness.http.enqueueJson(fixture('browse_chart_playlist.json'));
+      await harness.catalog.tracks(
+        SwayveBrowseRequest(cursor: first.cursor, limit: 2),
+      );
+
+      expect(
+        harness.lastBody['browseId'],
+        'VLPLfixtureDailyTop',
+        reason: 'A page served out of playlists has to carry on through the '
+            'ones it has not opened yet. Handing this cursor back to the feed '
+            'would start the charts again and re-file the same songs.',
+      );
+    });
+  });
+
+  group('telling a song from an upload', () {
+    test('an art track is a song', () async {
+      harness.http
+        ..enqueueJson(fixture('browse_charts_no_songs.json'))
+        ..enqueueJson(fixture('browse_chart_playlist.json'));
+      final SwayvePage<SwayveTrack> page = await harness.catalog.tracks(
+        const SwayveBrowseRequest(limit: 2),
+      );
+
+      expect(
+        page.items
+            .firstWhere((SwayveTrack t) => t.title == 'Petal')
+            .kind,
+        SwayveTrackKind.song,
+        reason: 'An "art track" is the audio-only rendition YouTube Music '
+            'generates for a licensed release — a still sleeve and the '
+            'recording, which is a song by any reading.',
+      );
+    });
+
+    test('an official music video is not', () async {
+      harness.http
+        ..enqueueJson(fixture('browse_charts_no_songs.json'))
+        ..enqueueJson(fixture('browse_chart_playlist.json'));
+      final SwayvePage<SwayveTrack> page = await harness.catalog.tracks(
+        const SwayveBrowseRequest(limit: 2),
+      );
+
+      expect(
+        page.items
+            .firstWhere((SwayveTrack t) => t.title == 'Reap What You Sow')
+            .kind,
+        SwayveTrackKind.video,
+        reason: 'This distinction used to be drawn by which search shelf a row '
+            'arrived on, which is no help at all to a browse — so every row '
+            'from every feed, playlist and album was filed as a song, and a '
+            'host offering to separate the two had nothing to separate them '
+            'by.',
+      );
+    });
   });
 }

@@ -124,7 +124,39 @@ SwayveAlbum? parseAlbumDetail(
   final List<String> secondSegments = subtitleSegments(
     runsTextAt(header, const <Object>['secondSubtitle', 'runs']),
   );
-  final List<SwayveArtistRef> artists = artistRefsFromRuns(subtitleRuns);
+  // The current web header (`musicResponsiveHeaderRenderer`) moved the
+  // artist credit out of `subtitle` — which now reads just "Album • 2019" —
+  // and into its own `straplineTextOne`, a line drawn above the title the
+  // way a byline sits above a headline. The older headers
+  // (`musicDetailHeaderRenderer`, `musicAlbumReleaseHeaderRenderer`) never
+  // had this field and still say the artist in `subtitle`, so both are read
+  // and whichever actually named an artist wins — `subtitle` first, since
+  // an older response that somehow carries both should not have a strapline
+  // artifact from a different renderer shape override its own credit.
+  final List<Object?> straplineRuns = listAt(header, const <Object>[
+    'straplineTextOne',
+    'runs',
+  ]);
+  final List<SwayveArtistRef> fromSubtitle = artistRefsFromRuns(subtitleRuns);
+  final List<SwayveArtistRef> fromStrapline = artistRefsFromRuns(
+    straplineRuns,
+  );
+  // A strapline naming nobody with a link is still worth reading as plain
+  // text — the same last resort `_fallbackArtistName` applies to a track row
+  // whose artist run carries no `navigationEndpoint`. Nameless is still
+  // better than the empty list that becomes "Unknown artist" two layers up.
+  final String? straplineText = runsTextAt(header, const <Object>[
+    'straplineTextOne',
+    'runs',
+  ]);
+  final List<SwayveArtistRef> artists = fromSubtitle.isNotEmpty
+      ? fromSubtitle
+      : fromStrapline.isNotEmpty
+          ? fromStrapline
+          : <SwayveArtistRef>[
+              if (straplineText != null && straplineText.trim().isNotEmpty)
+                SwayveArtistRef(name: straplineText.trim()),
+            ];
   final SwayveMediaId id = YouTubeMusicIds.mediaId(browseId);
   final SwayveImageRef? cover = YouTubeMusicArtwork.fromRenderer(
         header,

@@ -176,13 +176,29 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
     final Set<String> seen = <String>{};
     String? feed = from.feed;
 
-    for (int opened = 0;
+    for (int opened = 0, feedPages = 0;
         opened < _maxPlaylistsPerPage && tracks.length < request.limit;) {
       if (queue.isEmpty) {
         // Out of playlists, but the feed had more shelves. Taking the next of
         // them is what makes "load more" keep working past the first response
         // rather than stopping at whatever the first page happened to name.
         if (feed == null) break;
+        // Bounded on its own, separately from `opened`. A feed that keeps
+        // answering with shelves that name no playlist — a chart that is
+        // mostly genre grids and "you might like" carousels, say — advances
+        // `feed` on every one of these requests while `opened` never leaves
+        // zero, since that counter only moves once a playlist is actually
+        // opened below. Nothing here was otherwise stopping it: the loop
+        // still terminates eventually, because every step awaits a real
+        // request and the operation timeout is racing the whole thing, but
+        // "terminates by spending the entire operation budget hammering the
+        // same feed for a playlist it was never going to find" reads to
+        // whoever is holding the phone as the app having frozen, not as a
+        // page that came back empty. Three pages is enough slack for a feed
+        // that is genuinely a little sparse near the top and not enough to
+        // spend the whole budget looking.
+        if (feedPages >= _maxFeedPagesPerCall) break;
+        feedPages++;
         final ParsedFeed? next = await _nextFeedPage(feed, request, cancel);
         if (next == null) {
           feed = null;
@@ -275,6 +291,15 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
   ///
   /// Two chart playlists is forty songs, which is a page.
   static const int _maxPlaylistsPerPage = 2;
+
+  /// How many feed continuations [_tracksFromPlaylists] will follow while it
+  /// is looking for its next playlist, in one page.
+  ///
+  /// See the comment where this is checked for why it exists at all: without
+  /// it, a feed that never names a playlist has no bound stopping it, only a
+  /// deadline ending it — and spending twenty seconds hammering a feed for
+  /// nothing is what a "frozen" plugin looks like from the outside.
+  static const int _maxFeedPagesPerCall = 3;
 
   /// One page of a feed.
   ///

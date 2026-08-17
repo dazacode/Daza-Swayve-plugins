@@ -343,6 +343,121 @@ void main() {
     });
   });
 
+  group('the strapline header (artist moved out of subtitle)', () {
+    // The current `musicResponsiveHeaderRenderer` shape draws the artist as
+    // its own byline above the title, in `straplineTextOne`, and shrinks
+    // `subtitle` down to "Album • 2019" with no artist run left in it at
+    // all. `artistRefsFromRuns(subtitleRuns)` had nothing to find here — not
+    // because a run's endpoint failed to classify, but because the artist
+    // was never in `subtitle` to begin with — and every row's own flex
+    // column skips the artist too, the same way the two-column fixture's
+    // rows sometimes do, relying entirely on the header for credit. Every
+    // song of every record opened this way came back "Unknown artist" until
+    // `straplineTextOne` was read as a second source.
+    test('the album is credited from the strapline', () async {
+      harness.http.enqueueJson(fixture('browse_album_strapline.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      expect(album, isNotNull);
+      expect(album!.title, 'Long Way Home');
+      expect(
+        album.artists.single.name,
+        'Aster Vale',
+        reason: 'Nothing in this fixture\'s `subtitle` names an artist at '
+            'all — the credit only exists in `straplineTextOne`.',
+      );
+      expect(
+        album.artists.single.id,
+        YouTubeMusicIds.mediaId('UCq3rGZ1Zs9d0dTqRPcJHXyA'),
+      );
+      expect(album.year, 2019);
+      expect(album.trackCount, 12);
+    });
+
+    test('every row inherits the credit the header found in the strapline',
+        () async {
+      harness.http.enqueueJson(fixture('browse_album_strapline.json'));
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      expect(album!.tracks, hasLength(2));
+      for (final SwayveTrack track in album.tracks) {
+        expect(
+          track.artists.map((SwayveArtistRef a) => a.name),
+          contains('Aster Vale'),
+          reason: 'A row here carries no artist of its own — the strapline '
+              'is the only place the credit exists, so it has to reach the '
+              'tracks too, not just the album header.',
+        );
+      }
+    });
+
+    test('an unlinked strapline is still read as a name', () async {
+      // Same shape, but the strapline names the artist as plain text with no
+      // `navigationEndpoint` — a compilation or "Various Artists" credit is
+      // real enough not to link anywhere. A name with no id is still a name,
+      // and the alternative is the same "Unknown artist" this whole header
+      // was added to stop.
+      harness.http.enqueueJson(<String, Object?>{
+        'contents': <String, Object?>{
+          'twoColumnBrowseResultsRenderer': <String, Object?>{
+            'tabs': <Object?>[
+              <String, Object?>{
+                'tabRenderer': <String, Object?>{
+                  'content': <String, Object?>{
+                    'sectionListRenderer': <String, Object?>{
+                      'contents': <Object?>[
+                        <String, Object?>{
+                          'musicResponsiveHeaderRenderer': <String, Object?>{
+                            'title': <String, Object?>{
+                              'runs': <Object?>[
+                                <String, Object?>{'text': 'Sampler Vol. 1'},
+                              ],
+                            },
+                            'straplineTextOne': <String, Object?>{
+                              'runs': <Object?>[
+                                <String, Object?>{
+                                  'text': 'Various Artists',
+                                },
+                              ],
+                            },
+                            'subtitle': <String, Object?>{
+                              'runs': <Object?>[
+                                <String, Object?>{'text': 'Album'},
+                                <String, Object?>{'text': ' • '},
+                                <String, Object?>{'text': '2021'},
+                              ],
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+
+      final SwayveAlbum? album = await harness.catalog.album(
+        YouTubeMusicIds.mediaId('MPREb_9nqEki4ZLqI'),
+      );
+
+      expect(album, isNotNull);
+      expect(album!.artists.single.name, 'Various Artists');
+      expect(
+        album.artists.single.id,
+        isNull,
+        reason: 'Nothing here ever linked anywhere, so there is no id to '
+            'invent one from.',
+      );
+    });
+  });
+
   group('a feed with no songs on it', () {
     test('follows the playlists it does carry', () async {
       harness.http
@@ -430,6 +545,100 @@ void main() {
         reason: 'A page served out of playlists has to carry on through the '
             'ones it has not opened yet. Handing this cursor back to the feed '
             'would start the charts again and re-file the same songs.',
+      );
+    });
+  });
+
+  group('a feed that never gets to a playlist', () {
+    /// A page shaped like a real continuation response, but naming no
+    /// playlist and no track — just another continuation token. A chart made
+    /// almost entirely of shelves this plugin does not collect (genre grids,
+    /// "new artists you might like", and the like) can answer this way for
+    /// several pages before a playlist shelf finally turns up, and nothing
+    /// about the shape is malformed enough for [tryParseFeed] to reject it.
+    Map<String, Object?> emptyContinuation(String token) => <String, Object?>{
+          'continuationContents': <String, Object?>{
+            'musicShelfContinuation': <String, Object?>{
+              'contents': <Object?>[],
+              'continuations': <Object?>[
+                <String, Object?>{
+                  'nextContinuationData': <String, Object?>{
+                    'continuation': token,
+                  },
+                },
+              ],
+            },
+          },
+        };
+
+    test('does not spend the whole page hammering the same feed', () async {
+      // The first page: structurally a browse response, but its one shelf is
+      // empty and only carries a continuation onward.
+      harness.http.enqueueJson(<String, Object?>{
+        'contents': <String, Object?>{
+          'singleColumnBrowseResultsRenderer': <String, Object?>{
+            'tabs': <Object?>[
+              <String, Object?>{
+                'tabRenderer': <String, Object?>{
+                  'content': <String, Object?>{
+                    'sectionListRenderer': <String, Object?>{
+                      'contents': <Object?>[
+                        <String, Object?>{
+                          'musicShelfRenderer': <String, Object?>{
+                            'contents': <Object?>[],
+                            'continuations': <Object?>[
+                              <String, Object?>{
+                                'nextContinuationData': <String, Object?>{
+                                  'continuation': 'token-1',
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+      // Five more pages, every one of them just as empty and just as eager to
+      // hand back another token. A feed can keep this up far longer than
+      // five — this is only enough to prove the loop does not run to the end
+      // of the queue.
+      for (final String token in <String>[
+        'token-2',
+        'token-3',
+        'token-4',
+        'token-5',
+        'token-6',
+      ]) {
+        harness.http.enqueueJson(emptyContinuation(token));
+      }
+
+      final SwayvePage<SwayveTrack> page = await harness.catalog.tracks(
+        const SwayveBrowseRequest(limit: 50),
+      );
+
+      expect(
+        page.items,
+        isEmpty,
+        reason: 'Nothing on any of these pages was ever a playlist or a '
+            'track, so there is genuinely nothing to hand back.',
+      );
+      expect(
+        harness.http.requests.length,
+        lessThan(6),
+        reason: 'Every one of these continuations was empty and the queue '
+            'had six of them queued up. A provider that keeps asking for '
+            '"maybe the next one" without any bound on how many times will '
+            'walk the whole queue, spending its entire operation budget '
+            'hammering a feed that was never going to name a playlist — '
+            'which is a several-second stall on a real network, not a '
+            'four-microsecond one, and reads to whoever is holding the '
+            'phone as the app having frozen.',
       );
     });
   });

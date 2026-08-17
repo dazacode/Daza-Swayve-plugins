@@ -44,6 +44,7 @@ SwayveTrack? parseTrack(Map<String, Object?> json) {
   final String policy = stringAt(json, ['policy']) ?? 'ALLOW';
   final bool blocked = policy == 'BLOCK';
   final bool downloadable = boolAt(json, ['downloadable']);
+  final String? permalinkUrl = stringAt(json, ['permalink_url']);
 
   return SwayveTrack(
     id: SoundCloudIds.track(id),
@@ -65,13 +66,12 @@ SwayveTrack? parseTrack(Map<String, Object?> json) {
       downloadable: downloadable,
     ),
     extra: <String, Object?>{
-      if (stringAt(json, ['permalink_url']) case final String url)
-        'permalinkUrl': url,
       if (stringAt(json, ['genre']) case final String genre) 'genre': genre,
       if (intAt(json, ['playback_count']) case final int count)
         'playbackCount': count,
       'policy': policy,
     },
+    externalUrl: permalinkUrl == null ? null : Uri.tryParse(permalinkUrl),
   );
 }
 

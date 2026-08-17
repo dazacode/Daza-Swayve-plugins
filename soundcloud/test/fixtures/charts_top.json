@@ -10,6 +10,7 @@
         "downloadable": false,
         "streamable": true,
         "policy": "ALLOW",
+        "permalink_url": "https://soundcloud.com/chartartistone/chart-hit-one",
         "user": {"id": 6001, "kind": "user", "username": "ChartArtistOne"}
       }
     },

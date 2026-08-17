@@ -37,6 +37,13 @@ void main() {
       expect(track.duration, const Duration(minutes: 3, seconds: 41));
       expect(track.explicit, isTrue);
       expect(track.extra['playlistId'], 'RDAMVMkJQP7kiw5Fk');
+      expect(
+        track.externalUrl.toString(),
+        'https://music.youtube.com/watch?v=kJQP7kiw5Fk',
+        reason: 'Where a person can view this track on music.youtube.com — '
+            'distinct from the id, and from whatever the stream provider '
+            'resolves for playback.',
+      );
     });
 
     test('an artist known only by name still becomes an artist ref', () async {

@@ -377,6 +377,7 @@ abstract class _ItemReader {
           ),
       explicit: hasExplicitBadge(badges),
       availability: kYouTubeMusicAvailability,
+      externalUrl: Uri.parse('https://music.youtube.com/watch?v=$videoId'),
       extra: <String, Object?>{
         if (playlist != null && playlist.isNotEmpty) 'playlistId': playlist,
       },

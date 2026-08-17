@@ -54,6 +54,13 @@ void main() {
       expect(page.items, hasLength(3));
       expect(page.items.first.title, 'Chart Hit One');
       expect(page.items.first.id.value, 't5001');
+      expect(
+        page.items.first.externalUrl.toString(),
+        'https://soundcloud.com/chartartistone/chart-hit-one',
+        reason: 'Where a person can view this track on soundcloud.com — '
+            'distinct from the id, and from whatever the stream provider '
+            'resolves for playback.',
+      );
     });
 
     test(

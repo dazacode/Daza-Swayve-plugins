@@ -15,6 +15,7 @@ import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
 import 'errors.dart';
+import 'ids.dart';
 import 'json_path.dart';
 import 'parsing/playlist_parser.dart';
 import 'parsing/track_parser.dart';
@@ -517,15 +518,26 @@ final class SoundCloudClient {
   /// its stubs are simply absent from the result, per
   /// [spliceHydratedTracks]'s "keep what was gathered" rule — rather than
   /// failing the whole lookup over one bad batch.
+  ///
+  /// Every returned track carries [envelope]'s own id and title as its
+  /// [SwayveTrack.album] — [parseTrack] itself never sets one, since a bare
+  /// `/tracks/{id}` lookup has no release to credit a song to, but a track
+  /// reached *through* a playlist or album very much does, the same way
+  /// `YouTubeMusicCatalogProvider`'s own album lookup stamps its tracks with
+  /// the release being looked up rather than trusting each item to carry it.
+  /// Without this, nothing downstream can tell these songs came from the
+  /// same release: `Track.albumId` is exactly what a host groups a release's
+  /// songs under, and unset it left every hydrated release ungrouped — its
+  /// own request for it notwithstanding.
   Future<List<SwayveTrack>> hydratePlaylistTracks(
     ParsedPlaylistEnvelope envelope, {
     SwayveCancellationToken? cancel,
   }) async {
     final List<int> stubs = stubIdsIn(envelope.rawTracks);
     if (stubs.isEmpty) {
-      return spliceHydratedTracks(
-        envelope.rawTracks,
-        const <int, SwayveTrack>{},
+      return _withReleaseRef(
+        spliceHydratedTracks(envelope.rawTracks, const <int, SwayveTrack>{}),
+        envelope,
       );
     }
 
@@ -548,6 +560,25 @@ final class SoundCloudClient {
         continue;
       }
     }
-    return spliceHydratedTracks(envelope.rawTracks, hydrated);
+    return _withReleaseRef(
+      spliceHydratedTracks(envelope.rawTracks, hydrated),
+      envelope,
+    );
+  }
+
+  /// Stamps every track in [tracks] with [envelope]'s own id and title as
+  /// its [SwayveTrack.album], unless a track already carries one of its own.
+  List<SwayveTrack> _withReleaseRef(
+    List<SwayveTrack> tracks,
+    ParsedPlaylistEnvelope envelope,
+  ) {
+    final SwayveAlbumRef ref = SwayveAlbumRef(
+      id: SoundCloudIds.playlist(envelope.id),
+      title: envelope.title,
+    );
+    return [
+      for (final SwayveTrack track in tracks)
+        track.album == null ? track.copyWith(album: ref) : track,
+    ];
   }
 }

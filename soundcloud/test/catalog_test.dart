@@ -133,6 +133,20 @@ void main() {
       );
     });
 
+    test('stamps every track with the album it was hydrated for', () async {
+      harness.enqueueClientId();
+      harness.http.enqueueText(fixtureText('playlist_full.json'));
+
+      final SwayveAlbum? album =
+          await harness.catalog.album(SoundCloudIds.playlist(7001));
+
+      expect(album, isNotNull);
+      for (final track in album!.tracks) {
+        expect(track.album?.id, SoundCloudIds.playlist(7001));
+        expect(track.album?.title, 'Fully Hydrated Album');
+      }
+    });
+
     test('null for a foreign or wrong-kind id, without a request', () async {
       final SwayveAlbum? foreign = await harness.catalog
           .album(const SwayveMediaId('other.plugin', 't1'));

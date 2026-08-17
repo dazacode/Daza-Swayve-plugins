@@ -22,8 +22,7 @@ void main() {
       );
 
       final Uri requested = harness.requestedUrls.last;
-      expect(requested.path, '/charts');
-      expect(requested.queryParameters['kind'], 'trending');
+      expect(requested.path, '/featured_tracks/new%26hot/pop');
     });
 
     test('everything else falls back to the top chart', () async {
@@ -41,7 +40,7 @@ void main() {
         await harness.catalog.tracks(SwayveBrowseRequest(sort: sort));
 
         final Uri requested = harness.requestedUrls.last;
-        expect(requested.queryParameters['kind'], 'top', reason: '$sort');
+        expect(requested.path, '/featured_tracks/top50/pop', reason: '$sort');
       }
     });
 

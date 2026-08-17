@@ -102,9 +102,17 @@ final RegExp kClientIdPatternColon = RegExp('client_id\\s*:\\s*"([^"]+)"');
 /// cheap insurance, not speculative generality.
 final RegExp kClientIdPatternQuery = RegExp(r'client_id=([A-Za-z0-9]+)');
 
-/// SoundCloud's own "no specific genre" urn, used when a chart or discovery
-/// request has nothing more specific to ask for.
-const String kAllMusicGenre = 'soundcloud:genres:all-music';
+/// The genre bucket [SoundCloudClient.chartTracks] asks for when nothing more
+/// specific was requested.
+///
+/// Not SoundCloud's combined "All Music" bucket — verified live, that one
+/// (`all-music`, and its `soundcloud:genres:` urn form) is a *valid* bucket
+/// that `/featured_tracks` accepts and answers `200` for, but answers with an
+/// empty `collection` every time, for an anonymous `client_id`. `pop`,
+/// checked the same way, reliably returns a full page. There is no bucket
+/// that means "everything, unfiltered" on this endpoint for anonymous
+/// access; this is the least arbitrary substitute available.
+const String kAllMusicGenre = 'pop';
 
 /// The discovery tag used when `catalog.albums()` or
 /// `SoundCloudPlaylistProvider.playlists()` is asked for a listing with no
@@ -182,16 +190,34 @@ final class SoundCloudTimeouts {
   final Duration operation;
 }
 
-/// The chart `kind` SoundCloud's `/charts` endpoint understands.
+/// The bucket [SoundCloudClient.chartTracks] asks
+/// `/featured_tracks/{bucket}/{genre}` for.
+///
+/// **Not `/charts`.** The plugin originally called `/charts?kind=&genre=`,
+/// modelled on SoundCloud's own charts *web page* URL — a reasonable-looking
+/// guess that turned out to be wrong: verified live, `/charts` answers `404`
+/// for every combination of `kind` and `genre`, including ones `/search` and
+/// `/tracks/{id}` succeed with in the same request burst using the same
+/// `client_id`. It is not a permission or rate-limit problem, and not a
+/// malformed request either — `/featured_tracks/<bucket>/<genre>` (the
+/// endpoint the *charts page itself* actually calls) answers `200` with real
+/// tracks for the identical intent. `/charts` is simply gone from the public
+/// API's current routing table.
 enum SoundCloudChartKind {
-  /// Freshest first — SoundCloud's own "Trending" chart.
+  /// Freshest first — the `new&hot` bucket.
   trending,
 
-  /// Most-played first — SoundCloud's own "Top" chart.
+  /// Most-played first — the `top50` bucket.
   top;
 
-  /// The query-string spelling of this chart kind.
-  String get wireName => name;
+  /// The `/featured_tracks/<bucket>` path segment for this kind, already
+  /// percent-encoded — `trending`'s bucket name contains a literal `&`, which
+  /// is not a query string here and must not be sent unescaped in a path
+  /// segment.
+  String get pathSegment => switch (this) {
+        SoundCloudChartKind.trending => 'new%26hot',
+        SoundCloudChartKind.top => 'top50',
+      };
 }
 
 /// The chart [SoundCloudChartKind] that best serves [sort].

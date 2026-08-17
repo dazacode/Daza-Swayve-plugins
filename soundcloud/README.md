@@ -170,10 +170,10 @@ discipline YouTube Music's README applies to its own browse ids.
 
 | Method | Backed by | Confidence |
 |---|---|---|
-| `catalog.tracks()` | `/charts` — `recent` → `kind=trending`; everything else → `kind=top`, since `alphabetical` has no chart equivalent and an order with no feed falls back rather than fails. Regioned by the `region` setting. | High — SoundCloud's own web charts page, stable URL shape, used by other unofficial clients. |
+| `catalog.tracks()` | `/featured_tracks/{bucket}/{genre}` — `recent` → the `new&hot` bucket; everything else → `top50`, since `alphabetical` has no chart equivalent and an order with no feed falls back rather than fails. Regioned by the `region` setting; genred by [`kAllMusicGenre`](lib/src/config.dart) (`pop`, not SoundCloud's own "All Music" bucket — see that constant's doc comment for why). | **Confirmed live** — this plugin originally called `/charts?kind=&genre=`, modelled on the charts *page's* URL, and that guess was wrong: `/charts` answers `404` for every input, verified against the real API. `/featured_tracks` is the endpoint the charts page actually calls, and it answers `200` with real tracks for the same intent. See `SoundCloudChartKind`'s doc comment for the full story. |
 | `catalog.artists()` | Derived from the *same* chart response `tracks()` reads: the uploaders of trending/top tracks, deduplicated by user id, no separate request. | The data is real; the framing is honest — this is "uploaders of trending tracks," not a claim that SoundCloud publishes a trending-artists feed of its own (it doesn't, anonymously). |
-| `catalog.albums()` | `/playlists/discovery?tag=`, filtered to `is_album: true`. | Medium — plausible and consistent with SoundCloud's own web "Discover" shelves, but this endpoint's exact envelope has not been exercised against live traffic. Both a flat `collection` shape and a `sections[].items`/`.playlists` shelf shape are handled; see `SoundCloudClient.playlistDiscovery`. |
-| `SoundCloudPlaylistProvider.playlists()` | Same `/playlists/discovery` call, unfiltered. | Medium, same caveat. |
+| `catalog.albums()` | `/playlists/discovery?tag=`, filtered to `is_album: true`. | **Confirmed live, and confirmed empty.** The endpoint itself is real — `200`, the assumed flat `collection`/`next_href` envelope — but answers an empty `collection` for every tag tried, anonymously. Not a bug: an empty page is a legitimate "nothing to browse here" per the SDK's own convention, not a failure, so this is left as-is rather than chased further. |
+| `SoundCloudPlaylistProvider.playlists()` | Same `/playlists/discovery` call, unfiltered. | Confirmed live, same empty result. |
 | `catalog.album(id)` / `catalog.artist(id)` / `playlistTracks(id)` | Direct `/playlists/{id}`, `/users/{id}` lookups. | High — simple id lookups, confirmed by every reference. |
 
 A "Medium" row that guesses wrong about the response shape degrades to fewer
@@ -354,15 +354,29 @@ manifest at test time.
 
 **Verified by fixtures:** every parser, every normalization, every
 error/timeout/cancellation path, the permission model, and the allowlist
-discipline. **Not yet validated against live traffic:** whether the composed
-requests are accepted by SoundCloud at all; whether the client_id scrape
-still matches the current web bundle; whether `/playlists/discovery`'s shape
-— and even its continued existence — matches what's assumed here; every
-rate-limit and regional behavior. No request in this repository has ever been
-sent to SoundCloud. Treat the parsers as *correct given a payload of the
-documented shape*, and the request composition as *plausible but unproven* —
-the same honest framing YouTube Music's README applies to its own unverified
-browse feeds.
+discipline.
+
+**Verified live, since:** the client_id scrape (a real page, a real bundle, a
+real match); `/search/tracks`, `/tracks/{id}` and `/playlists/discovery`
+(all answer `200` with real data or a real, structurally-correct empty
+result — see the Browse feeds table above for `/playlists/discovery`'s
+empty-but-real result specifically); and `/featured_tracks/{bucket}/{genre}`,
+which replaced `/charts` after `/charts` was confirmed **dead** — `404` for
+every input tried, on real SoundCloud infrastructure, despite being the
+endpoint the original implementation modelled its request on. That's the one
+mistake live traffic has actually caught so far, and it shipped, reached a
+real device, and was diagnosed and fixed from the resulting error — see
+`SoundCloudChartKind`'s doc comment for the full account.
+
+**Still not validated against live traffic:** the client_id scrape's
+long-term stability as SoundCloud's bundle changes over time; every
+rate-limit and regional behavior; `resolveMediaUrl` and the rest of the
+playback path (`/tracks/{id}/media/.../stream/progressive` and its `hls`
+counterpart) have not yet been exercised live. Treat anything in that list as
+*plausible but unproven*, the same honest framing YouTube Music's README
+applies to its own unverified browse feeds — and treat everything above it as
+what it is: checked against the real service, not merely a fixture's idea of
+one.
 
 ---
 

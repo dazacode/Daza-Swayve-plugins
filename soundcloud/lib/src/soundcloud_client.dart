@@ -388,6 +388,12 @@ final class SoundCloudClient {
       _getJsonOrNull(_apiUri('/users/$id'), cancel: cancel);
 
   /// One page of SoundCloud's charts — the feed behind `catalog.tracks()`.
+  ///
+  /// `/featured_tracks/<bucket>/<genre>`, not `/charts` — see the class
+  /// comment on [SoundCloudChartKind] for why. [genre] is a path segment, not
+  /// escaped further here: every genre slug SoundCloud actually documents is
+  /// already URL-safe, and [SoundCloudChartKind.pathSegment] carries its own
+  /// escaping for the one bucket name that needs it.
   Future<SoundCloudPage> chartTracks({
     required SoundCloudChartKind kind,
     String genre = kAllMusicGenre,
@@ -395,14 +401,15 @@ final class SoundCloudClient {
     String? cursor,
     SwayveCancellationToken? cancel,
   }) {
-    final Map<String, String> params = <String, String>{
-      'kind': kind.wireName,
-      'genre': genre,
-    };
+    final Map<String, String> params = <String, String>{};
     if (region != kGlobalRegionValue && region.isNotEmpty) {
       params['region'] = region;
     }
-    return pageFor(cursor, _apiUri('/charts', params), cancel: cancel);
+    return pageFor(
+      cursor,
+      _apiUri('/featured_tracks/${kind.pathSegment}/$genre', params),
+      cancel: cancel,
+    );
   }
 
   /// One page of SoundCloud's playlist discovery shelves — the feed behind

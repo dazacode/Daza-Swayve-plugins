@@ -1,9 +1,7 @@
 # Daza-Swayve-plugins
 
 The plugin catalogue for **Swayve**: first-party plugins today, community
-plugins eventually. Private, because it's easier to be honest about a plugin
-that talks to an unofficial API when nobody outside the project is reading
-along yet.
+plugins eventually.
 
 **Everything platform-level lives elsewhere, in
 [`dazacode/swayve-plugins`](https://github.com/dazacode/swayve-plugins)

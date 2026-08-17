@@ -1,0 +1,18 @@
+{
+  "collection": [
+    {
+      "id": 3001,
+      "kind": "playlist",
+      "title": "A Real Album",
+      "is_album": true,
+      "set_type": "album",
+      "track_count": 10,
+      "release_date": "2022-03-01T00:00:00Z",
+      "artwork_url": "https://i1.sndcdn.com/artworks-album001-0-large.jpg",
+      "user": {"id": 2001, "kind": "user", "username": "ArtistOne"},
+      "tracks": []
+    }
+  ],
+  "next_href": null,
+  "query_urn": "soundcloud:search-autocomplete:def"
+}

@@ -1,0 +1,14 @@
+{
+  "collection": [
+    {
+      "id": 2001,
+      "kind": "user",
+      "username": "ArtistOne",
+      "avatar_url": "https://i1.sndcdn.com/avatars-user001-0-large.jpg",
+      "followers_count": 5000,
+      "verified": true
+    }
+  ],
+  "next_href": null,
+  "query_urn": "soundcloud:search-autocomplete:jkl"
+}

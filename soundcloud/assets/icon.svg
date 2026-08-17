@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SoundCloud plugin for Swayve">
+  <title>SoundCloud plugin for Swayve</title>
+  <!--
+    An original mark for this plugin. It is deliberately not derived from, and
+    not similar to, SoundCloud's own logo: no orange colourway, no cloud
+    silhouette, no bar-graph waveform, no wordmark. It is a simple play glyph
+    ringed by concentric arcs, meaning "audio radiating outward" — distinct in
+    shape, palette and composition from SoundCloud's mark. See
+    licenses/NOTICE.md.
+  -->
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#1F2933" stroke-width="4" />
+  <path
+    d="M20 20 A 17 17 0 0 1 20 44"
+    fill="none"
+    stroke="#1F2933"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+  <path d="M27 22 L27 42 L44 32 Z" fill="#1F2933" />
+</svg>

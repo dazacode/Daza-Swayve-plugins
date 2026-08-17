@@ -1,0 +1,27 @@
+{
+  "id": 222333444,
+  "kind": "track",
+  "title": "HLS Only Track",
+  "duration": 180000,
+  "downloadable": false,
+  "streamable": true,
+  "policy": "MONETIZE",
+  "user": {
+    "id": 777888,
+    "kind": "user",
+    "username": "HlsArtist"
+  },
+  "media": {
+    "transcodings": [
+      {
+        "url": "https://api-v2.soundcloud.com/media/soundcloud:tracks:222333444/ccc333/stream/hls",
+        "preset": "mp3_0_1",
+        "format": {
+          "protocol": "hls",
+          "mime_type": "audio/mpeg"
+        },
+        "quality": "sq"
+      }
+    ]
+  }
+}

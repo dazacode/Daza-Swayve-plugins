@@ -1,0 +1,23 @@
+{
+  "collection": [
+    {
+      "id": 3001,
+      "kind": "playlist",
+      "title": "A Real Album",
+      "is_album": true,
+      "track_count": 10,
+      "user": {"id": 2001, "kind": "user", "username": "ArtistOne"},
+      "tracks": []
+    },
+    {
+      "id": 4001,
+      "kind": "playlist",
+      "title": "A Plain Playlist",
+      "is_album": false,
+      "track_count": 25,
+      "user": {"id": 2003, "kind": "user", "username": "ArtistThree"},
+      "tracks": []
+    }
+  ],
+  "next_href": null
+}

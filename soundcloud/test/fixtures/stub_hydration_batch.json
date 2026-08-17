@@ -1,0 +1,22 @@
+[
+  {
+    "id": 9102,
+    "kind": "track",
+    "title": "Hydrated Second",
+    "duration": 160000,
+    "downloadable": true,
+    "streamable": true,
+    "policy": "ALLOW",
+    "user": {"id": 8002, "kind": "user", "username": "MixCreator"}
+  },
+  {
+    "id": 9103,
+    "kind": "track",
+    "title": "Hydrated Third",
+    "duration": 170000,
+    "downloadable": false,
+    "streamable": true,
+    "policy": "ALLOW",
+    "user": {"id": 8002, "kind": "user", "username": "MixCreator"}
+  }
+]

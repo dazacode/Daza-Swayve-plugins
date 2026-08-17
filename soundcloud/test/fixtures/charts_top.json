@@ -1,0 +1,45 @@
+{
+  "collection": [
+    {
+      "score": 9001.5,
+      "track": {
+        "id": 5001,
+        "kind": "track",
+        "title": "Chart Hit One",
+        "duration": 210000,
+        "downloadable": false,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 6001, "kind": "user", "username": "ChartArtistOne"}
+      }
+    },
+    {
+      "score": 8500.2,
+      "track": {
+        "id": 5002,
+        "kind": "track",
+        "title": "Chart Hit Two",
+        "duration": 195000,
+        "downloadable": false,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 6002, "kind": "user", "username": "ChartArtistTwo"}
+      }
+    },
+    {
+      "score": 8000.0,
+      "track": {
+        "id": 5003,
+        "kind": "track",
+        "title": "Chart Hit Three, Same Artist as One",
+        "duration": 220000,
+        "downloadable": false,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 6001, "kind": "user", "username": "ChartArtistOne"}
+      }
+    }
+  ],
+  "next_href": null,
+  "query_urn": null
+}

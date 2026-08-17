@@ -1,0 +1,14 @@
+{
+  "id": 555666,
+  "kind": "user",
+  "username": "TestArtist",
+  "full_name": "Test Artist Full Name",
+  "avatar_url": "https://i1.sndcdn.com/avatars-def456UVW-0-large.jpg",
+  "permalink_url": "https://soundcloud.com/testartist",
+  "city": "Berlin",
+  "country_code": "DE",
+  "followers_count": 128340,
+  "track_count": 42,
+  "verified": true,
+  "description": "Making synthwave since 2019."
+}

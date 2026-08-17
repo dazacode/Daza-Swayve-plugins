@@ -1,0 +1,33 @@
+{
+  "id": 7001,
+  "kind": "playlist",
+  "title": "Fully Hydrated Album",
+  "is_album": true,
+  "set_type": "album",
+  "track_count": 2,
+  "release_date": "2021-11-05T00:00:00Z",
+  "artwork_url": "https://i1.sndcdn.com/artworks-playlist7001-0-large.jpg",
+  "user": {"id": 8001, "kind": "user", "username": "AlbumArtist"},
+  "tracks": [
+    {
+      "id": 9001,
+      "kind": "track",
+      "title": "Track One",
+      "duration": 200000,
+      "downloadable": false,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 8001, "kind": "user", "username": "AlbumArtist"}
+    },
+    {
+      "id": 9002,
+      "kind": "track",
+      "title": "Track Two",
+      "duration": 210000,
+      "downloadable": false,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 8001, "kind": "user", "username": "AlbumArtist"}
+    }
+  ]
+}

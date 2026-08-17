@@ -1,0 +1,20 @@
+{
+  "query": "electronic",
+  "sections": [
+    {
+      "style": "grid",
+      "title": "Electronic essentials",
+      "playlists": [
+        {
+          "id": 3002,
+          "kind": "playlist",
+          "title": "Sectioned Album",
+          "is_album": true,
+          "track_count": 8,
+          "user": {"id": 2001, "kind": "user", "username": "ArtistOne"},
+          "tracks": []
+        }
+      ]
+    }
+  ]
+}

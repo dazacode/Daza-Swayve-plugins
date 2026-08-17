@@ -1,0 +1,25 @@
+{
+  "collection": [
+    {
+      "id": 4001,
+      "kind": "playlist",
+      "title": "A Plain Playlist",
+      "is_album": false,
+      "set_type": "",
+      "track_count": 25,
+      "description": "Just a mix.",
+      "user": {"id": 2003, "kind": "user", "username": "ArtistThree"},
+      "tracks": []
+    },
+    {
+      "id": 4002,
+      "kind": "playlist",
+      "title": "Mislabeled Album",
+      "is_album": true,
+      "user": {"id": 2003, "kind": "user", "username": "ArtistThree"},
+      "tracks": []
+    }
+  ],
+  "next_href": null,
+  "query_urn": "soundcloud:search-autocomplete:ghi"
+}

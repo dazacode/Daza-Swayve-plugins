@@ -1,0 +1,28 @@
+{
+  "id": 7002,
+  "kind": "playlist",
+  "title": "Playlist With Stubs",
+  "is_album": false,
+  "track_count": 3,
+  "user": {"id": 8002, "kind": "user", "username": "MixCreator"},
+  "tracks": [
+    {
+      "id": 9101,
+      "kind": "track",
+      "title": "Hydrated Opener",
+      "duration": 150000,
+      "downloadable": false,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 8002, "kind": "user", "username": "MixCreator"}
+    },
+    {
+      "id": 9102,
+      "kind": "track"
+    },
+    {
+      "id": 9103,
+      "kind": "track"
+    }
+  ]
+}

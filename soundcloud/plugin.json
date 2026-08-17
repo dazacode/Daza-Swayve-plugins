@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "app.swayve.plugins.soundcloud",
+  "name": "SoundCloud",
+  "description": "Adds SoundCloud search, browsing and playback to Swayve.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Swayve",
+    "url": "https://github.com/dazacode/swayve-plugins"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/dazacode/swayve-plugins/tree/main/plugins/soundcloud",
+  "repository": "https://github.com/dazacode/swayve-plugins",
+  "swayvePluginApi": 1,
+  "minimumSwayveVersion": "0.1.0",
+  "runtime": "compiled",
+  "platforms": [
+    "android",
+    "ios",
+    "windows"
+  ],
+  "capabilities": [
+    "search",
+    "catalog",
+    "streaming",
+    "artwork",
+    "playlist_read"
+  ],
+  "permissions": [
+    "network"
+  ],
+  "entrypoint": "soundcloud",
+  "media": {
+    "streamable": true,
+    "downloadable": true,
+    "offlineCache": false
+  },
+  "network": {
+    "hosts": [
+      "soundcloud.com",
+      "api-v2.soundcloud.com",
+      "*.sndcdn.com"
+    ]
+  },
+  "timeouts": {
+    "requestMs": 10000,
+    "operationMs": 20000
+  },
+  "settings": [
+    {
+      "id": "region",
+      "type": "select",
+      "label": "Chart region",
+      "description": "Region sent to SoundCloud's charts feed, which backs track browsing. Leave on Global for the worldwide chart.",
+      "default": "global",
+      "options": [
+        {
+          "value": "global",
+          "label": "Global"
+        },
+        {
+          "value": "US",
+          "label": "United States"
+        },
+        {
+          "value": "GB",
+          "label": "United Kingdom"
+        },
+        {
+          "value": "DE",
+          "label": "Germany"
+        },
+        {
+          "value": "BR",
+          "label": "Brazil"
+        }
+      ]
+    }
+  ],
+  "keywords": [
+    "soundcloud",
+    "music",
+    "streaming",
+    "search",
+    "catalog"
+  ],
+  "icon": "assets/icon.svg"
+}

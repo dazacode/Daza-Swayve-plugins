@@ -1,0 +1,32 @@
+{
+  "collection": [
+    {
+      "id": 1001,
+      "kind": "track",
+      "title": "First Result",
+      "duration": 200000,
+      "downloadable": false,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 2001, "kind": "user", "username": "ArtistOne"}
+    },
+    {
+      "id": 1002,
+      "kind": "track",
+      "title": "Second Result",
+      "duration": 180000,
+      "downloadable": true,
+      "streamable": true,
+      "policy": "ALLOW",
+      "publisher_metadata": {"explicit": true},
+      "user": {"id": 2002, "kind": "user", "username": "ArtistTwo"}
+    },
+    {
+      "kind": "track",
+      "no_id_here": true
+    }
+  ],
+  "total_results": 40,
+  "next_href": "https://api-v2.soundcloud.com/search/tracks?q=test&limit=20&offset=20&client_id=stale-id",
+  "query_urn": "soundcloud:search-autocomplete:abc"
+}

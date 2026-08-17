@@ -1,0 +1,17 @@
+{
+  "id": 333444555,
+  "kind": "track",
+  "title": "Unplayable Track",
+  "duration": 90000,
+  "downloadable": false,
+  "streamable": false,
+  "policy": "BLOCK",
+  "user": {
+    "id": 999000,
+    "kind": "user",
+    "username": "BlockedArtist"
+  },
+  "media": {
+    "transcodings": []
+  }
+}

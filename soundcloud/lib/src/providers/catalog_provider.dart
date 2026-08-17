@@ -113,7 +113,10 @@ final class SoundCloudCatalogProvider implements SwayveCatalogProvider {
             final int? numeric = SoundCloudIds.numericValue(artist.id);
             if (numeric != null && seen.add(numeric)) artists.add(artist);
           }
-          return SwayvePage<SwayveArtist>(items: artists, cursor: page.nextHref);
+          return SwayvePage<SwayveArtist>(
+            items: artists,
+            cursor: page.nextHref,
+          );
         },
       );
 

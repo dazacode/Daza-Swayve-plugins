@@ -43,7 +43,9 @@ void main() {
       expect(last.queryParameters['client_id'], 'anotherid456');
     });
 
-    test('tries scripts from last to first, recovering from a decoy trailing script', () async {
+    test(
+        'tries scripts from last to first, recovering from a decoy trailing script',
+        () async {
       http.enqueueText(
         '<html><body>'
         '<script src="https://a-v2.sndcdn.com/assets/app.js"></script>'
@@ -62,7 +64,8 @@ void main() {
       expect(last.queryParameters['client_id'], 'fake-client-id-123');
     });
 
-    test('no matching script or pattern is a clean unavailable error', () async {
+    test('no matching script or pattern is a clean unavailable error',
+        () async {
       http.enqueueText('<html><body>no scripts here</body></html>');
 
       await expectLater(
@@ -73,7 +76,8 @@ void main() {
   });
 
   group('401 recovery', () {
-    test('a 401 clears the cached id, re-scrapes, and retries exactly once', () async {
+    test('a 401 clears the cached id, re-scrapes, and retries exactly once',
+        () async {
       enqueueClientIdScrape(http);
       http.enqueueResponse(const SwayveHttpResponse(statusCode: 401));
       enqueueClientIdScrape(http);
@@ -106,7 +110,8 @@ void main() {
   });
 
   group('caching', () {
-    test('concurrent callers before the first scrape share one fetch', () async {
+    test('concurrent callers before the first scrape share one fetch',
+        () async {
       enqueueClientIdScrape(http);
       http.enqueueJson(<String, Object?>{'id': 1, 'title': 'A'});
       http.enqueueJson(<String, Object?>{'id': 2, 'title': 'B'});

@@ -1,0 +1,46 @@
+{
+  "collection": [
+    {
+      "created_at": "2026-08-07T15:55:36Z",
+      "kind": "like",
+      "track": {
+        "id": 8001,
+        "kind": "track",
+        "title": "Liked Track One",
+        "duration": 210000,
+        "downloadable": false,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 9001, "kind": "user", "username": "LikedArtistOne"}
+      }
+    },
+    {
+      "created_at": "2026-08-07T15:55:28Z",
+      "kind": "like",
+      "playlist": {
+        "id": 8500,
+        "kind": "playlist",
+        "title": "A Liked Playlist, Not A Track",
+        "is_album": true,
+        "track_count": 12,
+        "user": {"id": 9002, "kind": "user", "username": "PlaylistArtist"}
+      }
+    },
+    {
+      "created_at": "2026-08-07T15:55:15Z",
+      "kind": "like",
+      "track": {
+        "id": 8002,
+        "kind": "track",
+        "title": "Liked Track Two",
+        "duration": 198000,
+        "downloadable": true,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 9001, "kind": "user", "username": "LikedArtistOne"}
+      }
+    }
+  ],
+  "next_href": "https://api-v2.soundcloud.com/users/193/likes?offset=abc&limit=8",
+  "query_urn": null
+}

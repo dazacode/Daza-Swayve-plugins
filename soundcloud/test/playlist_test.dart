@@ -30,12 +30,16 @@ void main() {
       harness.enqueueClientId();
       harness.http.enqueueText(fixtureText('playlist_full.json'));
 
-      final SwayvePage<SwayveTrack> page = await harness.playlist.playlistTracks(
+      final SwayvePage<SwayveTrack> page =
+          await harness.playlist.playlistTracks(
         SoundCloudIds.playlist(7001),
         SwayveBrowseRequest.first,
       );
 
-      expect(page.items.map((t) => t.title), <String>['Track One', 'Track Two']);
+      expect(
+        page.items.map((t) => t.title),
+        <String>['Track One', 'Track Two'],
+      );
     });
 
     test('hydrates stub tracks and splices them back into position', () async {
@@ -44,7 +48,8 @@ void main() {
         ..enqueueText(fixtureText('playlist_with_stubs.json'))
         ..enqueueText(fixtureText('stub_hydration_batch.json'));
 
-      final SwayvePage<SwayveTrack> page = await harness.playlist.playlistTracks(
+      final SwayvePage<SwayveTrack> page =
+          await harness.playlist.playlistTracks(
         SoundCloudIds.playlist(7002),
         SwayveBrowseRequest.first,
       );
@@ -61,13 +66,16 @@ void main() {
       expect(hydrationRequest.queryParameters['ids'], '9102,9103');
     });
 
-    test('a batch that fails to hydrate keeps its stubs absent rather than crashing', () async {
+    test(
+        'a batch that fails to hydrate keeps its stubs absent rather than crashing',
+        () async {
       harness.enqueueClientId();
       harness.http
         ..enqueueText(fixtureText('playlist_with_stubs.json'))
         ..enqueueResponse(const SwayveHttpResponse(statusCode: 500));
 
-      final SwayvePage<SwayveTrack> page = await harness.playlist.playlistTracks(
+      final SwayvePage<SwayveTrack> page =
+          await harness.playlist.playlistTracks(
         SoundCloudIds.playlist(7002),
         SwayveBrowseRequest.first,
       );
@@ -77,14 +85,17 @@ void main() {
       expect(page.items.map((t) => t.title), <String>['Hydrated Opener']);
     });
 
-    test('empty page for a foreign or wrong-kind id, without a request', () async {
-      final SwayvePage<SwayveTrack> foreign = await harness.playlist.playlistTracks(
+    test('empty page for a foreign or wrong-kind id, without a request',
+        () async {
+      final SwayvePage<SwayveTrack> foreign =
+          await harness.playlist.playlistTracks(
         const SwayveMediaId('other.plugin', 'p1'),
         SwayveBrowseRequest.first,
       );
       expect(foreign.items, isEmpty);
 
-      final SwayvePage<SwayveTrack> wrongKind = await harness.playlist.playlistTracks(
+      final SwayvePage<SwayveTrack> wrongKind =
+          await harness.playlist.playlistTracks(
         SoundCloudIds.track(1),
         SwayveBrowseRequest.first,
       );
@@ -96,7 +107,8 @@ void main() {
       harness.enqueueClientId();
       harness.http.enqueueResponse(const SwayveHttpResponse(statusCode: 404));
 
-      final SwayvePage<SwayveTrack> page = await harness.playlist.playlistTracks(
+      final SwayvePage<SwayveTrack> page =
+          await harness.playlist.playlistTracks(
         SoundCloudIds.playlist(999999),
         SwayveBrowseRequest.first,
       );

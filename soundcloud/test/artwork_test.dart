@@ -12,11 +12,13 @@ void main() {
 
     test('maps each SwayveArtworkSize onto its own token', () {
       expect(
-        SoundCloudArtwork.resized(original, SwayveArtworkSize.thumbnail).toString(),
+        SoundCloudArtwork.resized(original, SwayveArtworkSize.thumbnail)
+            .toString(),
         endsWith('-t120x120.jpg'),
       );
       expect(
-        SoundCloudArtwork.resized(original, SwayveArtworkSize.medium).toString(),
+        SoundCloudArtwork.resized(original, SwayveArtworkSize.medium)
+            .toString(),
         endsWith('-t200x200.jpg'),
       );
       expect(
@@ -24,7 +26,8 @@ void main() {
         endsWith('-t500x500.jpg'),
       );
       expect(
-        SoundCloudArtwork.resized(original, SwayveArtworkSize.original).toString(),
+        SoundCloudArtwork.resized(original, SwayveArtworkSize.original)
+            .toString(),
         endsWith('-original.jpg'),
       );
     });
@@ -63,7 +66,8 @@ void main() {
     });
   });
 
-  group('SoundCloudArtworkProvider — costs a request, unlike YouTube Music', () {
+  group('SoundCloudArtworkProvider — costs a request, unlike YouTube Music',
+      () {
     late PluginHarness harness;
 
     setUp(() async {
@@ -71,7 +75,8 @@ void main() {
     });
     tearDown(() => harness.stop());
 
-    test('a track falls back to the uploader avatar when it has no artwork', () async {
+    test('a track falls back to the uploader avatar when it has no artwork',
+        () async {
       harness.enqueueClientId();
       harness.http.enqueueJson(<String, Object?>{
         'id': 1,

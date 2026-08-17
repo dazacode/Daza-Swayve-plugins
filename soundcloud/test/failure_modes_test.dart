@@ -66,7 +66,8 @@ void main() {
     }
   });
 
-  test('a 401 that survives the retry is unavailable, not auth-required', () async {
+  test('a 401 that survives the retry is unavailable, not auth-required',
+      () async {
     harness.enqueueClientId();
     harness.http.enqueueResponse(const SwayveHttpResponse(statusCode: 401));
     harness.enqueueClientId();
@@ -78,7 +79,9 @@ void main() {
     );
   });
 
-  test('garbage, truncated or wrong-shaped bodies are malformed, never TypeError', () async {
+  test(
+      'garbage, truncated or wrong-shaped bodies are malformed, never TypeError',
+      () async {
     harness.enqueueClientId();
     harness.http.enqueueText('not json at all {{{');
     await expectLater(
@@ -104,7 +107,8 @@ void main() {
   });
 
   test('a cancelled token is honoured on every provider', () async {
-    final SwayveCancellationTokenSource source = SwayveCancellationTokenSource();
+    final SwayveCancellationTokenSource source =
+        SwayveCancellationTokenSource();
     source.cancel();
 
     await expectLater(
@@ -119,7 +123,8 @@ void main() {
       throwsA(isA<SwayvePluginCancelledException>()),
     );
     await expectLater(
-      harness.stream.resolvePlayback(SoundCloudIds.track(1), cancel: source.token),
+      harness.stream
+          .resolvePlayback(SoundCloudIds.track(1), cancel: source.token),
       throwsA(isA<SwayvePluginCancelledException>()),
     );
     await expectLater(
@@ -127,7 +132,8 @@ void main() {
       throwsA(isA<SwayvePluginCancelledException>()),
     );
     await expectLater(
-      harness.playlist.playlists(SwayveBrowseRequest.first, cancel: source.token),
+      harness.playlist
+          .playlists(SwayveBrowseRequest.first, cancel: source.token),
       throwsA(isA<SwayvePluginCancelledException>()),
     );
     expect(harness.http.requests, isEmpty);

@@ -7,7 +7,7 @@ Adds SoundCloud search, browsing and playback to Swayve.
 | **Id** | `app.swayve.plugins.soundcloud` |
 | **Runtime** | `compiled` — the source lives here and is compiled into a Swayve build |
 | **Platforms** | android, ios, windows |
-| **Capabilities** | `search`, `catalog`, `streaming`, `artwork`, `playlist_read` |
+| **Capabilities** | `search`, `catalog`, `streaming`, `artwork`, `playlist_read`, `artist_activity` |
 | **Permissions** | `network` |
 | **Network hosts** | `soundcloud.com`, `api-v2.soundcloud.com`, `*.sndcdn.com` |
 | **Streamable** | yes |
@@ -31,7 +31,7 @@ From a host:
 import 'package:soundcloud/soundcloud.dart';
 
 final SwayvePlugin plugin = createSoundCloudPlugin();
-await plugin.initialize(context);   // registers five providers, makes zero requests
+await plugin.initialize(context);   // registers six providers, makes zero requests
 ```
 
 `initialize` does no network work. `SoundCloudClient`'s `client_id` is scraped
@@ -75,12 +75,13 @@ Everything below is exported from `package:soundcloud/soundcloud.dart`.
 | Symbol | What it is |
 |---|---|
 | `createSoundCloudPlugin()` | The `SwayvePluginFactory`. Cheap, synchronous, no side effects. |
-| `SoundCloudPlugin` | The `SwayvePlugin`. Holds the five providers; exposes them as nullable getters after `initialize`. |
+| `SoundCloudPlugin` | The `SwayvePlugin`. Holds the six providers; exposes them as nullable getters after `initialize`. |
 | `SoundCloudSearchProvider` | `SwayveSearchProvider`. |
 | `SoundCloudCatalogProvider` | `SwayveCatalogProvider`. Also `region`, read fresh from settings. |
 | `SoundCloudPlaylistProvider` | `SwayvePlaylistProvider` — see [Playlists vs. albums](#playlists-vs-albums). |
 | `SoundCloudArtworkProvider` | `SwayveArtworkProvider`. |
 | `SoundCloudStreamProvider` | `SwayveStreamProvider`. |
+| `SoundCloudArtistActivityProvider` | `SwayveArtistActivityProvider` — an artist's likes and reposts, see the Browse feeds table above. |
 | `SoundCloudClient` | The API client every provider shares. Also `SoundCloudClientIdException`, `SoundCloudPage`. |
 | `SoundCloudIds` / `SoundCloudIdKind` | Minting and reading this plugin's provider-native identifiers. |
 | `SoundCloudArtwork` | Sizing SoundCloud's image URLs without a request, once the image URL is known. |
@@ -175,6 +176,8 @@ discipline YouTube Music's README applies to its own browse ids.
 | `catalog.albums()` | `/playlists/discovery?tag=`, filtered to `is_album: true`. | **Confirmed live, and confirmed empty.** The endpoint itself is real — `200`, the assumed flat `collection`/`next_href` envelope — but answers an empty `collection` for every tag tried, anonymously. Not a bug: an empty page is a legitimate "nothing to browse here" per the SDK's own convention, not a failure, so this is left as-is rather than chased further. |
 | `SoundCloudPlaylistProvider.playlists()` | Same `/playlists/discovery` call, unfiltered. | Confirmed live, same empty result. |
 | `catalog.album(id)` / `catalog.artist(id)` / `playlistTracks(id)` | Direct `/playlists/{id}`, `/users/{id}` lookups. | High — simple id lookups, confirmed by every reference. |
+| `SoundCloudArtistActivityProvider.likedTracks(id)` | `/users/{id}/likes`, filtered to tracks. | **Confirmed live**, and confirmed live from the start — see the note below. |
+| `SoundCloudArtistActivityProvider.repostedTracks(id)` | `/stream/users/{id}/reposts`, filtered to `track-repost` entries. | **Confirmed live**, and confirmed live from the start — see the note below. |
 
 A "Medium" row that guesses wrong about the response shape degrades to fewer
 items — it never throws over a shape mismatch, per [Parsing](#parsing--total-never-throws)
@@ -345,6 +348,7 @@ manifest at test time.
 | `search_test.dart` | Normalization, a bad row skipped rather than failing the call, the `is_album` album/playlist split, per-kind endpoint fan-out, the multi-shelf cursor round trip, `limit` on the wire. |
 | `catalog_test.dart` | Chart-kind selection per `SwayveSortOrder`, the `region` setting reaching the wire and reacting to a mid-session change, the chart-envelope unwrap, artist deduplication, discovery filtering (both the flat and sectioned shapes), and every lookup's `null`/foreign-id behavior. |
 | `playlist_test.dart` | The unfiltered discovery listing, in-order track lookup, stub hydration and splicing, a failed hydration batch degrading gracefully, and foreign/missing-id handling. |
+| `artist_activity_test.dart` | Both feeds' happy path, each dropping the non-track item its live-verified fixture mixes in (a liked playlist, a playlist repost); wrong-kind and foreign ids answering an empty page without a request; a `404` user surfacing as `SwayvePluginUnavailableException`. |
 | `stream_test.dart` | Progressive-over-HLS preference and the HLS fallback, per-track `downloadable`, `Unsupported` for an unplayable track or wrong-kind id, `expiresIn`. |
 | `artwork_test.dart` | The size-token ladder, the avatar fallback, undeclared-host rejection, and that this path costs a request unlike YouTube Music's. |
 | `failure_modes_test.dart` | The full status/timeout/cancellation/malformed-body matrix, on every provider. |
@@ -367,6 +371,20 @@ endpoint the original implementation modelled its request on. That's the one
 mistake live traffic has actually caught so far, and it shipped, reached a
 real device, and was diagnosed and fixed from the resulting error — see
 `SoundCloudChartKind`'s doc comment for the full account.
+
+`/users/{id}/likes` and `/stream/users/{id}/reposts`, behind
+`SoundCloudArtistActivityProvider`, join this list too — and unlike
+`/charts`, they were checked against the real API *before* a line of parsing
+code was written, not after a bad guess reached a device. A live request
+against a public account confirmed the exact envelope each endpoint answers
+with: a likes item wraps `{"track": {...}}` or `{"playlist": {...}}`
+alongside `created_at`/`kind: "like"` — the same `"track"` wrapper key
+`unwrapChartItem` already handled for `/charts`, so no new unwrapping logic
+was needed, only a new caller. A reposts item carries its own `type` —
+`track-repost` or `playlist-repost` — wrapping the reposted entity the same
+way. Both fixtures (`test/fixtures/user_likes.json`,
+`test/fixtures/user_reposts.json`) are built from that live shape, trimmed to
+the fields the parser reads.
 
 **Still not validated against live traffic:** the client_id scrape's
 long-term stability as SoundCloud's bundle changes over time; every

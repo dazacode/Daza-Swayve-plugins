@@ -56,11 +56,16 @@ void main() {
       expect(page.items.first.id.value, 't5001');
     });
 
-    test('the region setting reaches the wire and a mid-session change is picked up', () async {
+    test(
+        'the region setting reaches the wire and a mid-session change is picked up',
+        () async {
       harness.enqueueClientId();
       harness.http.enqueueText(fixtureText('charts_top.json'));
       await harness.catalog.tracks(SwayveBrowseRequest.first);
-      expect(harness.requestedUrls.last.queryParameters.containsKey('region'), isFalse);
+      expect(
+        harness.requestedUrls.last.queryParameters.containsKey('region'),
+        isFalse,
+      );
 
       harness.context.fakeSettings.set(kRegionSettingId, 'US');
       harness.http.enqueueText(fixtureText('charts_top.json'));
@@ -98,7 +103,8 @@ void main() {
       expect(page.items.single.title, 'A Real Album');
     });
 
-    test('falls back to the sectioned shape when there is no flat collection', () async {
+    test('falls back to the sectioned shape when there is no flat collection',
+        () async {
       harness.enqueueClientId();
       harness.http.enqueueText(fixtureText('discovery_sectioned.json'));
 
@@ -121,12 +127,15 @@ void main() {
       expect(album, isNotNull);
       expect(album!.title, 'Fully Hydrated Album');
       expect(album.tracks, hasLength(2));
-      expect(album.tracks.map((t) => t.title), <String>['Track One', 'Track Two']);
+      expect(
+        album.tracks.map((t) => t.title),
+        <String>['Track One', 'Track Two'],
+      );
     });
 
     test('null for a foreign or wrong-kind id, without a request', () async {
-      final SwayveAlbum? foreign =
-          await harness.catalog.album(const SwayveMediaId('other.plugin', 't1'));
+      final SwayveAlbum? foreign = await harness.catalog
+          .album(const SwayveMediaId('other.plugin', 't1'));
       expect(foreign, isNull);
 
       final SwayveAlbum? wrongKind =

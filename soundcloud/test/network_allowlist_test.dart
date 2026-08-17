@@ -66,6 +66,22 @@ void main() {
       expectAllowlisted();
     });
 
+    test('across artist activity', () async {
+      harness.enqueueClientId();
+      harness.http.enqueueText(fixtureText('user_likes.json'));
+      await harness.artistActivity.likedTracks(
+        SoundCloudIds.user(193),
+        SwayveBrowseRequest.first,
+      );
+
+      harness.http.enqueueText(fixtureText('user_reposts.json'));
+      await harness.artistActivity.repostedTracks(
+        SoundCloudIds.user(193),
+        SwayveBrowseRequest.first,
+      );
+      expectAllowlisted();
+    });
+
     test('following a next_href cursor', () async {
       harness.enqueueClientId();
       harness.http.enqueueText(fixtureText('search_tracks.json'));
@@ -73,7 +89,8 @@ void main() {
         const SwayveSearchQuery(text: 'x', kinds: {SwayveSearchKind.track}),
       );
 
-      harness.http.enqueueJson(<String, Object?>{'collection': [], 'next_href': null});
+      harness.http
+          .enqueueJson(<String, Object?>{'collection': [], 'next_href': null});
       await harness.search.search(
         SwayveSearchQuery(
           text: 'x',
@@ -84,7 +101,9 @@ void main() {
       expectAllowlisted();
     });
 
-    test('a cursor pointing off-allowlist is rejected as malformed, never followed', () async {
+    test(
+        'a cursor pointing off-allowlist is rejected as malformed, never followed',
+        () async {
       await expectLater(
         harness.search.search(
           const SwayveSearchQuery(

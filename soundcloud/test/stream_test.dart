@@ -49,7 +49,8 @@ void main() {
     expect(source.availability.downloadable, isFalse);
   });
 
-  test('downloadable on the resolved source matches the track flag both ways', () async {
+  test('downloadable on the resolved source matches the track flag both ways',
+      () async {
     harness.enqueueClientId();
     harness.http
       ..enqueueText(fixtureText('track_full.json'))
@@ -66,7 +67,8 @@ void main() {
     expect(notDownloadable.availability.downloadable, isFalse);
   });
 
-  test('a track with no usable transcoding throws Unsupported, not Unavailable', () async {
+  test('a track with no usable transcoding throws Unsupported, not Unavailable',
+      () async {
     harness.enqueueClientId();
     harness.http.enqueueText(fixtureText('track_no_transcodings.json'));
 
@@ -94,7 +96,9 @@ void main() {
     );
   });
 
-  test('expiresIn carries the documented conservative floor minus the safety margin', () async {
+  test(
+      'expiresIn carries the documented conservative floor minus the safety margin',
+      () async {
     harness.enqueueClientId();
     harness.http
       ..enqueueText(fixtureText('track_full.json'))

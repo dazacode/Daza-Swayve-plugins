@@ -12,7 +12,8 @@ import 'artwork.dart';
 /// internal size threshold. A stub has no `title`; nothing else in the shape
 /// is a reliable enough signal, since a legitimately empty-titled edge case
 /// is not one SoundCloud actually produces.
-bool isTrackStub(Map<String, Object?> json) => stringAt(json, ['title']) == null;
+bool isTrackStub(Map<String, Object?> json) =>
+    stringAt(json, ['title']) == null;
 
 /// The bare numeric id of a (possibly stub) track object, or `null`.
 int? trackStubId(Map<String, Object?> json) => intAt(json, ['id']);
@@ -64,24 +65,47 @@ SwayveTrack? parseTrack(Map<String, Object?> json) {
       downloadable: downloadable,
     ),
     extra: <String, Object?>{
-      if (stringAt(json, ['permalink_url']) case final String url) 'permalinkUrl': url,
+      if (stringAt(json, ['permalink_url']) case final String url)
+        'permalinkUrl': url,
       if (stringAt(json, ['genre']) case final String genre) 'genre': genre,
-      if (intAt(json, ['playback_count']) case final int count) 'playbackCount': count,
+      if (intAt(json, ['playback_count']) case final int count)
+        'playbackCount': count,
       'policy': policy,
     },
   );
 }
 
-/// Unwraps one item of a SoundCloud `/charts` collection.
+/// Unwraps one item of a SoundCloud `/charts` collection — and, sharing the
+/// same `{"track": {...}}` wrapper key, one item of `/users/{id}/likes` or
+/// `/stream/users/{id}/reposts` too (both confirmed live).
 ///
 /// Observed chart payloads wrap each entry as `{"score": ..., "track": {...}}`
 /// alongside a popularity score; this endpoint's exact envelope has not been
 /// exercised against live traffic (see the plugin README), so a bare track
-/// object is also accepted as a fallback rather than assumed impossible.
+/// object is also accepted as a fallback rather than assumed impossible. A
+/// likes or reposts item that wraps a *playlist* instead (no `"track"` key)
+/// falls back to the outer envelope, which has no `id`/`title` of its own —
+/// [parseTrack] returns `null` for it, and [parseTrackList] drops it, which
+/// is exactly the "tracks only" filtering those two feeds need.
 Map<String, Object?> unwrapChartItem(Object? item) {
   final Map<String, Object?> json = mapOf(item);
   final Map<String, Object?> wrapped = mapOf(json['track']);
   return wrapped.isNotEmpty ? wrapped : json;
+}
+
+/// Whether [item] from `/stream/users/{id}/reposts` reposts a track, as
+/// opposed to a playlist repost or any other activity-feed entry this
+/// plugin's audio-only, tracks-only scope has no use for.
+///
+/// Judged by the envelope's own `type` field (`"track-repost"`, confirmed
+/// live) when present; falls back to the nested entity's `kind` for a shape
+/// that omits `type` altogether, the same "look at what's actually there
+/// rather than assume a field exists" discipline [unwrapChartItem] follows.
+bool isTrackRepost(Object? item) {
+  final Map<String, Object?> json = mapOf(item);
+  final String? type = stringAt(json, ['type']);
+  if (type != null) return type == 'track-repost';
+  return stringAt(json, ['track', 'kind']) == 'track';
 }
 
 /// Parses every full (non-stub) track object in [items], skipping anything

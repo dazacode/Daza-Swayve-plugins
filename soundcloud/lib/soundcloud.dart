@@ -10,7 +10,7 @@
 ///
 /// ```dart
 /// final SwayvePlugin plugin = createSoundCloudPlugin();
-/// await plugin.initialize(context);   // registers five providers
+/// await plugin.initialize(context);   // registers six providers
 /// ```
 ///
 /// The plugin is **pure Dart**. It depends on `swayve_plugin_sdk` and nothing
@@ -40,6 +40,7 @@ export 'src/config.dart'
         kStreamLifetime;
 export 'src/ids.dart' show SoundCloudIdKind, SoundCloudIds;
 export 'src/parsing/artwork.dart' show SoundCloudArtwork;
+export 'src/providers/artist_activity_provider.dart';
 export 'src/providers/artwork_provider.dart';
 export 'src/providers/catalog_provider.dart';
 export 'src/providers/playlist_provider.dart';

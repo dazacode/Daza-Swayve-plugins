@@ -111,7 +111,8 @@ void main() {
     );
   });
 
-  test('the multi-shelf cursor round-trips and pages each shelf independently', () async {
+  test('the multi-shelf cursor round-trips and pages each shelf independently',
+      () async {
     harness.enqueueClientId();
     harness.http.enqueueText(fixtureText('search_tracks.json'));
 

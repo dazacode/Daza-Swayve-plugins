@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "app.swayve.plugins.soundcloud",
   "name": "SoundCloud",
   "description": "Adds SoundCloud search, browsing and playback to Swayve.",
@@ -24,7 +24,8 @@
     "catalog",
     "streaming",
     "artwork",
-    "playlist_read"
+    "playlist_read",
+    "artist_activity"
   ],
   "permissions": [
     "network"

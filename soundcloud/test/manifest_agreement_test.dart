@@ -45,7 +45,8 @@ void main() {
     });
 
     test('the manifest states what the plugin promises about media', () {
-      final Map<String, Object?> media = manifest['media']! as Map<String, Object?>;
+      final Map<String, Object?> media =
+          manifest['media']! as Map<String, Object?>;
       expect(media['streamable'], isTrue);
       expect(
         media['downloadable'],
@@ -88,6 +89,7 @@ void main() {
       expect(harness.context.streamProviders, hasLength(1));
       expect(harness.context.artworkProviders, hasLength(1));
       expect(harness.context.playlistProviders, hasLength(1));
+      expect(harness.context.artistActivityProviders, hasLength(1));
       expect(harness.context.authProviders, isEmpty);
       expect(harness.context.lyricsProviders, isEmpty);
       expect(harness.context.scrobbleProviders, isEmpty);

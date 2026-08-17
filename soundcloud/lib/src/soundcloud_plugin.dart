@@ -1,6 +1,7 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
+import 'providers/artist_activity_provider.dart';
 import 'providers/artwork_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/playlist_provider.dart';
@@ -10,10 +11,10 @@ import 'soundcloud_client.dart';
 
 /// The SoundCloud plugin.
 ///
-/// It declares five capabilities — `search`, `catalog`, `streaming`,
-/// `artwork`, `playlist_read` — and registers exactly one provider for each
-/// during [initialize]. It declares one permission, `network`, and touches
-/// exactly the one context facility it guards.
+/// It declares six capabilities — `search`, `catalog`, `streaming`,
+/// `artwork`, `playlist_read`, `artist_activity` — and registers exactly one
+/// provider for each during [initialize]. It declares one permission,
+/// `network`, and touches exactly the one context facility it guards.
 ///
 /// [initialize] does no network work of its own. `SoundCloudClient`'s
 /// `client_id` is scraped lazily, on the first request any provider actually
@@ -36,6 +37,7 @@ final class SoundCloudPlugin implements SwayvePlugin {
   SoundCloudStreamProvider? _stream;
   SoundCloudArtworkProvider? _artwork;
   SoundCloudPlaylistProvider? _playlist;
+  SoundCloudArtistActivityProvider? _artistActivity;
 
   /// The client every provider shares, or `null` before [initialize].
   SoundCloudClient? get client => _client;
@@ -55,6 +57,10 @@ final class SoundCloudPlugin implements SwayvePlugin {
   /// The registered playlist provider, or `null` before [initialize].
   SoundCloudPlaylistProvider? get playlistProvider => _playlist;
 
+  /// The registered artist-activity provider, or `null` before [initialize].
+  SoundCloudArtistActivityProvider? get artistActivityProvider =>
+      _artistActivity;
+
   @override
   SwayvePluginIdentity get identity => const SwayvePluginIdentity(
         id: kSoundCloudPluginId,
@@ -67,6 +73,7 @@ final class SoundCloudPlugin implements SwayvePlugin {
           SwayveCapability.streaming,
           SwayveCapability.artwork,
           SwayveCapability.playlistRead,
+          SwayveCapability.artistActivity,
         },
         permissions: <SwayvePermission>{
           SwayvePermission.network,
@@ -94,13 +101,18 @@ final class SoundCloudPlugin implements SwayvePlugin {
     _stream = SoundCloudStreamProvider(client: client, timeouts: timeouts);
     _artwork = SoundCloudArtworkProvider(client: client, timeouts: timeouts);
     _playlist = SoundCloudPlaylistProvider(client: client, timeouts: timeouts);
+    _artistActivity = SoundCloudArtistActivityProvider(
+      client: client,
+      timeouts: timeouts,
+    );
 
     context
       ..registerSearchProvider(_search!)
       ..registerCatalogProvider(_catalog!)
       ..registerStreamProvider(_stream!)
       ..registerArtworkProvider(_artwork!)
-      ..registerPlaylistProvider(_playlist!);
+      ..registerPlaylistProvider(_playlist!)
+      ..registerArtistActivityProvider(_artistActivity!);
 
     context.log.info('SoundCloud ready.');
   }
@@ -116,5 +128,6 @@ final class SoundCloudPlugin implements SwayvePlugin {
     _stream = null;
     _artwork = null;
     _playlist = null;
+    _artistActivity = null;
   }
 }

@@ -19,11 +19,15 @@ SwayveArtist? parseArtist(Map<String, Object?> json) {
       SwayveArtworkSize.medium,
     ),
     extra: <String, Object?>{
-      if (stringAt(json, ['permalink_url']) case final String url) 'permalinkUrl': url,
+      if (stringAt(json, ['permalink_url']) case final String url)
+        'permalinkUrl': url,
       if (stringAt(json, ['city']) case final String city) 'city': city,
-      if (stringAt(json, ['country_code']) case final String cc) 'countryCode': cc,
-      if (intAt(json, ['followers_count']) case final int count) 'followersCount': count,
-      if (boolAt(json, ['verified']) case final bool verified when verified) 'verified': true,
+      if (stringAt(json, ['country_code']) case final String cc)
+        'countryCode': cc,
+      if (intAt(json, ['followers_count']) case final int count)
+        'followersCount': count,
+      if (boolAt(json, ['verified']) case final bool verified when verified)
+        'verified': true,
     },
   );
 }

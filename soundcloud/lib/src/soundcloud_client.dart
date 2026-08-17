@@ -181,7 +181,10 @@ final class SoundCloudClient {
         queryParameters: <String, String>{...base.queryParameters, ...params},
       );
 
-  Uri _apiUri(String path, [Map<String, String> params = const <String, String>{}]) =>
+  Uri _apiUri(
+    String path, [
+    Map<String, String> params = const <String, String>{},
+  ]) =>
       _withParams(Uri.parse('$kApiOrigin$path'), params);
 
   /// Performs an authenticated GET, retrying **exactly once** with a freshly
@@ -194,12 +197,16 @@ final class SoundCloudClient {
     SwayveCancellationToken? cancel,
   }) async {
     final String id = await clientId(cancel: cancel);
-    Uri url = _withParams(baseUrl, <String, String>{...params, 'client_id': id});
+    Uri url =
+        _withParams(baseUrl, <String, String>{...params, 'client_id': id});
     SwayveHttpResponse response = await _rawGet(url, cancel: cancel);
     if (response.statusCode == 401) {
       forgetClientId();
       final String freshId = await clientId(cancel: cancel);
-      url = _withParams(baseUrl, <String, String>{...params, 'client_id': freshId});
+      url = _withParams(
+        baseUrl,
+        <String, String>{...params, 'client_id': freshId},
+      );
       response = await _rawGet(url, cancel: cancel);
     }
     return (response: response, url: url);
@@ -451,6 +458,36 @@ final class SoundCloudClient {
     return SoundCloudPage(items: flattened, nextHref: null);
   }
 
+  /// One page of [id]'s liked tracks (and liked playlists, unfiltered here)
+  /// — `/users/{id}/likes`.
+  ///
+  /// Confirmed live: each item wraps either `{"track": {...}}` or
+  /// `{"playlist": {...}}` alongside `created_at`/`kind: "like"`, the same
+  /// `"track"` wrapper key [unwrapChartItem] already handles — no bespoke
+  /// unwrapping needed. Filtering the mixed feed down to tracks only is
+  /// `SoundCloudArtistActivityProvider`'s job, not this client's.
+  Future<SoundCloudPage> userLikes(
+    int id, {
+    String? cursor,
+    SwayveCancellationToken? cancel,
+  }) =>
+      pageFor(cursor, _apiUri('/users/$id/likes'), cancel: cancel);
+
+  /// One page of [id]'s reposts (tracks and playlists both, unfiltered here)
+  /// — `/stream/users/{id}/reposts`.
+  ///
+  /// Confirmed live: each item carries a `type` of `track-repost` or
+  /// `playlist-repost`, wrapping the reposted entity under `"track"` or
+  /// `"playlist"` respectively alongside `created_at`/`user`/`uuid`.
+  /// Filtering to `track-repost` only is `SoundCloudArtistActivityProvider`'s
+  /// job, not this client's.
+  Future<SoundCloudPage> userReposts(
+    int id, {
+    String? cursor,
+    SwayveCancellationToken? cancel,
+  }) =>
+      pageFor(cursor, _apiUri('/stream/users/$id/reposts'), cancel: cancel);
+
   /// Resolves one transcoding's own `url` (from `media.transcodings[].url`
   /// on a track) to the final, playable CDN address.
   Future<Uri> resolveMediaUrl(
@@ -486,7 +523,10 @@ final class SoundCloudClient {
   }) async {
     final List<int> stubs = stubIdsIn(envelope.rawTracks);
     if (stubs.isEmpty) {
-      return spliceHydratedTracks(envelope.rawTracks, const <int, SwayveTrack>{});
+      return spliceHydratedTracks(
+        envelope.rawTracks,
+        const <int, SwayveTrack>{},
+      );
     }
 
     final Map<int, SwayveTrack> hydrated = <int, SwayveTrack>{};

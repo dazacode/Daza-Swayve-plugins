@@ -1,0 +1,55 @@
+{
+  "collection": [
+    {
+      "created_at": "2026-08-13T15:40:47Z",
+      "type": "track-repost",
+      "uuid": "0000019f-fbc8-7818-0000-00001b795ea8",
+      "caption": null,
+      "user": {"id": 193, "kind": "user", "username": "SoundCloud"},
+      "track": {
+        "id": 8101,
+        "kind": "track",
+        "title": "Reposted Track One",
+        "duration": 220000,
+        "downloadable": false,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 9101, "kind": "user", "username": "RepostedArtistOne"}
+      }
+    },
+    {
+      "created_at": "2026-08-07T15:55:37Z",
+      "type": "playlist-repost",
+      "uuid": "0000019f-dcef-e4a8-ffff-ffffe5f541e5",
+      "caption": null,
+      "user": {"id": 193, "kind": "user", "username": "SoundCloud"},
+      "playlist": {
+        "id": 8600,
+        "kind": "playlist",
+        "title": "A Reposted Playlist, Not A Track",
+        "is_album": true,
+        "track_count": 20,
+        "user": {"id": 9102, "kind": "user", "username": "PlaylistArtist"}
+      }
+    },
+    {
+      "created_at": "2026-08-06T12:00:00Z",
+      "type": "track-repost",
+      "uuid": "0000019f-fbc8-7818-0000-00001b795ea9",
+      "caption": null,
+      "user": {"id": 193, "kind": "user", "username": "SoundCloud"},
+      "track": {
+        "id": 8102,
+        "kind": "track",
+        "title": "Reposted Track Two",
+        "duration": 175000,
+        "downloadable": false,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 9101, "kind": "user", "username": "RepostedArtistOne"}
+      }
+    }
+  ],
+  "next_href": "https://api-v2.soundcloud.com/stream/users/193/reposts?offset=abc&limit=25",
+  "query_urn": null
+}

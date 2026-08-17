@@ -29,7 +29,8 @@ Directory get pluginRoot {
   Directory directory = Directory.current;
   for (var depth = 0; depth < 6; depth++) {
     if (File('${directory.path}/plugin.json').existsSync()) return directory;
-    final Directory candidate = Directory('${directory.path}/plugins/soundcloud');
+    final Directory candidate =
+        Directory('${directory.path}/plugins/soundcloud');
     if (File('${candidate.path}/plugin.json').existsSync()) return candidate;
     final Directory parent = directory.parent;
     if (parent.path == directory.path) break;
@@ -47,7 +48,8 @@ Map<String, Object?> get manifest => _manifest ??= jsonDecode(
 
 /// The hostnames the manifest declares under `network.hosts`.
 List<String> get manifestHosts {
-  final Map<String, Object?> network = manifest['network']! as Map<String, Object?>;
+  final Map<String, Object?> network =
+      manifest['network']! as Map<String, Object?>;
   return (network['hosts']! as List<Object?>).cast<String>();
 }
 
@@ -162,6 +164,10 @@ final class PluginHarness {
 
   /// The registered playlist provider.
   SoundCloudPlaylistProvider get playlist => plugin.playlistProvider!;
+
+  /// The registered artist-activity provider.
+  SoundCloudArtistActivityProvider get artistActivity =>
+      plugin.artistActivityProvider!;
 
   /// Every request the plugin has made, as URLs.
   List<Uri> get requestedUrls => http.requests.map((r) => r.url).toList();

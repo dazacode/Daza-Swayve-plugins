@@ -1,0 +1,31 @@
+# Repo-wide lint baseline for Daza-Swayve-plugins.
+#
+# Every plugin in this repository points at this file with a relative include
+# (`include: ../analysis_options.yaml`), so a reviewer reading any plugin here
+# is reading code held to the same standard.
+#
+# Kept in lockstep with swayve-plugins' own root `analysis_options.yaml` on
+# purpose — the SDK and tooling for this repo's plugins live there, and a
+# baseline that drifted between the two would mean code that passes analysis
+# here could fail it there, or vice versa.
+#
+# `public_member_api_docs` is deliberately NOT enabled here. The contract
+# scopes that rule to the SDK only, not to plugins that consume it.
+include: package:lints/recommended.yaml
+
+analyzer:
+  # Test fixtures are miniature packages with their own pubspec.yaml. They
+  # exist to be read as data, not to be analysed as part of whatever plugin
+  # owns them.
+  exclude:
+    - test/fixtures/**
+  errors:
+    todo: ignore
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_print
+    - prefer_final_locals
+    - require_trailing_commas
+    - unawaited_futures

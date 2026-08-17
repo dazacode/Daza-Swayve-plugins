@@ -4,8 +4,8 @@ description: >-
   playback to Swayve through the Swayve plugin SDK, in pure Dart.
 version: 0.1.0
 publish_to: none
-repository: https://github.com/dazacode/swayve-plugins
-issue_tracker: https://github.com/dazacode/swayve-plugins/issues
+repository: https://github.com/dazacode/Daza-Swayve-plugins
+issue_tracker: https://github.com/dazacode/Daza-Swayve-plugins/issues
 
 environment:
   sdk: ^3.6.0
@@ -13,9 +13,16 @@ environment:
 # Pure Dart. No Flutter, no HTTP stack, no media library: every capability
 # this plugin needs is host-mediated through `SwayvePluginContext`. See the
 # "Dependencies we deliberately do not have" section of README.md.
+#
+# The SDK lives in a separate repository now, so this is a `git:` dependency
+# rather than `path:` — see that repo's README for why a plugin developed
+# outside swayve-plugins always depends on the SDK this way.
 dependencies:
   swayve_plugin_sdk:
-    path: ../../packages/swayve_plugin_sdk
+    git:
+      url: https://github.com/dazacode/swayve-plugins.git
+      path: packages/swayve_plugin_sdk
+      ref: 57b2e052f667cc8e3e53661f82aace47492d16db
 
 dev_dependencies:
   lints: ^6.1.0

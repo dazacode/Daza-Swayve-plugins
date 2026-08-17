@@ -1,0 +1,162 @@
+name: validate
+
+# Gate every change: the plugin manifests must validate strictly (warnings
+# are errors in CI), every plugin.json must satisfy swayve-plugins' published
+# JSON Schema, and every package must be formatted and analysis-clean.
+#
+# The validator and schema themselves are not duplicated here — this repo
+# checks out swayve-plugins (public) alongside itself and runs that repo's
+# own tools/validate_plugin.dart against what's here, so the tooling has
+# exactly one home.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  DART_SDK_VERSION: "3.13.0"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Discover every package in the repo. This repo is NOT a pub workspace: each
+  # pubspec.yaml resolves independently, so everything downstream is driven by
+  # what is actually on disk rather than a hardcoded list that rots.
+  # ---------------------------------------------------------------------------
+  discover:
+    name: discover packages
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.find.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Find Dart packages
+        id: find
+        shell: bash
+        run: |
+          set -euo pipefail
+          entries=""
+
+          while IFS= read -r pubspec; do
+            dir="$(dirname "$pubspec")"
+            dir="${dir#./}"
+            [ -z "$dir" ] && dir="."
+
+            name="$(sed -n 's/^name:[[:space:]]*\([A-Za-z0-9_]*\).*$/\1/p' "$pubspec" | head -n 1)"
+            [ -z "$name" ] && name="$(basename "$dir")"
+
+            entry="$(jq -cn --arg dir "$dir" --arg name "$name" '{dir: $dir, name: $name}')"
+            entries="${entries}${entry}"$'\n'
+          done < <(find . -maxdepth 2 -name pubspec.yaml \
+                     -not -path './.dart_tool/*' | sort)
+
+          packages="$(printf '%s' "$entries" | jq -sc '.')"
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+          echo "Discovered packages:"
+          printf '%s' "$entries" | jq -r '"  \(.dir)  (\(.name))"'
+
+  # ---------------------------------------------------------------------------
+  # The manifest gate, run against swayve-plugins' own validator and schema.
+  # ---------------------------------------------------------------------------
+  validate:
+    name: validate plugin manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: plugins
+
+      - uses: actions/checkout@v7
+        with:
+          repository: dazacode/swayve-plugins
+          path: swayve-plugins
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: dart pub get (swayve-plugins tools)
+        working-directory: swayve-plugins
+        run: dart pub get
+
+      - name: Validate every plugin (strict — warnings are errors)
+        run: |
+          dart run swayve-plugins/tools/validate_plugin.dart \
+            --all --plugins-root plugins --strict
+
+      - name: Produce machine-readable validation report
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          dart run swayve-plugins/tools/validate_plugin.dart \
+            --all --plugins-root plugins --strict --json \
+            > validation-report.json || true
+          echo "--- validation-report.json ---"
+          cat validation-report.json || true
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: validation-report
+          path: validation-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Validate every plugin.json against the published JSON Schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          manifests=(plugins/*/plugin.json)
+          if [ ${#manifests[@]} -eq 0 ]; then
+            echo "No plugin manifests found — nothing to check."
+            exit 0
+          fi
+          python3 -m venv "$RUNNER_TEMP/schema-venv"
+          "$RUNNER_TEMP/schema-venv/bin/pip" install --quiet --disable-pip-version-check check-jsonschema
+          for manifest in "${manifests[@]}"; do
+            echo "Checking $manifest against swayve-plugins/schema/swayve-plugin.schema.json"
+            "$RUNNER_TEMP/schema-venv/bin/check-jsonschema" \
+              --schemafile swayve-plugins/schema/swayve-plugin.schema.json \
+              "$manifest"
+          done
+
+  # ---------------------------------------------------------------------------
+  # Formatting and static analysis, one matrix leg per package.
+  # ---------------------------------------------------------------------------
+  analyze:
+    name: analyze (${{ matrix.package.name }})
+    needs: discover
+    if: needs.discover.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.discover.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: pub get
+        working-directory: ${{ matrix.package.dir }}
+        run: dart pub get
+
+      - name: dart format --set-exit-if-changed
+        working-directory: ${{ matrix.package.dir }}
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: analyze --fatal-infos
+        working-directory: ${{ matrix.package.dir }}
+        run: dart analyze --fatal-infos .

@@ -5,4 +5,4 @@
 # `public_member_api_docs` is not enabled here — the contract scopes that rule
 # to the SDK, whose members are a third-party API surface. This plugin is
 # documented at least as heavily anyway, because being read is its whole job.
-include: ../../analysis_options.yaml
+include: ../analysis_options.yaml

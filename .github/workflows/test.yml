@@ -1,0 +1,77 @@
+name: test
+
+# Run every plugin's test suite. Packages are discovered from disk, not from
+# a hardcoded list, because this repo grows every time a plugin is added.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  DART_SDK_VERSION: "3.13.0"
+
+jobs:
+  discover:
+    name: discover testable packages
+    runs-on: ubuntu-latest
+    outputs:
+      test_packages: ${{ steps.find.outputs.test_packages }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Find packages that have a test/ directory
+        id: find
+        shell: bash
+        run: |
+          set -euo pipefail
+          entries=""
+
+          while IFS= read -r pubspec; do
+            dir="$(dirname "$pubspec")"
+            dir="${dir#./}"
+            [ -z "$dir" ] && dir="."
+            [ -d "$dir/test" ] || continue
+
+            name="$(sed -n 's/^name:[[:space:]]*\([A-Za-z0-9_]*\).*$/\1/p' "$pubspec" | head -n 1)"
+            [ -z "$name" ] && name="$(basename "$dir")"
+
+            entry="$(jq -cn --arg dir "$dir" --arg name "$name" '{dir: $dir, name: $name}')"
+            entries="${entries}${entry}"$'\n'
+          done < <(find . -maxdepth 2 -name pubspec.yaml \
+                     -not -path './.dart_tool/*' | sort)
+
+          test_packages="$(printf '%s' "$entries" | jq -sc '.')"
+          echo "test_packages=$test_packages" >> "$GITHUB_OUTPUT"
+          echo "Testable packages:"
+          printf '%s' "$entries" | jq -r '"  \(.dir)  (\(.name))"'
+
+  test:
+    name: test ${{ matrix.package.name }}
+    needs: discover
+    if: needs.discover.outputs.test_packages != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.discover.outputs.test_packages) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+
+      - name: pub get
+        working-directory: ${{ matrix.package.dir }}
+        run: dart pub get
+
+      - name: dart test
+        working-directory: ${{ matrix.package.dir }}
+        run: dart test

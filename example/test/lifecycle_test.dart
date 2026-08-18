@@ -52,10 +52,10 @@ void main() {
     // Both directions: every capability has a provider, and no provider
     // exists for a capability the manifest never declared.
     expect(context.registeredCapabilities, plugin.identity.capabilities);
-    expect(plugin.identity.capabilities, {
-      SwayveCapability.search,
-      SwayveCapability.catalog,
-    });
+    expect(
+      plugin.identity.capabilities,
+      {SwayveCapability.search, SwayveCapability.catalog},
+    );
     expect(context.searchProviders, hasLength(1));
     expect(context.catalogProviders, hasLength(1));
     expect(context.streamProviders, isEmpty);

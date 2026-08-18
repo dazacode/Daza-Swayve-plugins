@@ -59,7 +59,9 @@ void main() {
   });
 
   test('paging past the end is an empty page, not an error', () async {
-    final page = await catalog.artists(const SwayveBrowseRequest(cursor: '99'));
+    final page = await catalog.artists(
+      const SwayveBrowseRequest(cursor: '99'),
+    );
 
     expect(page.items, isEmpty);
     expect(page.hasMore, isFalse);
@@ -85,11 +87,10 @@ void main() {
       const SwayveBrowseRequest(sort: SwayveSortOrder.alphabetical),
     );
 
-    expect(page.items.map((artist) => artist.name), [
-      'Halcyon Bureau',
-      'Nadia Okonkwo',
-      'The Ferrous Sea',
-    ]);
+    expect(
+      page.items.map((artist) => artist.name),
+      ['Halcyon Bureau', 'Nadia Okonkwo', 'The Ferrous Sea'],
+    );
   });
 
   test('a sort this provider cannot do falls back to natural order', () async {

@@ -267,9 +267,8 @@ SwayveTrack _normalizeTrack(
     id: _mediaId('track', raw.id),
     title: raw.title,
     artists: _creditToRefs(raw.credit, artistsByName),
-    album: album == null
-        ? null
-        : SwayveAlbumRef(title: album.title, id: album.id),
+    album:
+        album == null ? null : SwayveAlbumRef(title: album.title, id: album.id),
     // Seconds in, `Duration` out. Trivially small, and exactly the sort of
     // conversion that turns into a bug when it is done in three places
     // instead of one.
@@ -284,7 +283,10 @@ SwayveTrack _normalizeTrack(
     // contribute catalogue data without claiming any playback rights, and
     // this is what that looks like.
     availability: SwayveAvailability.none,
-    extra: {'exampleFixtureId': raw.id, 'exampleAlbumFixtureId': raw.albumId},
+    extra: {
+      'exampleFixtureId': raw.id,
+      'exampleAlbumFixtureId': raw.albumId,
+    },
   );
 }
 

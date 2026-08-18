@@ -63,10 +63,9 @@ void main() {
       // Whether the service is answering right now is knowable only to a
       // running plugin. The manifest omits it and the constant carries the
       // default, which the plugin republishes when it learns better.
-      expect(
-          (manifest['source']! as Map<String, Object?>)
-              .containsKey('availability'),
-          isFalse);
+      final Map<String, Object?> source =
+          manifest['source']! as Map<String, Object?>;
+      expect(source.containsKey('availability'), isFalse);
       expect(kYouTubeMusicSource.availability, SwayveSourceAvailability.ready);
     });
 

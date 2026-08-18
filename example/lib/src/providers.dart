@@ -39,79 +39,76 @@ final class ExampleSearchProvider implements SwayveSearchProvider {
   Future<SwayveSearchResult> search(
     SwayveSearchQuery query, {
     SwayveCancellationToken? cancel,
-  }) =>
-      _withinOperationDeadline(() async {
-        // Check before doing anything. The host may already have moved on —
-        // the user typed another character, or left the screen — and the
-        // cheapest possible response to that is to not start.
-        cancel?.throwIfCancelled();
+  }) => _withinOperationDeadline(() async {
+    // Check before doing anything. The host may already have moved on —
+    // the user typed another character, or left the screen — and the
+    // cheapest possible response to that is to not start.
+    cancel?.throwIfCancelled();
 
-        final needle = query.text.trim().toLowerCase();
-        // An empty query is not an error, and it is not "everything" either.
-        // `SwayveSearchResult.empty` says "I searched, there was nothing",
-        // which is exactly true.
-        if (needle.isEmpty) return SwayveSearchResult.empty;
+    final needle = query.text.trim().toLowerCase();
+    // An empty query is not an error, and it is not "everything" either.
+    // `SwayveSearchResult.empty` says "I searched, there was nothing",
+    // which is exactly true.
+    if (needle.isEmpty) return SwayveSearchResult.empty;
 
-        // `query.limit` is a ceiling *per kind*, not a total, so each of these
-        // gets its own budget. `query.kinds` is honoured rather than ignored:
-        // returning albums to a caller that asked only for tracks wastes the
-        // user's bandwidth and the host's rendering, and the host is entitled
-        // to assume a provider means what it sends.
-        final tracks = _collect(
-          source: _catalogue.tracks,
-          wanted: query.kinds.contains(SwayveSearchKind.track),
-          limit: query.limit,
-          cancel: cancel,
-          // Matching on the credit as well as the title is what makes
-          // searching for an artist's name turn up their songs. It is also
-          // this plugin's own business: the SDK deliberately hands over
-          // `query.text` unprocessed, because a provider knows its own
-          // service's query semantics and the host does not.
-          matches: (track) =>
-              _contains(needle, [track.title, track.artistsLabel]),
-        );
+    // `query.limit` is a ceiling *per kind*, not a total, so each of these
+    // gets its own budget. `query.kinds` is honoured rather than ignored:
+    // returning albums to a caller that asked only for tracks wastes the
+    // user's bandwidth and the host's rendering, and the host is entitled
+    // to assume a provider means what it sends.
+    final tracks = _collect(
+      source: _catalogue.tracks,
+      wanted: query.kinds.contains(SwayveSearchKind.track),
+      limit: query.limit,
+      cancel: cancel,
+      // Matching on the credit as well as the title is what makes
+      // searching for an artist's name turn up their songs. It is also
+      // this plugin's own business: the SDK deliberately hands over
+      // `query.text` unprocessed, because a provider knows its own
+      // service's query semantics and the host does not.
+      matches: (track) => _contains(needle, [track.title, track.artistsLabel]),
+    );
 
-        final albums = _collect(
-          source: _catalogue.albums,
-          wanted: query.kinds.contains(SwayveSearchKind.album),
-          limit: query.limit,
-          cancel: cancel,
-          matches: (album) => _contains(needle, [
-            album.title,
-            for (final artist in album.artists) artist.name,
-          ]),
-        );
+    final albums = _collect(
+      source: _catalogue.albums,
+      wanted: query.kinds.contains(SwayveSearchKind.album),
+      limit: query.limit,
+      cancel: cancel,
+      matches: (album) => _contains(needle, [
+        album.title,
+        for (final artist in album.artists) artist.name,
+      ]),
+    );
 
-        final artists = _collect(
-          source: _catalogue.artists,
-          wanted: query.kinds.contains(SwayveSearchKind.artist),
-          limit: query.limit,
-          cancel: cancel,
-          matches: (artist) =>
-              _contains(needle, [artist.name, ...artist.genres]),
-        );
+    final artists = _collect(
+      source: _catalogue.artists,
+      wanted: query.kinds.contains(SwayveSearchKind.artist),
+      limit: query.limit,
+      cancel: cancel,
+      matches: (artist) => _contains(needle, [artist.name, ...artist.genres]),
+    );
 
-        return SwayveSearchResult(
-          tracks: tracks,
-          albums: albums,
-          artists: artists,
-          // No playlists, ever: this plugin has none and does not declare the
-          // `playlist_read` capability. An empty list is the correct answer to
-          // a kind we cannot serve — a provider must not throw
-          // `SwayvePluginUnsupportedException` for one requested kind out of
-          // four when it can perfectly well answer the rest.
-          playlists: const [],
-          // The whole catalogue fits in one response, so there is nothing to
-          // continue. A `null` cursor is how a provider says "that was all of
-          // it"; returning a cursor here would make the host ask for a second
-          // page that could only ever come back empty.
-          cursor: null,
-          // `partial: true` would mean "I truncated or degraded this" — a
-          // timed-out sub-request, a service that answered for tracks but not
-          // albums. Nothing was degraded here.
-          partial: false,
-        );
-      });
+    return SwayveSearchResult(
+      tracks: tracks,
+      albums: albums,
+      artists: artists,
+      // No playlists, ever: this plugin has none and does not declare the
+      // `playlist_read` capability. An empty list is the correct answer to
+      // a kind we cannot serve — a provider must not throw
+      // `SwayvePluginUnsupportedException` for one requested kind out of
+      // four when it can perfectly well answer the rest.
+      playlists: const [],
+      // The whole catalogue fits in one response, so there is nothing to
+      // continue. A `null` cursor is how a provider says "that was all of
+      // it"; returning a cursor here would make the host ask for a second
+      // page that could only ever come back empty.
+      cursor: null,
+      // `partial: true` would mean "I truncated or degraded this" — a
+      // timed-out sub-request, a service that answered for tracks but not
+      // albums. Nothing was degraded here.
+      partial: false,
+    );
+  });
 
   List<T> _collect<T>({
     required List<T> source,
@@ -147,71 +144,66 @@ final class ExampleCatalogProvider implements SwayveCatalogProvider {
   Future<SwayvePage<SwayveAlbum>> albums(
     SwayveBrowseRequest request, {
     SwayveCancellationToken? cancel,
-  }) =>
-      _withinOperationDeadline(() async {
-        cancel?.throwIfCancelled();
-        return _page(
-          _ordered(_catalogue.albums, request.sort, (album) => album.title),
-          request,
-        );
-      });
+  }) => _withinOperationDeadline(() async {
+    cancel?.throwIfCancelled();
+    return _page(
+      _ordered(_catalogue.albums, request.sort, (album) => album.title),
+      request,
+    );
+  });
 
   @override
   Future<SwayvePage<SwayveArtist>> artists(
     SwayveBrowseRequest request, {
     SwayveCancellationToken? cancel,
-  }) =>
-      _withinOperationDeadline(() async {
-        cancel?.throwIfCancelled();
-        return _page(
-          _ordered(_catalogue.artists, request.sort, (artist) => artist.name),
-          request,
-        );
-      });
+  }) => _withinOperationDeadline(() async {
+    cancel?.throwIfCancelled();
+    return _page(
+      _ordered(_catalogue.artists, request.sort, (artist) => artist.name),
+      request,
+    );
+  });
 
   @override
   Future<SwayvePage<SwayveTrack>> tracks(
     SwayveBrowseRequest request, {
     SwayveCancellationToken? cancel,
-  }) =>
-      _withinOperationDeadline(() async {
-        cancel?.throwIfCancelled();
-        return _page(
-          _ordered(_catalogue.tracks, request.sort, (track) => track.title),
-          request,
-        );
-      });
+  }) => _withinOperationDeadline(() async {
+    cancel?.throwIfCancelled();
+    return _page(
+      _ordered(_catalogue.tracks, request.sort, (track) => track.title),
+      request,
+    );
+  });
 
   @override
   Future<SwayveAlbum?> album(
     SwayveMediaId id, {
     SwayveCancellationToken? cancel,
-  }) =>
-      _withinOperationDeadline(() async {
-        cancel?.throwIfCancelled();
-        // An id another plugin minted is not ours to answer for. The host
-        // routes by `pluginId` and should never send us one, but a provider
-        // that trusts its input is a provider that returns the wrong album the
-        // day the routing changes.
-        if (id.pluginId != examplePluginId) return null;
-        // And a lookup that legitimately misses — an id we minted for
-        // something that is no longer in the catalogue, or a hand-typed one
-        // that never existed — is `null`. Not an exception. The host's library
-        // is full of ids it saved months ago, and some of them will have gone
-        // away; that is an ordinary Tuesday, not a plugin failure.
-        return _catalogue.albumByValue(id.value);
-      });
+  }) => _withinOperationDeadline(() async {
+    cancel?.throwIfCancelled();
+    // An id another plugin minted is not ours to answer for. The host
+    // routes by `pluginId` and should never send us one, but a provider
+    // that trusts its input is a provider that returns the wrong album the
+    // day the routing changes.
+    if (id.pluginId != examplePluginId) return null;
+    // And a lookup that legitimately misses — an id we minted for
+    // something that is no longer in the catalogue, or a hand-typed one
+    // that never existed — is `null`. Not an exception. The host's library
+    // is full of ids it saved months ago, and some of them will have gone
+    // away; that is an ordinary Tuesday, not a plugin failure.
+    return _catalogue.albumByValue(id.value);
+  });
 
   @override
   Future<SwayveArtist?> artist(
     SwayveMediaId id, {
     SwayveCancellationToken? cancel,
-  }) =>
-      _withinOperationDeadline(() async {
-        cancel?.throwIfCancelled();
-        if (id.pluginId != examplePluginId) return null;
-        return _catalogue.artistByValue(id.value);
-      });
+  }) => _withinOperationDeadline(() async {
+    cancel?.throwIfCancelled();
+    if (id.pluginId != examplePluginId) return null;
+    return _catalogue.artistByValue(id.value);
+  });
 }
 
 /// Applies `SwayveTimeouts.operation` to a provider call.

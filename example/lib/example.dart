@@ -76,7 +76,7 @@ final class ExamplePlugin implements SwayvePlugin {
   /// the fixture to be empty. A real plugin's equivalent seam is usually the
   /// service client it talks to.
   ExamplePlugin({ExampleCatalogue? catalogue})
-      : _catalogue = catalogue ?? ExampleCatalogue.fixture;
+    : _catalogue = catalogue ?? ExampleCatalogue.fixture;
 
   static const SwayvePluginIdentity _identity = SwayvePluginIdentity(
     id: examplePluginId,

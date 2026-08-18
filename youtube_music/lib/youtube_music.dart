@@ -39,7 +39,8 @@ export 'src/config.dart'
         kYouTubeMusicAllowedHosts,
         kYouTubeMusicPluginId,
         kYouTubeMusicPluginName,
-        kYouTubeMusicPluginVersion;
+        kYouTubeMusicPluginVersion,
+        kYouTubeMusicSource;
 export 'src/embed_document.dart' show youTubeEmbedDocument;
 export 'src/ids.dart' show YouTubeMusicIdKind, YouTubeMusicIds;
 export 'src/providers/artwork_provider.dart';

@@ -15,13 +15,18 @@
   "policy": "ALLOW",
   "playback_count": 48213,
   "publisher_metadata": {
-    "explicit": false
+    "explicit": false,
+    "artist": "テストアーティスト",
+    "album_title": "Neon Highway",
+    "release_title": "Neon Highway (Deluxe)",
+    "writer_composer": "Somebody Else"
   },
   "user_id": 555666,
   "user": {
     "id": 555666,
     "kind": "user",
     "username": "TestArtist",
+    "full_name": "Test Artist Full Name",
     "permalink_url": "https://soundcloud.com/testartist",
     "avatar_url": "https://i1.sndcdn.com/avatars-def456UVW-0-large.jpg",
     "verified": true

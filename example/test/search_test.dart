@@ -106,18 +106,20 @@ void main() {
     expect(result.playlists, isEmpty);
   });
 
-  test('playlists are always empty, because that capability is not declared',
-      () async {
-    final search = await provider();
+  test(
+    'playlists are always empty, because that capability is not declared',
+    () async {
+      final search = await provider();
 
-    final result = await search.search(
-      const SwayveSearchQuery(text: 'a', kinds: {SwayveSearchKind.playlist}),
-    );
+      final result = await search.search(
+        const SwayveSearchQuery(text: 'a', kinds: {SwayveSearchKind.playlist}),
+      );
 
-    // Empty, not a thrown SwayvePluginUnsupportedException: the provider can
-    // answer the question, and the answer is "none".
-    expect(result.playlists, isEmpty);
-  });
+      // Empty, not a thrown SwayvePluginUnsupportedException: the provider can
+      // answer the question, and the answer is "none".
+      expect(result.playlists, isEmpty);
+    },
+  );
 
   test('finding nothing is a result, not a failure', () async {
     final search = await provider();
@@ -152,13 +154,13 @@ void main() {
     source.cancel();
 
     await expectLater(
-      search.search(
-        const SwayveSearchQuery(text: 'a'),
-        cancel: source.token,
-      ),
+      search.search(const SwayveSearchQuery(text: 'a'), cancel: source.token),
       throwsA(
-        isA<SwayvePluginCancelledException>()
-            .having((error) => error.code, 'code', 'plugin_cancelled'),
+        isA<SwayvePluginCancelledException>().having(
+          (error) => error.code,
+          'code',
+          'plugin_cancelled',
+        ),
       ),
     );
   });

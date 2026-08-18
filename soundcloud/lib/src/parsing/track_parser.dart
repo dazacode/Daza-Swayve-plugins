@@ -72,6 +72,81 @@ SwayveTrack? parseTrack(Map<String, Object?> json) {
       'policy': policy,
     },
     externalUrl: permalinkUrl == null ? null : Uri.tryParse(permalinkUrl),
+    alternateNames: _alternateNamesOf(json, username: username),
+  );
+}
+
+/// The other names SoundCloud already publishes for a track, out of the corner
+/// of the payload this parser used to read one boolean from.
+///
+/// `publisher_metadata` is the rights holder's own view of a track, and it is
+/// filled in whenever a release came through a distributor rather than straight
+/// off somebody's laptop. Until now the parser read `explicit` from it and
+/// nothing else, which meant the plugin was fetching the label's version of the
+/// artist and the release title on every request and discarding both.
+///
+/// They are worth having because they are frequently *not* the same strings the
+/// rest of the object carries. `user.username` is a SoundCloud handle — an
+/// account name, chosen for a URL, often stylised or abbreviated — while
+/// `publisher_metadata.artist` is the name the release was registered under.
+/// `user.full_name` is a third spelling again. For a release in a non-Latin
+/// script these routinely differ by script rather than by punctuation, so a
+/// host holding all of them can find the song from any of them and a host
+/// holding one cannot.
+///
+/// Nothing here is computed. `permalink` is a plausible-looking fourth
+/// candidate — SoundCloud derives it from the title and it is ASCII by
+/// construction, which makes it look like a free romanization — and it is
+/// deliberately not read: it is a URL slug, hyphenated and lowercased and
+/// truncated, and passing it off as a name the service published would be this
+/// plugin guessing under a label that means it did not. `writer_composer` is
+/// left alone for the same kind of reason: a composer credit is a different
+/// person, not another name for this one.
+SwayveAlternateNames _alternateNamesOf(
+  Map<String, Object?> json, {
+  required String? username,
+}) {
+  final String? publishedArtist =
+      stringAt(json, ['publisher_metadata', 'artist']);
+  final String? albumTitle =
+      stringAt(json, ['publisher_metadata', 'album_title']);
+  final String? releaseTitle =
+      stringAt(json, ['publisher_metadata', 'release_title']);
+  final String? fullName = stringAt(json, ['user', 'full_name']);
+
+  final List<String> aliases = <String>[];
+  void alias(String? candidate, String? alreadyKnownAs) {
+    if (candidate == null || candidate.trim().isEmpty) return;
+    final String name = candidate.trim();
+    if (name == alreadyKnownAs?.trim() || aliases.contains(name)) return;
+    aliases.add(name);
+  }
+
+  // The account's display name, when it is a different string from the handle
+  // the track is credited to. A great many accounts set both to the same
+  // thing, and one name stored twice is noise in every list that reads these.
+  alias(fullName, username);
+  // A release title that disagrees with the album title is a second name for
+  // the same record — an edition, a market variant, a reissue — rather than a
+  // correction of the first.
+  alias(releaseTitle, albumTitle);
+
+  return SwayveAlternateNames(
+    // The registered credit goes in `originalArtist` rather than into the
+    // aliases: it is specifically the name behind the handle, which is a
+    // labelled relationship a host can show, and burying it in a free-form
+    // list would throw that label away.
+    originalArtist:
+        publishedArtist != null && publishedArtist.trim() != username?.trim()
+            ? publishedArtist
+            : null,
+    // The only release name a bare track object ever carries. `parseTrack`
+    // sets no album at all — SoundCloud's track objects do not reference one,
+    // and the album a track is filed under here is stamped later from the
+    // playlist envelope it arrived in — so this is genuinely a name the song
+    // goes by that nothing else in the row states.
+    originalAlbum: albumTitle,
+    aliases: aliases,
   );
 }
 

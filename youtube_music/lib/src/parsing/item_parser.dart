@@ -377,6 +377,31 @@ abstract class _ItemReader {
           ),
       explicit: hasExplicitBadge(badges),
       availability: kYouTubeMusicAvailability,
+      // No `alternateNames`, and that is a finding rather than an omission.
+      //
+      // The SDK lets a provider publish a release's romanized or translated
+      // title, and it is worth publishing because a name the service stated
+      // beats anything computed downstream. InnerTube does not state one. The
+      // renderers this parser reads carry a title and a subtitle already
+      // localized to the requesting market, with no second field holding the
+      // release's own name — the localization has happened before the payload
+      // is built, so what arrives is one name and no way to tell which.
+      //
+      // Three things in the payload look like candidates and are deliberately
+      // left alone. `accessibility.accessibilityData.label` is a spoken form
+      // of the row assembled for a screen reader, not another name for the
+      // record. `videoDetails.title` in the player response is the upload's
+      // own title, which is genuinely often the original — but it belongs to a
+      // different request that only runs when somebody presses play, and
+      // stamping a name onto a search result from a response that has not been
+      // fetched is not something this parser can do. The `permalink`-shaped
+      // watch URL carries no name at all.
+      //
+      // Filling the field from any of those would be this plugin guessing
+      // under a stamp that means it did not, which is worse than leaving it
+      // empty: downstream, a guess and a published name become
+      // indistinguishable, and the host has its own transliterator for exactly
+      // the case this cannot answer.
       externalUrl: Uri.parse('https://music.youtube.com/watch?v=$videoId'),
       extra: <String, Object?>{
         if (playlist != null && playlist.isNotEmpty) 'playlistId': playlist,

@@ -31,6 +31,45 @@ void main() {
       expect(kSoundCloudAllowedHosts, manifestHosts);
     });
 
+    test('the declared source matches the manifest, field for field', () {
+      // The manifest is what somebody approves at import and what a host can
+      // read before this plugin has ever run; the constant is what runs. A
+      // source row drawn from one and populated by the other is exactly the
+      // kind of quiet disagreement this whole file exists to catch.
+      final Map<String, Object?> source =
+          manifest['source']! as Map<String, Object?>;
+      expect(source['sourceId'], kSoundCloudSource.sourceId);
+      expect(source['displayName'], kSoundCloudSource.displayName);
+      expect(source['iconName'], kSoundCloudSource.iconName);
+      expect(
+        (source['contentTypes']! as List<Object?>).cast<String>().toSet(),
+        kSoundCloudSource.contentTypes
+            .map((SwayveContentType type) => type.wireName)
+            .toSet(),
+      );
+    });
+
+    test('the source stands behind exactly the capabilities declared', () {
+      // `canSearch` is read off the capability set rather than stored, which
+      // is only worth anything if the set is the manifest's own. A second
+      // place to say a source is searchable is a second place for it to be
+      // wrong.
+      expect(kSoundCloudSource.capabilities, manifestCapabilities);
+      expect(kSoundCloudSource.canSearch, isTrue);
+    });
+
+    test('the source declares no availability, because a manifest cannot know',
+        () {
+      // Whether the service is answering right now is knowable only to a
+      // running plugin. The manifest omits it and the constant carries the
+      // default, which the plugin republishes when it learns better.
+      expect(
+          (manifest['source']! as Map<String, Object?>)
+              .containsKey('availability'),
+          isFalse);
+      expect(kSoundCloudSource.availability, SwayveSourceAvailability.ready);
+    });
+
     test('timeouts match the manifest', () {
       final Map<String, Object?> timeouts =
           manifest['timeouts']! as Map<String, Object?>;

@@ -23,6 +23,40 @@ const String kSoundCloudPluginName = 'SoundCloud';
 /// The plugin version, identical to `plugin.json`'s `version`.
 const Version kSoundCloudPluginVersion = Version(0, 1, 0);
 
+/// How this plugin presents itself as a *place a query can be sent*, identical
+/// to `plugin.json`'s `source`.
+///
+/// A constant here rather than left to the manifest alone for the same reason
+/// every other value in this file is one: the manifest is what a person
+/// approves at import, this is what runs, and `manifest_agreement_test.dart`
+/// compares them. It also gives the plugin something to republish — a running
+/// plugin is the only thing that can honestly say whether SoundCloud is
+/// answering right now, and [SwayveSourceDescriptor.copyWith] with a new
+/// availability is how it would say so.
+///
+/// [SwayveContentType.videos] is deliberately absent. SoundCloud is audio, and
+/// a source claiming to answer for videos would put this plugin behind a filter
+/// that returns nothing every time it is used. The declaration is a promise
+/// about what comes back, not a list of words that sound relevant.
+const SwayveSourceDescriptor kSoundCloudSource = SwayveSourceDescriptor(
+  sourceId: 'soundcloud',
+  displayName: kSoundCloudPluginName,
+  iconName: 'soundcloud',
+  contentTypes: <SwayveContentType>{
+    SwayveContentType.songs,
+    SwayveContentType.albums,
+    SwayveContentType.artists,
+  },
+  capabilities: <SwayveCapability>{
+    SwayveCapability.search,
+    SwayveCapability.catalog,
+    SwayveCapability.streaming,
+    SwayveCapability.artwork,
+    SwayveCapability.playlistRead,
+    SwayveCapability.artistActivity,
+  },
+);
+
 /// The hostnames this plugin is permitted to reach, identical to
 /// `plugin.json`'s `network.hosts`.
 ///

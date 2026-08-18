@@ -36,6 +36,7 @@ export 'src/config.dart'
         kSoundCloudPluginId,
         kSoundCloudPluginName,
         kSoundCloudPluginVersion,
+        kSoundCloudSource,
         kStreamExpiryMargin,
         kStreamLifetime;
 export 'src/ids.dart' show SoundCloudIdKind, SoundCloudIds;

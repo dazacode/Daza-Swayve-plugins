@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "app.swayve.plugins.youtube_music",
   "name": "YouTube Music",
   "description": "Adds YouTube Music search, browsing and playback to Swayve.",
@@ -31,6 +31,17 @@
     "webview"
   ],
   "entrypoint": "youtube_music",
+  "source": {
+    "sourceId": "youtube_music",
+    "displayName": "YouTube Music",
+    "iconName": "youtube_music",
+    "contentTypes": [
+      "songs",
+      "albums",
+      "artists",
+      "videos"
+    ]
+  },
   "media": {
     "streamable": true,
     "downloadable": true,

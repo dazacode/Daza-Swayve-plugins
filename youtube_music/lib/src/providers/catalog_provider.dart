@@ -92,11 +92,14 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
   /// there was somebody typing a search — which is a search cache wearing a
   /// library's clothes.
   ///
-  /// The songs are one hop away. Those chart playlists are exactly the "top
-  /// songs" listing the feed no longer inlines, and browsing one returns
-  /// twenty rows that each carry a video id, an artist and a running time. So
-  /// when a feed yields no songs of its own, this follows the playlists it
-  /// does yield, which is the same answer the feed used to give directly.
+  /// The songs are one hop away. "Top albums" is most of what `FEmusic_charts`
+  /// and `FEmusic_new_releases` actually hand back — not playlists, whatever
+  /// the shelf title suggests to a reader of this file — and opening one
+  /// returns its own track listing, each row carrying a video id, an artist
+  /// and a running time. Whatever *does* arrive as a playlist is opened the
+  /// same way. So when a feed yields no songs of its own, this follows the
+  /// albums and playlists it does yield, which is the same answer the feed
+  /// used to give directly.
   ///
   /// A feed that *does* carry songs is served straight through, unchanged. The
   /// hop is a fallback rather than the design: nothing here assumes the
@@ -119,11 +122,11 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
     SwayveCancellationToken? cancel,
   ) async {
     // A cursor this method minted means the last page was already being served
-    // out of playlists, so the feed is not asked again — it would hand back the
-    // same shelves and the same playlists a second time.
+    // out of albums and playlists, so the feed is not asked again — it would
+    // hand back the same shelves a second time.
     final _TrackQueue? resuming = _TrackQueue.decode(request.cursor);
     if (resuming != null) {
-      return _tracksFromPlaylists(resuming, request, cancel);
+      return _tracksFromShelves(resuming, request, cancel);
     }
 
     final Map<String, Object?> body = await _client.browse(
@@ -141,8 +144,11 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
       );
     }
 
-    return _tracksFromPlaylists(
+    return _tracksFromShelves(
       _TrackQueue(
+        albums: <String>[
+          for (final SwayveAlbum album in feed.items.albums) album.id.value,
+        ],
         playlists: <String>[
           for (final SwayvePlaylist playlist in feed.items.playlists)
             playlist.id.value,
@@ -154,49 +160,60 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
     );
   }
 
-  /// Serves songs by opening the queued playlists in turn.
+  /// Serves songs by opening the queued albums and playlists in turn.
   ///
-  /// Stops at [SwayveBrowseRequest.limit] songs or [_maxPlaylistsPerPage]
-  /// playlists, whichever comes first — the second bound is what keeps one call
-  /// to this from turning into ten requests when a chart playlist happens to be
-  /// short. Whatever is left over goes back in the cursor, so the next page
-  /// carries on from the same shelf rather than starting the feed again.
+  /// Albums first, then playlists, for no reason stronger than "the feeds this
+  /// exists for — `FEmusic_charts`, `FEmusic_new_releases` — hand back albums
+  /// and essentially never playlists, per the doc comment on [tracks], so the
+  /// order rarely matters in practice." A feed that genuinely mixes the two
+  /// keeps every item, just not necessarily in the shelf's own interleaving.
   ///
-  /// A playlist that fails is stepped over rather than thrown from. It is one
-  /// shelf of many, the songs already gathered are a better answer than an
-  /// exception, and the alternative is one unavailable chart emptying a library
-  /// page that had twenty perfectly good songs on it.
-  Future<SwayvePage<SwayveTrack>> _tracksFromPlaylists(
+  /// Stops at [SwayveBrowseRequest.limit] songs or [_maxOpensPerPage] albums
+  /// and playlists combined, whichever comes first — the second bound is what
+  /// keeps one call to this from turning into ten requests when a chart album
+  /// happens to be short. Whatever is left over goes back in the cursor, so
+  /// the next page carries on from the same shelf rather than starting the
+  /// feed again.
+  ///
+  /// An album or playlist that fails is stepped over rather than thrown from.
+  /// It is one shelf of many, the songs already gathered are a better answer
+  /// than an exception, and the alternative is one unavailable chart emptying
+  /// a library page that had twenty perfectly good songs on it.
+  Future<SwayvePage<SwayveTrack>> _tracksFromShelves(
     _TrackQueue from,
     SwayveBrowseRequest request,
     SwayveCancellationToken? cancel,
   ) async {
-    final List<String> queue = <String>[...from.playlists];
+    final List<String> albumQueue = <String>[...from.albums];
+    final List<String> playlistQueue = <String>[...from.playlists];
     final List<SwayveTrack> tracks = <SwayveTrack>[];
     final Set<String> seen = <String>{};
     String? feed = from.feed;
 
+    bool queuesEmpty() => albumQueue.isEmpty && playlistQueue.isEmpty;
+
     for (int opened = 0, feedPages = 0;
-        opened < _maxPlaylistsPerPage && tracks.length < request.limit;) {
-      if (queue.isEmpty) {
-        // Out of playlists, but the feed had more shelves. Taking the next of
-        // them is what makes "load more" keep working past the first response
-        // rather than stopping at whatever the first page happened to name.
+        opened < _maxOpensPerPage && tracks.length < request.limit;) {
+      if (queuesEmpty()) {
+        // Out of albums and playlists, but the feed had more shelves. Taking
+        // the next of them is what makes "load more" keep working past the
+        // first response rather than stopping at whatever the first page
+        // happened to name.
         if (feed == null) break;
         // Bounded on its own, separately from `opened`. A feed that keeps
-        // answering with shelves that name no playlist — a chart that is
+        // answering with shelves that name no album or playlist — one that is
         // mostly genre grids and "you might like" carousels, say — advances
         // `feed` on every one of these requests while `opened` never leaves
-        // zero, since that counter only moves once a playlist is actually
+        // zero, since that counter only moves once something is actually
         // opened below. Nothing here was otherwise stopping it: the loop
         // still terminates eventually, because every step awaits a real
         // request and the operation timeout is racing the whole thing, but
         // "terminates by spending the entire operation budget hammering the
-        // same feed for a playlist it was never going to find" reads to
-        // whoever is holding the phone as the app having frozen, not as a
-        // page that came back empty. Three pages is enough slack for a feed
-        // that is genuinely a little sparse near the top and not enough to
-        // spend the whole budget looking.
+        // same feed for a shelf it was never going to find" reads to whoever
+        // is holding the phone as the app having frozen, not as a page that
+        // came back empty. Three pages is enough slack for a feed that is
+        // genuinely a little sparse near the top and not enough to spend the
+        // whole budget looking.
         if (feedPages >= _maxFeedPagesPerCall) break;
         feedPages++;
         final ParsedFeed? next = await _nextFeedPage(feed, request, cancel);
@@ -204,36 +221,44 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
           feed = null;
           break;
         }
-        queue.addAll(<String>[
+        albumQueue.addAll(<String>[
+          for (final SwayveAlbum album in next.items.albums) album.id.value,
+        ]);
+        playlistQueue.addAll(<String>[
           for (final SwayvePlaylist playlist in next.items.playlists)
             playlist.id.value,
         ]);
         // Songs on a later shelf are taken directly; the hop exists because
-        // there were none, not because playlists are preferred.
+        // there were none, not because albums or playlists are preferred.
         for (final SwayveTrack track in next.items.tracks) {
           if (seen.add(track.id.value)) tracks.add(track);
         }
         feed = next.cursor;
-        if (queue.isEmpty && feed == null) break;
+        if (queuesEmpty() && feed == null) break;
         continue;
       }
 
       opened++;
-      for (final SwayveTrack track in await _playlistTracks(
-        queue.removeAt(0),
-        cancel,
-      )) {
+      final List<SwayveTrack> songs = albumQueue.isNotEmpty
+          ? await _albumTracks(albumQueue.removeAt(0), cancel)
+          : await _playlistTracks(playlistQueue.removeAt(0), cancel);
+      for (final SwayveTrack track in songs) {
         if (seen.add(track.id.value)) tracks.add(track);
       }
     }
 
-    final bool exhausted = queue.isEmpty && feed == null;
+    final bool exhausted = queuesEmpty() && feed == null;
     return SwayvePage<SwayveTrack>(
       items: List<SwayveTrack>.unmodifiable(tracks),
       // Null at the end, so `hasMore` does not promise a page that would come
       // back empty for ever.
-      cursor:
-          exhausted ? null : _TrackQueue(playlists: queue, feed: feed).encode(),
+      cursor: exhausted
+          ? null
+          : _TrackQueue(
+              albums: albumQueue,
+              playlists: playlistQueue,
+              feed: feed,
+            ).encode(),
     );
   }
 
@@ -249,6 +274,27 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
           YouTubeMusicIds.playlistBrowseId(playlistId),
           cancel: cancel,
         ),
+      );
+      return feed?.items.tracks ?? const <SwayveTrack>[];
+    } on SwayvePluginException {
+      return const <SwayveTrack>[];
+    }
+  }
+
+  /// One album's songs, or none when it could not be read.
+  ///
+  /// First page only, unlike [albumTracks] — this is opened as one of a
+  /// budget of shelves per fallback page, not asked to hydrate a whole
+  /// record, so it does not follow this album's own continuations the way
+  /// [_listing] would.
+  Future<List<SwayveTrack>> _albumTracks(
+    String albumId,
+    SwayveCancellationToken? cancel,
+  ) async {
+    cancel?.throwIfCancelled();
+    try {
+      final ParsedFeed? feed = tryParseFeed(
+        await _client.browse(albumId, cancel: cancel),
       );
       return feed?.items.tracks ?? const <SwayveTrack>[];
     } on SwayvePluginException {
@@ -277,23 +323,24 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
     }
   }
 
-  /// How many playlists one page of [tracks] will open.
+  /// How many albums and playlists, combined, one page of [tracks] will open.
   ///
   /// Two, and the number is set by the deadline rather than by taste. These
   /// requests are made one after another — the loop stops as soon as the page
   /// is full, which is what keeps this from opening shelves nobody asked for —
   /// so they share one operation budget between them, and each of them may
-  /// take a whole request budget. Two playlists behind one feed is three
+  /// take a whole request budget. Two shelves behind one feed is three
   /// requests against a budget of two request-lengths' slack, which is the
   /// most this can spend and still fail the way it is supposed to: late, on a
   /// network that has genuinely stopped answering, rather than routinely on a
   /// slow one.
   ///
-  /// Two chart playlists is forty songs, which is a page.
-  static const int _maxPlaylistsPerPage = 2;
+  /// Two chart albums is comfortably a page; the figure was chosen when the
+  /// shelves opened were playlists rather than albums and still holds.
+  static const int _maxOpensPerPage = 2;
 
-  /// How many feed continuations [_tracksFromPlaylists] will follow while it
-  /// is looking for its next playlist, in one page.
+  /// How many feed continuations [_tracksFromShelves] will follow while it is
+  /// looking for its next album or playlist, in one page.
   ///
   /// See the comment where this is checked for why it exists at all: without
   /// it, a feed that never names a playlist has no bound stopping it, only a
@@ -495,26 +542,36 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
   static const int _maxListingPages = 10;
 }
 
-/// Where a song listing that is being served out of playlists has got to.
+/// Where a song listing that is being served out of albums and playlists has
+/// got to.
 ///
 /// The SDK's cursor is one opaque string and the host hands it back untouched,
-/// which is exactly what this needs: two facts have to survive to the next page
-/// — the playlists that have not been opened yet, and where the feed that named
-/// them had got to — and there is one field to put them in.
+/// which is exactly what this needs: three facts have to survive to the next
+/// page — the albums and the playlists that have not been opened yet, and
+/// where the feed that named them had got to — and there is one field to put
+/// each of them in.
 ///
 /// [_marker] is what makes the two kinds of cursor tellable apart. A feed that
 /// carries songs of its own hands back InnerTube's own continuation token
 /// unchanged, and that token comes straight back here on the next call; without
 /// a marker this would have to guess whether a given string was one of its own,
-/// and guessing wrong means either decoding a live token as JSON or browsing a
-/// playlist queue as a continuation.
+/// and guessing wrong means either decoding a live token as JSON or browsing an
+/// album or playlist queue as a continuation.
 final class _TrackQueue {
-  const _TrackQueue({required this.playlists, required this.feed});
+  const _TrackQueue({
+    required this.albums,
+    required this.playlists,
+    required this.feed,
+  });
+
+  /// Album ids not yet opened, in the order the feed named them.
+  final List<String> albums;
 
   /// Playlist ids not yet opened, in the order the feed named them.
   final List<String> playlists;
 
-  /// The feed's own continuation, for when [playlists] runs out.
+  /// The feed's own continuation, for when [albums] and [playlists] both run
+  /// out.
   final String? feed;
 
   static const String _marker = 'ytm.q1.';
@@ -524,6 +581,10 @@ final class _TrackQueue {
   /// Null rather than an exception for a malformed one, and deliberately: a
   /// cursor is a value that crossed a process boundary and came back, and the
   /// worst a corrupted one should be able to do is start the listing over.
+  ///
+  /// A cursor a previous version of this class wrote carries no `'al'` key —
+  /// decoded here as no queued albums, which is the correct reading: that
+  /// version never queued any.
   static _TrackQueue? decode(String? cursor) {
     if (cursor == null || !cursor.startsWith(_marker)) return null;
     try {
@@ -531,12 +592,18 @@ final class _TrackQueue {
         utf8.decode(base64Url.decode(cursor.substring(_marker.length))),
       );
       if (decoded is! Map<String, Object?>) return null;
-      final Object? queued = decoded['q'];
+      final Object? queuedAlbums = decoded['al'];
+      final Object? queuedPlaylists = decoded['q'];
       final Object? feed = decoded['f'];
       return _TrackQueue(
+        albums: <String>[
+          if (queuedAlbums is List<Object?>)
+            for (final Object? entry in queuedAlbums)
+              if (entry is String) entry,
+        ],
         playlists: <String>[
-          if (queued is List<Object?>)
-            for (final Object? entry in queued)
+          if (queuedPlaylists is List<Object?>)
+            for (final Object? entry in queuedPlaylists)
               if (entry is String) entry,
         ],
         feed: feed is String ? feed : null,
@@ -552,6 +619,7 @@ final class _TrackQueue {
       base64Url.encode(
         utf8.encode(
           jsonEncode(<String, Object?>{
+            'al': albums,
             'q': playlists,
             if (feed != null) 'f': feed,
           }),

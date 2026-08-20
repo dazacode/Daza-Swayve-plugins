@@ -3,16 +3,20 @@ import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 import 'config.dart';
 import 'innertube_client.dart';
 import 'providers/artwork_provider.dart';
+import 'providers/auth_provider.dart';
 import 'providers/catalog_provider.dart';
+import 'providers/library_provider.dart';
 import 'providers/search_provider.dart';
 import 'providers/stream_provider.dart';
 
 /// The YouTube Music plugin.
 ///
-/// It declares four capabilities — `search`, `catalog`, `streaming`,
-/// `artwork` — and registers exactly one provider for each during
-/// [initialize]. It declares two permissions, `network` and `webview`, and
-/// touches exactly the two context facilities they guard.
+/// It declares six capabilities — `search`, `catalog`, `streaming`,
+/// `artwork`, `authentication`, `personal_library` — and registers exactly
+/// one provider for each during [initialize] (`webview` is the one
+/// capability with no provider interface, same as always — see [identity]).
+/// It declares three permissions, `network`, `webview` and `external_auth`,
+/// and touches exactly the context facilities they guard.
 ///
 /// [initialize] does no network work. The contract gives it eight seconds and
 /// says a plugin that blocks past that is degraded; more to the point, a music
@@ -35,6 +39,8 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
   YouTubeMusicCatalogProvider? _catalog;
   YouTubeMusicArtworkProvider? _artwork;
   YouTubeMusicStreamProvider? _stream;
+  YouTubeMusicAuthProvider? _auth;
+  YouTubeMusicLibraryProvider? _library;
 
   /// The client every provider shares, or `null` before [initialize].
   InnerTubeClient? get client => _client;
@@ -50,6 +56,12 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
 
   /// The registered stream provider, or `null` before [initialize].
   YouTubeMusicStreamProvider? get streamProvider => _stream;
+
+  /// The registered auth provider, or `null` before [initialize].
+  YouTubeMusicAuthProvider? get authProvider => _auth;
+
+  /// The registered library provider, or `null` before [initialize].
+  YouTubeMusicLibraryProvider? get libraryProvider => _library;
 
   @override
   SwayvePluginIdentity get identity => const SwayvePluginIdentity(
@@ -68,10 +80,21 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
           // leave the plugin over-permissioned by the validator's own rule.
           SwayveCapability.webview,
           SwayveCapability.artwork,
+          // The two capabilities behind sign-in. `personalLibrary` requires
+          // `authentication` be declared too — the validator enforces this —
+          // because a signed-in user's own liked songs makes no sense
+          // without something that can sign in.
+          SwayveCapability.authentication,
+          SwayveCapability.personalLibrary,
         },
         permissions: <SwayvePermission>{
           SwayvePermission.network,
           SwayvePermission.webview,
+          // Guards `context.credentials`, which `authProvider` and
+          // `libraryProvider` both read the stored `session_cookie` secret
+          // through, and is also what makes declaring that `type: "secret"`
+          // setting legal in the manifest.
+          SwayvePermission.externalAuth,
         },
       );
 
@@ -102,12 +125,26 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
       log: context.log,
       timeouts: timeouts,
     );
+    // Reading `context.credentials` is what asserts the `external_auth`
+    // permission, the same way `context.http` above asserted `network`.
+    _auth = YouTubeMusicAuthProvider(
+      client: client,
+      credentials: context.credentials,
+      timeouts: timeouts,
+    );
+    _library = YouTubeMusicLibraryProvider(
+      client: client,
+      credentials: context.credentials,
+      timeouts: timeouts,
+    );
 
     context
       ..registerSearchProvider(_search!)
       ..registerCatalogProvider(_catalog!)
       ..registerStreamProvider(_stream!)
-      ..registerArtworkProvider(_artwork!);
+      ..registerArtworkProvider(_artwork!)
+      ..registerAuthProvider(_auth!)
+      ..registerLibraryProvider(_library!);
 
     context.log.info(
       'YouTube Music ready: region ${client.region}, language '
@@ -117,13 +154,19 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
 
   @override
   Future<void> dispose() async {
-    // Nothing to close: the plugin owns no socket, no timer, no isolate and
-    // no subscription. Dropping the references is the whole of teardown, and
-    // it is safe to run twice or after a failed initialize.
+    // Nothing else to close: the plugin owns no socket, no timer and no
+    // isolate. `_auth` is the one exception — it owns a broadcast
+    // `StreamController` behind `authStateChanges` — so it is closed
+    // explicitly rather than just dropped. `dispose` is safe to call twice
+    // or after a failed `initialize`, so closing a controller that may
+    // already be null or already closed has to stay harmless too.
+    await _auth?.dispose();
     _client = null;
     _search = null;
     _catalog = null;
     _artwork = null;
     _stream = null;
+    _auth = null;
+    _library = null;
   }
 }

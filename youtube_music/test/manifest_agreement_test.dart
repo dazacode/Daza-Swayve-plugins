@@ -145,6 +145,27 @@ void main() {
       expect(videos['type'], 'bool');
       expect(videos['default'], kDefaultIncludeVideos);
     });
+
+    test(
+        'the session cookie setting is a secret, matching what the auth '
+        'provider reads', () {
+      final Map<String, Object?> cookie = setting(kSessionCookieSettingId);
+      expect(
+        cookie['type'],
+        'secret',
+        reason: 'A `secret` setting is what routes the value to the '
+            'credential store instead of plugin settings — see '
+            'docs/permissions.md.',
+      );
+      expect(cookie['label'], isNotEmpty);
+      expect(cookie['description'], isNotEmpty);
+      expect(
+        cookie.containsKey('default'),
+        isFalse,
+        reason: 'A secret is entered by hand; the manifest has nothing to '
+            'default it to.',
+      );
+    });
   });
 
   group('registration', () {
@@ -167,10 +188,12 @@ void main() {
       expect(harness.context.catalogProviders, hasLength(1));
       expect(harness.context.streamProviders, hasLength(1));
       expect(harness.context.artworkProviders, hasLength(1));
-      expect(harness.context.authProviders, isEmpty);
+      expect(harness.context.authProviders, hasLength(1));
+      expect(harness.context.libraryProviders, hasLength(1));
       expect(harness.context.lyricsProviders, isEmpty);
       expect(harness.context.scrobbleProviders, isEmpty);
       expect(harness.context.playlistProviders, isEmpty);
+      expect(harness.context.artistActivityProviders, isEmpty);
     });
 
     test('initialize makes no network request', () async {

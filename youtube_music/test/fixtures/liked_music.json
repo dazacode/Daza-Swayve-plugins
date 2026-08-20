@@ -1,0 +1,151 @@
+{
+  "responseContext": { "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D" },
+  "header": {
+    "musicDetailHeaderRenderer": {
+      "title": { "runs": [{ "text": "Liked Music" }] },
+      "subtitle": { "runs": [{ "text": "Auto playlist" }] },
+      "secondSubtitle": { "runs": [{ "text": "2 songs" }] }
+    }
+  },
+  "contents": {
+    "singleColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "selected": true,
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "musicPlaylistShelfRenderer": {
+                      "contents": [
+                        {
+                          "musicResponsiveListItemRenderer": {
+                            "index": { "runs": [{ "text": "1" }] },
+                            "flexColumns": [
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": { "runs": [{ "text": "Nightdrive" }] }
+                                }
+                              },
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Aster Vale",
+                                        "navigationEndpoint": {
+                                          "browseEndpoint": {
+                                            "browseId": "UCq3rGZ1Zs9d0dTqRPcJHXyA",
+                                            "browseEndpointContextSupportedConfigs": {
+                                              "browseEndpointContextMusicConfig": {
+                                                "pageType": "MUSIC_PAGE_TYPE_ARTIST"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ],
+                            "fixedColumns": [
+                              {
+                                "musicResponsiveListItemFixedColumnRenderer": {
+                                  "text": { "runs": [{ "text": "3:41" }] }
+                                }
+                              }
+                            ],
+                            "playlistItemData": { "videoId": "kJQP7kiw5Fk" },
+                            "overlay": {
+                              "musicItemThumbnailOverlayRenderer": {
+                                "content": {
+                                  "musicPlayButtonRenderer": {
+                                    "playNavigationEndpoint": {
+                                      "watchEndpoint": {
+                                        "videoId": "kJQP7kiw5Fk",
+                                        "playlistId": "LM"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "musicResponsiveListItemRenderer": {
+                            "index": { "runs": [{ "text": "2" }] },
+                            "flexColumns": [
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": { "runs": [{ "text": "Harbour Lights" }] }
+                                }
+                              },
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Aster Vale",
+                                        "navigationEndpoint": {
+                                          "browseEndpoint": {
+                                            "browseId": "UCq3rGZ1Zs9d0dTqRPcJHXyA",
+                                            "browseEndpointContextSupportedConfigs": {
+                                              "browseEndpointContextMusicConfig": {
+                                                "pageType": "MUSIC_PAGE_TYPE_ARTIST"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ],
+                            "fixedColumns": [
+                              {
+                                "musicResponsiveListItemFixedColumnRenderer": {
+                                  "text": { "runs": [{ "text": "4:15" }] }
+                                }
+                              }
+                            ],
+                            "playlistItemData": { "videoId": "9bZkp7q19f0" },
+                            "overlay": {
+                              "musicItemThumbnailOverlayRenderer": {
+                                "content": {
+                                  "musicPlayButtonRenderer": {
+                                    "playNavigationEndpoint": {
+                                      "watchEndpoint": {
+                                        "videoId": "9bZkp7q19f0",
+                                        "playlistId": "LM"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "continuations": [
+                        {
+                          "nextContinuationData": {
+                            "continuation": "4qmFsgJBEhBGRW11c2ljX2xpa2VkX3Ay",
+                            "clickTrackingParams": "CAEQ3DoYASIT"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

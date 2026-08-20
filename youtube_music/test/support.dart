@@ -143,6 +143,17 @@ final class PluginHarness {
   /// The registered stream provider.
   YouTubeMusicStreamProvider get stream => plugin.streamProvider!;
 
+  /// The registered auth provider.
+  YouTubeMusicAuthProvider get auth => plugin.authProvider!;
+
+  /// The registered library provider.
+  YouTubeMusicLibraryProvider get library => plugin.libraryProvider!;
+
+  /// The in-memory credential store behind `context.credentials`, for
+  /// scripting a stored `session_cookie` without going through a settings UI
+  /// that does not exist in this test suite.
+  InMemorySwayveCredentialStore get credentials => context.fakeCredentials;
+
   /// Every request the plugin has made, as URLs.
   List<Uri> get requestedUrls =>
       http.requests.map((RecordedHttpRequest r) => r.url).toList();

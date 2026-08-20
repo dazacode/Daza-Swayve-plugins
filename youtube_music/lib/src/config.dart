@@ -218,6 +218,14 @@ const String kDefaultRegion = 'US';
 /// The id of the `region` setting, identical to `plugin.json`.
 const String kRegionSettingId = 'region';
 
+/// The id of the `session_cookie` setting, identical to `plugin.json`.
+///
+/// A `type: "secret"` setting rather than a `string` one: its value goes to
+/// the credential store, never to plugin settings, and is read back with
+/// `context.credentials.readSecret`, not `settings.value`. See
+/// `providers/auth_provider.dart`.
+const String kSessionCookieSettingId = 'session_cookie';
+
 /// The deadlines this plugin works to.
 ///
 /// [manifest] mirrors `plugin.json`'s `timeouts` block. Tests construct their
@@ -254,6 +262,19 @@ abstract final class YouTubeMusicFeeds {
 
   /// The charts feed, used for `SwayveSortOrder.popular`.
   static const String charts = 'FEmusic_charts';
+
+  /// The browse id for the signed-in user's own "Liked Music" playlist.
+  ///
+  /// **Unverified, best-effort — needs checking against a real signed-in
+  /// account before this ships.** `LM` is the reserved playlist id unofficial
+  /// YouTube Music clients (`ytmusicapi` among them) use for a user's liked
+  /// songs, and this plugin's own [YouTubeMusicIds.playlistBrowseId] already
+  /// encodes the same `VL`-prefixing rule every other playlist browse in this
+  /// plugin goes through — `playlistBrowseId('LM')` and this constant name
+  /// the same string. That agreement is reassuring but is not proof: nobody
+  /// has exercised this against a live account as part of this change. See
+  /// `providers/library_provider.dart`.
+  static const String likedSongs = 'VLLM';
 }
 
 /// The InnerTube `params` blobs that scope a search to one kind of result.
@@ -327,5 +348,7 @@ const SwayveSourceDescriptor kYouTubeMusicSource = SwayveSourceDescriptor(
     SwayveCapability.streaming,
     SwayveCapability.webview,
     SwayveCapability.artwork,
+    SwayveCapability.authentication,
+    SwayveCapability.personalLibrary,
   },
 );

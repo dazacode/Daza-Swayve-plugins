@@ -1,0 +1,32 @@
+{
+  "responseContext": { "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D" },
+  "header": {
+    "musicDetailHeaderRenderer": {
+      "title": { "runs": [{ "text": "Liked Music" }] },
+      "subtitle": { "runs": [{ "text": "Auto playlist" }] },
+      "secondSubtitle": { "runs": [{ "text": "0 songs" }] }
+    }
+  },
+  "contents": {
+    "singleColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "selected": true,
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "musicPlaylistShelfRenderer": {
+                      "contents": []
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -72,6 +72,18 @@ void main() {
       YouTubeMusicIds.mediaId('VLPLZ4mM3wKuMh8'),
     );
 
+    // The authenticated surfaces: they carry a cookie header, but the URL
+    // they hit is the same declared `music.youtube.com` browse endpoint
+    // every other browse in this file already targets.
+    await harness.credentials.writeSecret(
+      kSessionCookieSettingId,
+      'SID=abc; __Secure-3PAPISID=secret',
+    );
+    harness.http.enqueueJson(fixture('liked_music.json'));
+    await harness.auth.authenticate();
+    harness.http.enqueueJson(fixture('liked_music.json'));
+    await harness.library.likedTracks(SwayveBrowseRequest.first);
+
     expect(
       harness.http.requests,
       isNotEmpty,

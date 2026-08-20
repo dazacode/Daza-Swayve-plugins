@@ -9,7 +9,7 @@
 ///
 /// ```dart
 /// final SwayvePlugin plugin = createYouTubeMusicPlugin();
-/// await plugin.initialize(context);   // registers four providers
+/// await plugin.initialize(context);   // registers six providers
 /// ```
 ///
 /// The plugin is **pure Dart**. It depends on `swayve_plugin_sdk` and nothing
@@ -24,6 +24,7 @@ import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 import 'src/youtube_music_plugin.dart';
 
 export 'src/artwork.dart' show YouTubeMusicArtwork;
+export 'src/auth/sapisid_hash.dart' show sapisidHashAuthorization, sha1Bytes;
 export 'src/config.dart'
     show
         YouTubeMusicTimeouts,
@@ -33,6 +34,7 @@ export 'src/config.dart'
         kIncludeVideosSettingId,
         kPlayerClientName,
         kRegionSettingId,
+        kSessionCookieSettingId,
         kStreamChunkBytes,
         kStreamExpiryMargin,
         kStreamLifetime,
@@ -44,7 +46,9 @@ export 'src/config.dart'
 export 'src/embed_document.dart' show youTubeEmbedDocument;
 export 'src/ids.dart' show YouTubeMusicIdKind, YouTubeMusicIds;
 export 'src/providers/artwork_provider.dart';
+export 'src/providers/auth_provider.dart';
 export 'src/providers/catalog_provider.dart';
+export 'src/providers/library_provider.dart';
 export 'src/providers/search_provider.dart';
 export 'src/providers/stream_provider.dart';
 export 'src/youtube_music_plugin.dart' show YouTubeMusicPlugin;

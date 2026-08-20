@@ -25,11 +25,14 @@
     "catalog",
     "streaming",
     "webview",
-    "artwork"
+    "artwork",
+    "authentication",
+    "personal_library"
   ],
   "permissions": [
     "network",
-    "webview"
+    "webview",
+    "external_auth"
   ],
   "entrypoint": "youtube_music",
   "source": {
@@ -62,6 +65,12 @@
     "operationMs": 20000
   },
   "settings": [
+    {
+      "id": "session_cookie",
+      "type": "secret",
+      "label": "YouTube Music session cookie",
+      "description": "Paste the cookie from a browser signed into music.youtube.com. Lets Swayve see your liked songs; stored on this device and never sent anywhere else."
+    },
     {
       "id": "include_videos",
       "type": "bool",

@@ -1,5 +1,6 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
+import 'auth/sapisid_hash.dart';
 import 'config.dart';
 import 'errors.dart';
 import 'json_path.dart';
@@ -97,10 +98,21 @@ final class InnerTubeClient {
       );
 
   /// Runs an InnerTube browse for [browseId].
+  ///
+  /// [sessionCookie] is the InnerTube session cookie the user pasted into the
+  /// `session_cookie` setting (see `providers/auth_provider.dart`), for the
+  /// handful of browse ids — the signed-in user's own liked-music playlist
+  /// among them — that only answer for a signed-in session. It is optional
+  /// and additive: every existing call site passes nothing here and gets
+  /// exactly the anonymous request this client has always sent, unchanged.
+  /// When present, the request carries a `cookie` header plus the
+  /// `authorization` header InnerTube expects alongside it — see
+  /// [_authenticatedHeaders] and `auth/sapisid_hash.dart`.
   Future<Map<String, Object?>> browse(
     String browseId, {
     String? params,
     String? continuation,
+    String? sessionCookie,
     SwayveCancellationToken? cancel,
   }) =>
       postJson(
@@ -111,6 +123,7 @@ final class InnerTubeClient {
           if (continuation != null) 'continuation': continuation,
         },
         cancel: cancel,
+        extraHeaders: _authenticatedHeaders(sessionCookie),
       );
 
   /// The visitor identity every player request carries.
@@ -316,9 +329,12 @@ final class InnerTubeClient {
 
   /// The headers every request carries.
   ///
-  /// No `user-agent` and no cookie: the host owns the transport, this plugin
-  /// carries no session, and pretending otherwise would be both dishonest and
-  /// unreliable.
+  /// No `user-agent` and no cookie by default: the host owns the transport,
+  /// and an ordinary request carries no session. [browse]'s [sessionCookie]
+  /// parameter is the one, opt-in exception — see [_authenticatedHeaders] —
+  /// and even then nothing is held here between calls: this client stores no
+  /// cookie jar, only ever attaches the one a caller hands it for that single
+  /// request.
   Map<String, String> get requestHeaders => <String, String>{
         'content-type': 'application/json',
         'accept': '*/*',
@@ -328,4 +344,33 @@ final class InnerTubeClient {
         'x-youtube-client-name': kInnerTubeClientId,
         'x-youtube-client-version': kInnerTubeClientVersion,
       };
+
+  /// The extra headers an authenticated [browse] call carries, or none.
+  ///
+  /// A `null` or empty [sessionCookie] is the ordinary, anonymous case and
+  /// returns no headers at all — the request is byte-for-byte what it always
+  /// was. A present cookie adds it as a `cookie` header plus the
+  /// `authorization` header InnerTube's authenticated endpoints expect
+  /// alongside it (`SAPISIDHASH`, computed in `auth/sapisid_hash.dart` — see
+  /// that file for exactly what is and is not verified about it) and
+  /// `x-goog-authuser`, which unofficial YouTube Music clients send alongside
+  /// it to select the first Google account on the session.
+  ///
+  /// Never logged: this plugin has no `context.log` call anywhere near this
+  /// path, and it must stay that way — see `docs/permissions.md`'s "Tokens
+  /// and logs" section.
+  Map<String, String> _authenticatedHeaders(String? sessionCookie) {
+    if (sessionCookie == null || sessionCookie.trim().isEmpty) {
+      return const <String, String>{};
+    }
+    final String? authorization = sapisidHashAuthorization(
+      sessionCookie,
+      kMusicOrigin,
+    );
+    return <String, String>{
+      'cookie': sessionCookie,
+      if (authorization != null) 'authorization': authorization,
+      'x-goog-authuser': '0',
+    };
+  }
 }

@@ -526,7 +526,8 @@ void main() {
       );
     });
 
-    test('the cursor resumes in the albums and playlists rather than the '
+    test(
+        'the cursor resumes in the albums and playlists rather than the '
         'feed', () async {
       harness.http
         ..enqueueJson(fixture('browse_charts_no_songs.json'))

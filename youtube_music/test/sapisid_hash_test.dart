@@ -85,7 +85,10 @@ void main() {
 
     test('is null when neither cookie is present', () {
       expect(
-        sapisidHashAuthorization('SID=abc; HSID=def', 'https://music.youtube.com'),
+        sapisidHashAuthorization(
+          'SID=abc; HSID=def',
+          'https://music.youtube.com',
+        ),
         isNull,
       );
     });

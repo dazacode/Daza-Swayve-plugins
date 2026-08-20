@@ -78,8 +78,7 @@ final class YouTubeMusicAuthProvider implements SwayveAuthProvider {
   }
 
   @override
-  Stream<SwayveAuthState> get authStateChanges =>
-      Stream<SwayveAuthState>.multi(
+  Stream<SwayveAuthState> get authStateChanges => Stream<SwayveAuthState>.multi(
         (MultiStreamController<SwayveAuthState> controller) {
           // Every new listener gets the current state immediately — the
           // contract asks for this — and then whatever this provider

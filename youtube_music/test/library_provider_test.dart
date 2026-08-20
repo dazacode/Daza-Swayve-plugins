@@ -16,8 +16,7 @@ void main() {
   tearDown(() => harness.stop());
 
   group('signed out', () {
-    test('throws auth-required rather than returning an empty page',
-        () async {
+    test('throws auth-required rather than returning an empty page', () async {
       await expectLater(
         harness.library.likedTracks(SwayveBrowseRequest.first),
         throwsA(isA<SwayvePluginAuthRequiredException>()),

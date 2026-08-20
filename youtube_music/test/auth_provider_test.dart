@@ -148,8 +148,7 @@ void main() {
       expect(harness.auth.authStateChanges.isBroadcast, isTrue);
     });
 
-    test('publishes every subsequent change to an existing listener',
-        () async {
+    test('publishes every subsequent change to an existing listener', () async {
       final List<SwayveAuthStatus> seen = <SwayveAuthStatus>[];
       final StreamSubscription<SwayveAuthState> subscription =
           harness.auth.authStateChanges.listen(

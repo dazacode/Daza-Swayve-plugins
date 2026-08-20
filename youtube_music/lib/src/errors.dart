@@ -92,8 +92,23 @@ Never throwForStatus(SwayveHttpResponse response, Uri url) {
     );
   }
   throw SwayvePluginUnavailableException(
-    'YouTube Music answered ${response.statusCode} for ${url.host}.',
+    'YouTube Music answered ${response.statusCode} for ${url.host}: '
+    '${_snippetOf(response)}',
   );
+}
+
+/// A short, log-safe look at why a call failed.
+///
+/// InnerTube's own error responses are JSON carrying a real
+/// `error.message` — "API key not valid", a regional block, a malformed
+/// field name — and a host log that only ever says "answered 400" has
+/// thrown that fact away. Truncated hard: this exists to be read in a log
+/// line, not to reproduce the whole body, and a truncated JSON object still
+/// shows the one field that matters.
+String _snippetOf(SwayveHttpResponse response) {
+  final String body = response.bodyAsString.trim();
+  if (body.isEmpty) return '(empty body)';
+  return body.length > 300 ? '${body.substring(0, 300)}…' : body;
 }
 
 /// Reads [name] from [response] without assuming the host lower-cased it.

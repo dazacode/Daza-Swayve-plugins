@@ -459,13 +459,13 @@ void main() {
   });
 
   group('a feed with no songs on it', () {
-    test('follows the playlists it does carry', () async {
+    test('follows the albums and playlists it does carry', () async {
       harness.http
         ..enqueueJson(fixture('browse_charts_no_songs.json'))
         ..enqueueJson(fixture('browse_chart_playlist.json'));
 
-      // Asked for exactly what one playlist holds, so the page is filled by
-      // the first one opened and the second stays where it is. The unbounded
+      // Asked for exactly what one shelf holds, so the page is filled by the
+      // first one opened and the rest stay where they are. The unbounded
       // request is a different test — see the cursor one below — and mixing
       // the two here would make this assert the paging as well as the hop.
       final SwayvePage<SwayveTrack> page = await harness.catalog.tracks(
@@ -483,10 +483,13 @@ void main() {
       );
       expect(
         harness.lastBody['browseId'],
-        'VLPLfixtureTrending20',
-        reason: 'The first playlist the feed named, browsed under its VL id. '
-            'The album on the same shelf is not a playlist and must not be '
-            'browsed as though it were.',
+        'MPREb_fixtureTopAlbum',
+        reason: 'The album the feed named, browsed under its own id — albums '
+            'are drained before playlists, and this fixture shelf carries two '
+            'playlists ahead of one album in listing order. A chart made '
+            'mostly of "Top albums", the shape the real service actually '
+            'returns, must not have every one of those rows skipped for '
+            'naming no playlist.',
       );
     });
 
@@ -523,7 +526,8 @@ void main() {
       );
     });
 
-    test('the cursor resumes in the playlists rather than the feed', () async {
+    test('the cursor resumes in the albums and playlists rather than the '
+        'feed', () async {
       harness.http
         ..enqueueJson(fixture('browse_charts_no_songs.json'))
         ..enqueueJson(fixture('browse_chart_playlist.json'));
@@ -541,10 +545,12 @@ void main() {
 
       expect(
         harness.lastBody['browseId'],
-        'VLPLfixtureDailyTop',
-        reason: 'A page served out of playlists has to carry on through the '
-            'ones it has not opened yet. Handing this cursor back to the feed '
-            'would start the charts again and re-file the same songs.',
+        'VLPLfixtureTrending20',
+        reason: 'A page served out of albums and playlists has to carry on '
+            'through the ones it has not opened yet. The first call already '
+            'drained this fixture shelf\'s one album; the first playlist is '
+            'next. Handing this cursor back to the feed would start the '
+            'charts again and re-file the same songs.',
       );
     });
   });

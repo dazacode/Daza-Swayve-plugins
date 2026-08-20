@@ -291,3 +291,41 @@ abstract final class YouTubeMusicSearchFilters {
   /// Community playlists only.
   static const String playlists = 'EgeKAQQoAEABagoQAxAEEAoQCRAF';
 }
+
+/// How this plugin presents itself as a *place a query can be sent*, identical
+/// to `plugin.json`'s `source`.
+///
+/// A constant here rather than left to the manifest alone for the same reason
+/// every other value in this file is one: the manifest is what a person
+/// approves at import, this is what runs, and `manifest_agreement_test.dart`
+/// compares them. It also gives the plugin something to republish — a running
+/// plugin is the only thing that can honestly say whether YouTube Music is
+/// answering right now, and [SwayveSourceDescriptor.copyWith] with a new
+/// availability is how it would say so.
+///
+/// [SwayveContentType.videos] is declared because this plugin genuinely
+/// answers for them: the `include_videos` setting searches the upload half of
+/// YouTube alongside the licensed catalogue, and that half is where the remix,
+/// the demo, the live version and the unreleased track live — very often as
+/// the only copy in existence. A host that could not offer videos as their own
+/// filter would either bury a known release under nine covers of it or drop
+/// the upload catalogue entirely, and the second is the same as telling
+/// somebody a song they can hear right now does not exist.
+const SwayveSourceDescriptor kYouTubeMusicSource = SwayveSourceDescriptor(
+  sourceId: 'youtube_music',
+  displayName: kYouTubeMusicPluginName,
+  iconName: 'youtube_music',
+  contentTypes: <SwayveContentType>{
+    SwayveContentType.songs,
+    SwayveContentType.albums,
+    SwayveContentType.artists,
+    SwayveContentType.videos,
+  },
+  capabilities: <SwayveCapability>{
+    SwayveCapability.search,
+    SwayveCapability.catalog,
+    SwayveCapability.streaming,
+    SwayveCapability.webview,
+    SwayveCapability.artwork,
+  },
+);

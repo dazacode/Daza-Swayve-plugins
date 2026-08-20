@@ -32,6 +32,16 @@
     "network"
   ],
   "entrypoint": "soundcloud",
+  "source": {
+    "sourceId": "soundcloud",
+    "displayName": "SoundCloud",
+    "iconName": "soundcloud",
+    "contentTypes": [
+      "songs",
+      "albums",
+      "artists"
+    ]
+  },
   "media": {
     "streamable": true,
     "downloadable": true,

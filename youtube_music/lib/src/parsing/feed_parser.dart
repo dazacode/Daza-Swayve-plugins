@@ -139,6 +139,42 @@ List<Object?>? _sections(Map<String, Object?> body) {
   return null;
 }
 
+/// Whether [body] is YouTube Music's own "you're not signed in" placeholder
+/// rather than a genuine (possibly empty) listing.
+///
+/// A session that InnerTube does not recognise as authenticated does not
+/// answer a browse with an error — it answers 200 with a normal-shaped
+/// section list holding one `itemSectionRenderer`/`messageRenderer` inviting
+/// a sign-in, in place of the `musicDetailHeaderRenderer` + shelf a real
+/// (even genuinely empty) Liked Music playlist carries. [tryParseFeed] reads
+/// straight past this: `itemSectionRenderer` is not one of [_shelfKeys], so
+/// it contributes no items, and a caller checking "did this parse, and is it
+/// empty" cannot tell that apart from a signed-in account that has liked
+/// nothing. This is the one thing this parser looks *for* by name rather than
+/// falling through — see `providers/auth_provider.dart` and
+/// `providers/library_provider.dart` for where the distinction actually
+/// matters.
+bool looksSignedOut(Map<String, Object?> body) {
+  final List<Object?>? sections = _sections(body);
+  if (sections == null) return false;
+  for (final Object? section in sections) {
+    for (final Object? item in listAt(
+      section,
+      const <Object>['itemSectionRenderer', 'contents'],
+    )) {
+      final Object? signIn = dig(item, const <Object>[
+        'messageRenderer',
+        'button',
+        'buttonRenderer',
+        'navigationEndpoint',
+        'signInEndpoint',
+      ]);
+      if (signIn != null) return true;
+    }
+  }
+  return false;
+}
+
 /// Maps a `*Continuation` key back to the shelf key [shelfOf] recognises.
 String _continuationShelfKey(String key) => switch (key) {
       'musicShelfContinuation' => 'musicShelfRenderer',

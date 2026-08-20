@@ -58,6 +58,19 @@ final class YouTubeMusicLibraryProvider implements SwayveLibraryProvider {
             cancel: cancel,
           );
           cancel?.throwIfCancelled();
+          // A stored cookie InnerTube no longer honours answers 200 with a
+          // normal-shaped, perfectly parseable section list — YouTube
+          // Music's own "sign in to see your liked songs" placeholder —
+          // which `parseFeed` alone reads as a genuinely empty playlist. See
+          // `looksSignedOut`'s doc comment; `authState`'s own optimism (a
+          // stored cookie reads as signed in until something proves
+          // otherwise) is exactly what makes this the moment that proof
+          // arrives.
+          if (looksSignedOut(body)) {
+            throw const SwayvePluginAuthRequiredException(
+              'YouTube Music: sign in to see your liked songs.',
+            );
+          }
           final ParsedFeed feed = parseFeed(body, what: 'likedTracks');
           return SwayvePage<SwayveTrack>(
             items: List<SwayveTrack>.unmodifiable(feed.items.tracks),

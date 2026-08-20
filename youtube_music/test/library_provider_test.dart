@@ -94,6 +94,20 @@ void main() {
       expect(harness.lastBody['browseId'], 'VLLM');
     });
 
+    test(
+        'a cookie InnerTube does not honour throws auth-required, not an '
+        'empty page', () async {
+      // Mirrors `auth_provider_test.dart`'s equivalent case: a stale or
+      // unrecognised cookie gets a normal 200 carrying YouTube Music's own
+      // "sign in to see your liked songs" placeholder, which parses as an
+      // empty feed unless this is checked for by name.
+      harness.http.enqueueJson(fixture('liked_music_signed_out.json'));
+      await expectLater(
+        harness.library.likedTracks(SwayveBrowseRequest.first),
+        throwsA(isA<SwayvePluginAuthRequiredException>()),
+      );
+    });
+
     test('an empty stored cookie is treated as signed out', () async {
       await harness.credentials.writeSecret(kSessionCookieSettingId, '   ');
       await expectLater(

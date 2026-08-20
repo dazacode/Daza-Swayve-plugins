@@ -153,7 +153,14 @@ final class YouTubeMusicAuthProvider implements SwayveAuthProvider {
       // cannot make sense of at all is a reason to report "could not
       // verify", not to throw out of a method the SDK says should not throw
       // for a bad credential.
-      if (tryParseFeed(body) == null) {
+      //
+      // `tryParseFeed` alone is not enough, though: a cookie InnerTube does
+      // not recognise as signed in still answers 200 with a normal-shaped,
+      // perfectly parseable section list — YouTube Music's own "sign in to
+      // see your liked songs" placeholder — which looked identical to a
+      // genuinely empty Liked Music playlist from here. `looksSignedOut`
+      // exists to tell those two apart; see its doc comment.
+      if (tryParseFeed(body) == null || looksSignedOut(body)) {
         final SwayveAuthState failed = const SwayveAuthState(
           status: SwayveAuthStatus.failed,
           message: 'YouTube Music did not recognise that session. Copy the '

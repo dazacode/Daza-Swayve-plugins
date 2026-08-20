@@ -81,6 +81,24 @@ void main() {
       expect(state.message, isNotNull);
     });
 
+    test(
+        'a cookie InnerTube does not honour becomes failed, not a false '
+        'signed in', () async {
+      await harness.credentials.writeSecret(
+        kSessionCookieSettingId,
+        'SID=abc; __Secure-3PAPISID=secret',
+      );
+      // A stale/unrecognised cookie does not error at the HTTP layer — it
+      // gets a normal 200 carrying YouTube Music's own "sign in to see your
+      // liked songs" placeholder, which parses perfectly well as an empty
+      // feed. Without `looksSignedOut`, this reads as an empty Liked Music
+      // playlist for a genuinely signed-in user.
+      harness.http.enqueueJson(fixture('liked_music_signed_out.json'));
+      final SwayveAuthState state = await harness.auth.authenticate();
+      expect(state.status, SwayveAuthStatus.failed);
+      expect(state.message, isNotNull);
+    });
+
     test('a malformed response becomes failed, not thrown', () async {
       await harness.credentials.writeSecret(
         kSessionCookieSettingId,

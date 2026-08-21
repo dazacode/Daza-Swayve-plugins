@@ -166,6 +166,26 @@ void main() {
             'default it to.',
       );
     });
+
+    test(
+        'the page id setting is a secret, matching what the library '
+        'provider reads', () {
+      final Map<String, Object?> pageId = setting(kPageIdSettingId);
+      expect(
+        pageId['type'],
+        'secret',
+        reason: 'Same reasoning as the session cookie above — this goes to '
+            'the credential store, not plugin settings.',
+      );
+      expect(pageId['label'], isNotEmpty);
+      expect(pageId['description'], isNotEmpty);
+      expect(
+        pageId.containsKey('default'),
+        isFalse,
+        reason: 'A secret is entered by hand; the manifest has nothing to '
+            'default it to.',
+      );
+    });
   });
 
   group('registration', () {

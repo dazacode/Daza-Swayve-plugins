@@ -1,0 +1,80 @@
+{
+  "responseContext": { "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D" },
+  "onResponseReceivedActions": [
+    {
+      "clickTrackingParams": "CAAQhGciEw==",
+      "appendContinuationItemsAction": {
+        "targetId": "LM",
+        "continuationItems": [
+          {
+            "musicResponsiveListItemRenderer": {
+              "index": { "runs": [{ "text": "3" }] },
+              "flexColumns": [
+                {
+                  "musicResponsiveListItemFlexColumnRenderer": {
+                    "text": { "runs": [{ "text": "Tideline" }] }
+                  }
+                },
+                {
+                  "musicResponsiveListItemFlexColumnRenderer": {
+                    "text": {
+                      "runs": [
+                        {
+                          "text": "Aster Vale",
+                          "navigationEndpoint": {
+                            "browseEndpoint": {
+                              "browseId": "UCq3rGZ1Zs9d0dTqRPcJHXyA",
+                              "browseEndpointContextSupportedConfigs": {
+                                "browseEndpointContextMusicConfig": {
+                                  "pageType": "MUSIC_PAGE_TYPE_ARTIST"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "fixedColumns": [
+                {
+                  "musicResponsiveListItemFixedColumnRenderer": {
+                    "text": { "runs": [{ "text": "2:58" }] }
+                  }
+                }
+              ],
+              "playlistItemData": { "videoId": "M7lc1UVf-VE" },
+              "overlay": {
+                "musicItemThumbnailOverlayRenderer": {
+                  "content": {
+                    "musicPlayButtonRenderer": {
+                      "playNavigationEndpoint": {
+                        "watchEndpoint": {
+                          "videoId": "M7lc1UVf-VE",
+                          "playlistId": "LM"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "continuationItemRenderer": {
+              "trigger": "CONTINUATION_TRIGGER_ON_ITEM_PRESCAN_VISIBLE",
+              "continuationEndpoint": {
+                "clickTrackingParams": "CAAQhGciEw==",
+                "continuationCommand": {
+                  "token": "4qmFsgJFEgRWTExNGjhlaDlRVkRw",
+                  "request": "CONTINUATION_REQUEST_TYPE_BROWSE"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

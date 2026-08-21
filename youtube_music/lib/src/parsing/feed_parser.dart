@@ -74,6 +74,19 @@ List<Object?>? _sections(Map<String, Object?> body) {
     ];
   }
 
+  final List<Object?> appended = _appendedContinuationItems(body);
+  if (appended.isNotEmpty) {
+    // Wrapped as a synthetic single shelf so [shelfOf]/[shelfItems] read it
+    // exactly like any other section, and [continuationOf] finds the
+    // trailing `continuationItemRenderer` the same way it already does
+    // inside an ordinary shelf's `contents`.
+    return <Object?>[
+      <String, Object?>{
+        'musicShelfRenderer': <String, Object?>{'contents': appended},
+      },
+    ];
+  }
+
   for (final List<Object> tabsPath in const <List<Object>>[
     <Object>['contents', 'tabbedSearchResultsRenderer', 'tabs'],
     <Object>['contents', 'singleColumnBrowseResultsRenderer', 'tabs'],
@@ -137,6 +150,31 @@ List<Object?>? _sections(Map<String, Object?> body) {
   if (flat.isNotEmpty) return flat;
 
   return null;
+}
+
+/// The flat item list InnerTube answers some continuations with, instead of
+/// the `continuationContents` shape handled above.
+///
+/// Confirmed against a real Liked Music playlist's second page:
+/// `onResponseReceivedActions[].appendContinuationItemsAction.
+/// continuationItems` carries the next batch of `musicResponsiveListItemRenderer`
+/// items *and* the trailing `continuationItemRenderer` holding the next
+/// token side by side in one flat array — no shelf renderer wraps them at
+/// all, unlike every other response shape this parser reads. Without this,
+/// a Liked Music sync stops after its first page: not with an error, but
+/// with `SwayvePluginMalformedResponseException`, because [_sections]
+/// found nothing it recognised.
+List<Object?> _appendedContinuationItems(Map<String, Object?> body) {
+  for (final Object? action in listAt(body, const <Object>[
+    'onResponseReceivedActions',
+  ])) {
+    final List<Object?> items = listAt(action, const <Object>[
+      'appendContinuationItemsAction',
+      'continuationItems',
+    ]);
+    if (items.isNotEmpty) return items;
+  }
+  return const <Object?>[];
 }
 
 /// Whether [body] is YouTube Music's own "you're not signed in" placeholder

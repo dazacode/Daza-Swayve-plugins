@@ -72,6 +72,12 @@
       "description": "Paste the cookie from a browser signed into music.youtube.com. Lets Swayve see your liked songs; stored on this device and never sent anywhere else."
     },
     {
+      "id": "page_id",
+      "type": "secret",
+      "label": "YouTube channel ID (optional)",
+      "description": "Only needed if your liked songs live on a secondary YouTube channel rather than your account's default one. Paste the x-goog-pageid value from a signed-in browse request to music.youtube.com (DevTools → Network → a /browse request → Headers). Leave blank to use your default channel."
+    },
+    {
       "id": "include_videos",
       "type": "bool",
       "label": "Include YouTube videos",

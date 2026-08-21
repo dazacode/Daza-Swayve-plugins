@@ -226,6 +226,20 @@ const String kRegionSettingId = 'region';
 /// `providers/auth_provider.dart`.
 const String kSessionCookieSettingId = 'session_cookie';
 
+/// The id of the `page_id` setting, identical to `plugin.json`.
+///
+/// Also a `type: "secret"` setting, for the same reason [kSessionCookieSettingId]
+/// is — it identifies which of possibly several YouTube channels under one
+/// Google account to act as, which is not something a stored cookie alone
+/// settles. See `providers/library_provider.dart` for what happens without
+/// it: nothing wrong, just the account's *default* channel, which is right
+/// for the common case and wrong for anyone whose Liked Music lives on a
+/// secondary channel.
+const String kPageIdSettingId = 'page_id';
+
+/// The InnerTube request header [kPageIdSettingId]'s value is sent as.
+const String kPageIdHeader = 'x-goog-pageid';
+
 /// The deadlines this plugin works to.
 ///
 /// [manifest] mirrors `plugin.json`'s `timeouts` block. Tests construct their

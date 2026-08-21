@@ -32,6 +32,8 @@ export 'src/config.dart'
         kDefaultIncludeVideos,
         kDefaultRegion,
         kIncludeVideosSettingId,
+        kPageIdHeader,
+        kPageIdSettingId,
         kPlayerClientName,
         kRegionSettingId,
         kSessionCookieSettingId,

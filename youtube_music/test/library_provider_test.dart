@@ -74,6 +74,24 @@ void main() {
       expect(harness.lastBody['continuation'], 'next-page');
     });
 
+    test(
+        'a continuation page answered as onResponseReceivedActions parses, '
+        'rather than throwing malformed-response', () async {
+      // Confirmed against a real Liked Music playlist: past the first page,
+      // InnerTube stops answering in the continuationContents shape entirely
+      // and switches to a flat onResponseReceivedActions list instead — see
+      // liked_music_continuation.json and feed_parser.dart's
+      // _appendedContinuationItems.
+      harness.http.enqueueJson(fixture('liked_music_continuation.json'));
+      final SwayvePage<SwayveTrack> page = await harness.library.likedTracks(
+        const SwayveBrowseRequest(cursor: 'next-page'),
+      );
+
+      expect(page.items, hasLength(1));
+      expect(page.items.single.title, 'Tideline');
+      expect(page.hasMore, isTrue);
+    });
+
     test('the browse carries the stored cookie and a computed authorization',
         () async {
       harness.http.enqueueJson(fixture('liked_music.json'));
@@ -86,6 +104,42 @@ void main() {
       );
       expect(request.headers['authorization'], startsWith('SAPISIDHASH '));
       expect(request.headers['x-goog-authuser'], '0');
+      expect(
+        request.headers.containsKey('x-goog-pageid'),
+        isFalse,
+        reason: 'No page_id stored means no channel to select — the ordinary '
+            'case, one channel per account.',
+      );
+    });
+
+    test('sends the stored page id as x-goog-pageid when one is configured',
+        () async {
+      await harness.credentials.writeSecret(kPageIdSettingId, '123456789');
+      harness.http.enqueueJson(fixture('liked_music.json'));
+      await harness.library.likedTracks(SwayveBrowseRequest.first);
+
+      final RecordedHttpRequest request = harness.http.lastRequest!;
+      expect(request.headers['x-goog-pageid'], '123456789');
+    });
+
+    test(
+        'a configured page id InnerTube does not recognise names the '
+        'setting, not a fresh sign-in', () async {
+      // The same placeholder response as a signed-out cookie — YouTube does
+      // not distinguish "wrong channel" from "not signed in" — but the
+      // message has to point at the setting actually worth checking.
+      await harness.credentials.writeSecret(kPageIdSettingId, 'wrong-channel');
+      harness.http.enqueueJson(fixture('liked_music_signed_out.json'));
+      await expectLater(
+        harness.library.likedTracks(SwayveBrowseRequest.first),
+        throwsA(
+          isA<SwayvePluginAuthRequiredException>().having(
+            (SwayvePluginAuthRequiredException e) => e.message,
+            'message',
+            contains('channel ID'),
+          ),
+        ),
+      );
     });
 
     test('the browse id is the liked-songs playlist', () async {

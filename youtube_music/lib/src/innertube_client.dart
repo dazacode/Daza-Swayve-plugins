@@ -108,11 +108,19 @@ final class InnerTubeClient {
   /// When present, the request carries a `cookie` header plus the
   /// `authorization` header InnerTube expects alongside it — see
   /// [_authenticatedHeaders] and `auth/sapisid_hash.dart`.
+  ///
+  /// [pageId] is the `page_id` setting's value — see [kPageIdSettingId] — sent
+  /// as `x-goog-pageid` when present. A cookie identifies a *session*; some
+  /// Google accounts carry more than one YouTube channel underneath it, and
+  /// without this InnerTube answers for whichever channel it treats as
+  /// default. Null (the ordinary case: one channel) sends no such header,
+  /// unchanged from before this parameter existed.
   Future<Map<String, Object?>> browse(
     String browseId, {
     String? params,
     String? continuation,
     String? sessionCookie,
+    String? pageId,
     SwayveCancellationToken? cancel,
   }) =>
       postJson(
@@ -123,7 +131,7 @@ final class InnerTubeClient {
           if (continuation != null) 'continuation': continuation,
         },
         cancel: cancel,
-        extraHeaders: _authenticatedHeaders(sessionCookie),
+        extraHeaders: _authenticatedHeaders(sessionCookie, pageId: pageId),
       );
 
   /// The visitor identity every player request carries.
@@ -353,13 +361,29 @@ final class InnerTubeClient {
   /// `authorization` header InnerTube's authenticated endpoints expect
   /// alongside it (`SAPISIDHASH`, computed in `auth/sapisid_hash.dart` — see
   /// that file for exactly what is and is not verified about it) and
-  /// `x-goog-authuser`, which unofficial YouTube Music clients send alongside
-  /// it to select the first Google account on the session.
+  /// `x-goog-authuser: 0`, which unofficial YouTube Music clients send
+  /// alongside it to select the first Google account on the session. Always
+  /// `0`: this plugin has no notion of *which* signed-in Google account to
+  /// act as beyond the one the pasted cookie itself carries — see [pageId]
+  /// for the separate axis that actually varies per user, which channel
+  /// under that one account.
+  ///
+  /// [pageId], when present, is sent as [kPageIdHeader] — see
+  /// [kPageIdSettingId]'s doc comment for what it selects and why a cookie
+  /// alone does not settle it. Confirmed empirically (not merely inferred
+  /// from other clients, unlike the rest of this method) against a real
+  /// multi-channel account: without it, a channel's own Liked Music playlist
+  /// answered as a normal, parseable, entirely empty page — no error, no
+  /// "signed out" placeholder, nothing to catch — with it, the same request
+  /// answered with the real count.
   ///
   /// Never logged: this plugin has no `context.log` call anywhere near this
   /// path, and it must stay that way — see `docs/permissions.md`'s "Tokens
   /// and logs" section.
-  Map<String, String> _authenticatedHeaders(String? sessionCookie) {
+  Map<String, String> _authenticatedHeaders(
+    String? sessionCookie, {
+    String? pageId,
+  }) {
     if (sessionCookie == null || sessionCookie.trim().isEmpty) {
       return const <String, String>{};
     }
@@ -371,6 +395,7 @@ final class InnerTubeClient {
       'cookie': sessionCookie,
       if (authorization != null) 'authorization': authorization,
       'x-goog-authuser': '0',
+      if (pageId != null && pageId.trim().isNotEmpty) kPageIdHeader: pageId,
     };
   }
 }

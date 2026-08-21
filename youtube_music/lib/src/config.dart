@@ -21,7 +21,7 @@ const String kYouTubeMusicPluginId = 'app.swayve.plugins.youtube_music';
 const String kYouTubeMusicPluginName = 'YouTube Music';
 
 /// The plugin version, identical to `plugin.json`'s `version`.
-const Version kYouTubeMusicPluginVersion = Version(0, 1, 0);
+const Version kYouTubeMusicPluginVersion = Version(0, 2, 0);
 
 /// The hostnames this plugin is permitted to reach, identical to
 /// `plugin.json`'s `network.hosts`.
@@ -364,5 +364,6 @@ const SwayveSourceDescriptor kYouTubeMusicSource = SwayveSourceDescriptor(
     SwayveCapability.artwork,
     SwayveCapability.authentication,
     SwayveCapability.personalLibrary,
+    SwayveCapability.sessionCapture,
   },
 );

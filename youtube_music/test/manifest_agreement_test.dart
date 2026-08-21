@@ -186,6 +186,33 @@ void main() {
             'default it to.',
       );
     });
+
+    test(
+        'the session_capture block agrees with the secrets it feeds', () {
+      // The host reads this block to drive an in-app sign-in that writes
+      // straight into the credential store keys the manual-paste flow
+      // already uses. If `as_secret` here ever drifted from the setting ids
+      // the auth/library providers actually read, a captured session would
+      // land somewhere nothing looks — silently, since nothing here throws.
+      final Map<String, Object?> sessionCapture =
+          manifest['session_capture']! as Map<String, Object?>;
+
+      final List<String> hosts =
+          (sessionCapture['hosts']! as List<Object?>).cast<String>();
+      expect(hosts, contains('music.youtube.com'));
+
+      final List<Map<String, Object?>> capture = (sessionCapture['capture']!
+              as List<Object?>)
+          .cast<Map<String, Object?>>();
+      final Set<String> asSecrets = capture
+          .map((Map<String, Object?> entry) => entry['as_secret']! as String)
+          .toSet();
+      expect(
+        asSecrets,
+        containsAll(<String>[kSessionCookieSettingId, kPageIdSettingId]),
+      );
+      expect(asSecrets, hasLength(2));
+    });
   });
 
   group('registration', () {
@@ -195,13 +222,17 @@ void main() {
 
       expect(
         harness.context.registeredCapabilities,
-        // `webview` is the one capability in the v1 vocabulary with no
-        // provider interface behind it — the host renders the embed, so
-        // there is nothing for the plugin to register. Every other declared
-        // capability must have a provider, and no provider may be registered
-        // for a capability that was not declared.
+        // `webview` and `session_capture` are the two capabilities with no
+        // provider interface behind them — the host renders the embed and
+        // drives the in-app sign-in itself, so there is nothing for the
+        // plugin to register for either. Every other declared capability
+        // must have a provider, and no provider may be registered for a
+        // capability that was not declared.
         manifestCapabilities.difference(
-          const <SwayveCapability>{SwayveCapability.webview},
+          const <SwayveCapability>{
+            SwayveCapability.webview,
+            SwayveCapability.sessionCapture,
+          },
         ),
       );
       expect(harness.context.searchProviders, hasLength(1));

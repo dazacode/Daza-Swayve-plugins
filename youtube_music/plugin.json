@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "id": "app.swayve.plugins.youtube_music",
   "name": "YouTube Music",
   "description": "Adds YouTube Music search, browsing and playback to Swayve.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Swayve",
     "url": "https://github.com/dazacode/swayve-plugins"
@@ -27,7 +27,8 @@
     "webview",
     "artwork",
     "authentication",
-    "personal_library"
+    "personal_library",
+    "session_capture"
   ],
   "permissions": [
     "network",
@@ -58,6 +59,21 @@
       "i.ytimg.com",
       "lh3.googleusercontent.com",
       "*.googlevideo.com"
+    ]
+  },
+  "session_capture": {
+    "hosts": [
+      "music.youtube.com"
+    ],
+    "capture": [
+      {
+        "from": "cookie_header",
+        "as_secret": "session_cookie"
+      },
+      {
+        "from": "page_script:youtube_page_id",
+        "as_secret": "page_id"
+      }
     ]
   },
   "timeouts": {

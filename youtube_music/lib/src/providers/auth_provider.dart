@@ -163,8 +163,7 @@ final class YouTubeMusicAuthProvider implements SwayveAuthProvider {
       if (tryParseFeed(body) == null || looksSignedOut(body)) {
         final SwayveAuthState failed = const SwayveAuthState(
           status: SwayveAuthStatus.failed,
-          message: 'YouTube Music did not recognise that session. Copy the '
-              'cookie again from a browser signed into music.youtube.com.',
+          message: 'Sign in to YouTube Music again to refresh your session.',
         );
         _publish(failed);
         return failed;

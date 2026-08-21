@@ -11,10 +11,11 @@ import 'providers/stream_provider.dart';
 
 /// The YouTube Music plugin.
 ///
-/// It declares six capabilities — `search`, `catalog`, `streaming`,
-/// `artwork`, `authentication`, `personal_library` — and registers exactly
-/// one provider for each during [initialize] (`webview` is the one
-/// capability with no provider interface, same as always — see [identity]).
+/// It declares seven capabilities — `search`, `catalog`, `streaming`,
+/// `artwork`, `authentication`, `personal_library`, `session_capture` — and
+/// registers exactly one provider for each during [initialize] that has one
+/// (`webview` and `session_capture` are the two with no provider interface;
+/// both are host-driven — see [identity]).
 /// It declares three permissions, `network`, `webview` and `external_auth`,
 /// and touches exactly the context facilities they guard.
 ///
@@ -86,6 +87,15 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
           // without something that can sign in.
           SwayveCapability.authentication,
           SwayveCapability.personalLibrary,
+          // Another capability with no provider interface, same reasoning as
+          // `webview` above: the host drives an in-app sign-in itself (via
+          // its own `SwayveSessionCaptureController`, triggered from
+          // Settings) and writes straight to the credential store keys
+          // `authProvider`/`libraryProvider` already read — there is nothing
+          // for this plugin to register. Declared so the host knows this
+          // plugin supports the flow at all; see `plugin.json`'s
+          // `session_capture` block for hosts and capture entries.
+          SwayveCapability.sessionCapture,
         },
         permissions: <SwayvePermission>{
           SwayvePermission.network,

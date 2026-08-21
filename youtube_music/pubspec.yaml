@@ -22,7 +22,7 @@ dependencies:
     git:
       url: https://github.com/dazacode/swayve-plugins.git
       path: packages/swayve_plugin_sdk
-      ref: 4a2017c681e2bf67f9a2f39567800fff660d9296
+      ref: 6999301bdfbbd432cea441d26841ab0972bc38d3
 
 dev_dependencies:
   lints: ^6.1.0

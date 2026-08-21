@@ -167,6 +167,7 @@ final class SoundCloudClient {
 
   Future<SwayveHttpResponse> _rawGet(
     Uri url, {
+    Map<String, String>? headers,
     SwayveCancellationToken? cancel,
   }) {
     if (!isAllowedHost(url.host)) {
@@ -175,7 +176,12 @@ final class SoundCloudClient {
         "the plugin manifest's network.hosts.",
       );
     }
-    return _http.get(url, timeout: timeouts.request, cancel: cancel);
+    return _http.get(
+      url,
+      headers: headers,
+      timeout: timeouts.request,
+      cancel: cancel,
+    );
   }
 
   Uri _withParams(Uri base, Map<String, String> params) => base.replace(
@@ -192,15 +198,23 @@ final class SoundCloudClient {
   /// scraped `client_id` when the first attempt answers `401` — the scraped
   /// credential can go stale between plugin startup and a request, and a
   /// fresh scrape is the recovery, not a second try with the same one.
+  ///
+  /// [headers] is additive and optional — see [me] and [userLikes] for the
+  /// one caller that passes a `cookie` header here. Every existing call site
+  /// passes nothing and gets exactly the anonymous request this client has
+  /// always sent, unchanged. Carried through the 401 retry unaltered: a
+  /// cookie the retry needs is the same cookie the first attempt needed.
   Future<({SwayveHttpResponse response, Uri url})> _authedGet(
     Uri baseUrl, {
     Map<String, String> params = const <String, String>{},
+    Map<String, String>? headers,
     SwayveCancellationToken? cancel,
   }) async {
     final String id = await clientId(cancel: cancel);
     Uri url =
         _withParams(baseUrl, <String, String>{...params, 'client_id': id});
-    SwayveHttpResponse response = await _rawGet(url, cancel: cancel);
+    SwayveHttpResponse response =
+        await _rawGet(url, headers: headers, cancel: cancel);
     if (response.statusCode == 401) {
       forgetClientId();
       final String freshId = await clientId(cancel: cancel);
@@ -208,7 +222,7 @@ final class SoundCloudClient {
         baseUrl,
         <String, String>{...params, 'client_id': freshId},
       );
-      response = await _rawGet(url, cancel: cancel);
+      response = await _rawGet(url, headers: headers, cancel: cancel);
     }
     return (response: response, url: url);
   }
@@ -216,9 +230,15 @@ final class SoundCloudClient {
   Future<Map<String, Object?>> _getJson(
     Uri baseUrl, {
     Map<String, String> params = const <String, String>{},
+    Map<String, String>? headers,
     SwayveCancellationToken? cancel,
   }) async {
-    final result = await _authedGet(baseUrl, params: params, cancel: cancel);
+    final result = await _authedGet(
+      baseUrl,
+      params: params,
+      headers: headers,
+      cancel: cancel,
+    );
     if (!result.response.isSuccess) throwForStatus(result.response, result.url);
     final Object? body = result.response.bodyAsJson;
     if (body is! Map) {
@@ -236,9 +256,15 @@ final class SoundCloudClient {
   Future<Map<String, Object?>?> _getJsonOrNull(
     Uri baseUrl, {
     Map<String, String> params = const <String, String>{},
+    Map<String, String>? headers,
     SwayveCancellationToken? cancel,
   }) async {
-    final result = await _authedGet(baseUrl, params: params, cancel: cancel);
+    final result = await _authedGet(
+      baseUrl,
+      params: params,
+      headers: headers,
+      cancel: cancel,
+    );
     if (result.response.statusCode == 404) return null;
     if (!result.response.isSuccess) throwForStatus(result.response, result.url);
     final Object? body = result.response.bodyAsJson;
@@ -274,9 +300,11 @@ final class SoundCloudClient {
 
   Future<SoundCloudPage> _getCollection(
     Uri url, {
+    Map<String, String>? headers,
     SwayveCancellationToken? cancel,
   }) async {
-    final Map<String, Object?> json = await _getJson(url, cancel: cancel);
+    final Map<String, Object?> json =
+        await _getJson(url, headers: headers, cancel: cancel);
     return SoundCloudPage(
       items: listAt(json, <Object>['collection']),
       nextHref: stringAt(json, <Object>['next_href']),
@@ -290,8 +318,13 @@ final class SoundCloudClient {
   /// stripped and re-injected fresh rather than trusted. A cursor pointing
   /// somewhere off the manifest's allowlist is a malformed-response
   /// condition, not something to follow blindly.
+  ///
+  /// [headers] is carried through unchanged, same as [_getCollection] — a
+  /// cookie an authenticated first page needed is the same cookie every later
+  /// page of that same listing needs.
   Future<SoundCloudPage> _followCursor(
     String cursor, {
+    Map<String, String>? headers,
     SwayveCancellationToken? cancel,
   }) {
     final Uri? parsed = Uri.tryParse(cursor);
@@ -305,7 +338,7 @@ final class SoundCloudClient {
       queryParameters: <String, String>{...target.queryParameters}
         ..remove('client_id'),
     );
-    return _getCollection(stripped, cancel: cancel);
+    return _getCollection(stripped, headers: headers, cancel: cancel);
   }
 
   /// The page [cursor] asks for: the first page of [firstPageUrl] when
@@ -313,11 +346,12 @@ final class SoundCloudClient {
   Future<SoundCloudPage> pageFor(
     String? cursor,
     Uri firstPageUrl, {
+    Map<String, String>? headers,
     SwayveCancellationToken? cancel,
   }) =>
       cursor == null
-          ? _getCollection(firstPageUrl, cancel: cancel)
-          : _followCursor(cursor, cancel: cancel);
+          ? _getCollection(firstPageUrl, headers: headers, cancel: cancel)
+          : _followCursor(cursor, headers: headers, cancel: cancel);
 
   // ---------------------------------------------------------------------
   // public API surface
@@ -467,12 +501,74 @@ final class SoundCloudClient {
   /// `"track"` wrapper key [unwrapChartItem] already handles — no bespoke
   /// unwrapping needed. Filtering the mixed feed down to tracks only is
   /// `SoundCloudArtistActivityProvider`'s job, not this client's.
+  ///
+  /// [sessionCookie] is optional and additive: `SoundCloudArtistActivityProvider`
+  /// calls this anonymously for any public profile, unchanged. `SoundCloudLibrary
+  /// Provider` passes the signed-in user's own stored cookie instead, for the
+  /// same page shape read as *their own* likes rather than a public listing of
+  /// someone else's — see that provider's doc comment for why a plain public
+  /// fetch by id is not simply reused unauthenticated for the signed-in user's
+  /// own shelf.
   Future<SoundCloudPage> userLikes(
     int id, {
     String? cursor,
+    String? sessionCookie,
     SwayveCancellationToken? cancel,
   }) =>
-      pageFor(cursor, _apiUri('/users/$id/likes'), cancel: cancel);
+      pageFor(
+        cursor,
+        _apiUri('/users/$id/likes'),
+        headers: _cookieHeader(sessionCookie),
+        cancel: cancel,
+      );
+
+  /// The `cookie` header map [sessionCookie] becomes, or `null` for none —
+  /// the shape every cookie-carrying call below hands to [_authedGet].
+  Map<String, String>? _cookieHeader(String? sessionCookie) =>
+      sessionCookie == null || sessionCookie.trim().isEmpty
+          ? null
+          : <String, String>{'cookie': sessionCookie};
+
+  /// The signed-in user behind [sessionCookie] — SoundCloud's own `/me`.
+  ///
+  /// `null` for a cookie SoundCloud does not recognise (`401`/`403`) or for
+  /// an account that has somehow stopped resolving (`404`) — a caller
+  /// checking whether sign-in still works cannot tell those apart from the
+  /// response alone, and both mean the same thing to it: the stored cookie no
+  /// longer proves who this is. See `providers/auth_provider.dart` and
+  /// `providers/library_provider.dart`, the two callers.
+  ///
+  /// **Not exercised against a real signed-in session as part of this
+  /// change** — there is no live account available to verify it against
+  /// here. The shape assumed (`id`, `username` at the top level) matches
+  /// every other SoundCloud user object this plugin already parses (see
+  /// `test/fixtures/user_full.json`), but that is inference from a public
+  /// profile lookup, not proof this endpoint answers the same way for a
+  /// cookie-authenticated caller.
+  Future<Map<String, Object?>?> me({
+    required String sessionCookie,
+    SwayveCancellationToken? cancel,
+  }) async {
+    final result = await _authedGet(
+      _apiUri('/me'),
+      headers: <String, String>{'cookie': sessionCookie},
+      cancel: cancel,
+    );
+    if (result.response.statusCode == 401 ||
+        result.response.statusCode == 403 ||
+        result.response.statusCode == 404) {
+      return null;
+    }
+    if (!result.response.isSuccess) throwForStatus(result.response, result.url);
+    final Object? body = result.response.bodyAsJson;
+    if (body is! Map) {
+      malformedResponse(
+        'expected a JSON object from ${result.url.host}${result.url.path} '
+        'but got ${body.runtimeType}.',
+      );
+    }
+    return mapOf(body);
+  }
 
   /// One page of [id]'s reposts (tracks and playlists both, unfiltered here)
   /// — `/stream/users/{id}/reposts`.

@@ -21,7 +21,7 @@ const String kSoundCloudPluginId = 'app.swayve.plugins.soundcloud';
 const String kSoundCloudPluginName = 'SoundCloud';
 
 /// The plugin version, identical to `plugin.json`'s `version`.
-const Version kSoundCloudPluginVersion = Version(0, 1, 0);
+const Version kSoundCloudPluginVersion = Version(0, 2, 0);
 
 /// How this plugin presents itself as a *place a query can be sent*, identical
 /// to `plugin.json`'s `source`.
@@ -54,6 +54,20 @@ const SwayveSourceDescriptor kSoundCloudSource = SwayveSourceDescriptor(
     SwayveCapability.artwork,
     SwayveCapability.playlistRead,
     SwayveCapability.artistActivity,
+    // The two capabilities behind sign-in, mirroring the YouTube Music
+    // plugin's own pair for the same reason: `personalLibrary` — the
+    // signed-in user's own liked tracks — makes no sense without something
+    // that can sign in, and the validator enforces that `authentication` is
+    // declared alongside it.
+    SwayveCapability.authentication,
+    SwayveCapability.personalLibrary,
+    // No provider interface of its own — the host drives an in-app sign-in
+    // through its own `SwayveSessionCaptureController`, triggered from
+    // Settings, and writes straight to the credential store key
+    // `authProvider`/`libraryProvider` already read. Declared so the host
+    // knows this plugin supports the flow at all; see `plugin.json`'s
+    // `session_capture` block.
+    SwayveCapability.sessionCapture,
   },
 );
 
@@ -190,6 +204,14 @@ const Duration kStreamExpiryMargin = Duration(minutes: 2);
 
 /// The id of the `region` setting, identical to `plugin.json`.
 const String kRegionSettingId = 'region';
+
+/// The id of the `session_cookie` setting, identical to `plugin.json`.
+///
+/// A `type: "secret"` setting rather than a `string` one: its value goes to
+/// the credential store, never to plugin settings, and is read back with
+/// `context.credentials.readSecret`, not `settings.value`. See
+/// `providers/auth_provider.dart`.
+const String kSessionCookieSettingId = 'session_cookie';
 
 /// The sentinel value meaning "no region filter" — the worldwide chart.
 ///

@@ -114,6 +114,33 @@ void main() {
       final List<Object?> options = region['options']! as List<Object?>;
       expect(options, isNotEmpty);
     });
+
+    test(
+        'the session_cookie setting is a secret matching what the auth and '
+        'library providers read', () {
+      final List<Object?> settings = manifest['settings']! as List<Object?>;
+      final Map<String, Object?> cookie = settings
+          .cast<Map<String, Object?>>()
+          .firstWhere((e) => e['id'] == kSessionCookieSettingId);
+      expect(cookie['type'], 'secret');
+    });
+
+    test('session_capture writes cookie_header to the session_cookie secret',
+        () {
+      final Map<String, Object?> sessionCapture =
+          manifest['session_capture']! as Map<String, Object?>;
+      expect(sessionCapture['hosts'], contains('soundcloud.com'));
+      final List<Object?> capture = sessionCapture['capture']! as List<Object?>;
+      expect(
+        capture.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('from', 'cookie_header'),
+            containsPair('as_secret', kSessionCookieSettingId),
+          ),
+        ),
+      );
+    });
   });
 
   group('registration', () {
@@ -121,14 +148,25 @@ void main() {
       final PluginHarness harness = await PluginHarness.start();
       addTearDown(harness.stop);
 
-      expect(harness.context.registeredCapabilities, manifestCapabilities);
+      expect(
+        harness.context.registeredCapabilities,
+        // `session_capture` is the one capability with no provider interface
+        // behind it — the host drives the in-app sign-in itself, so there is
+        // nothing for the plugin to register for it. Every other declared
+        // capability must have a provider, and no provider may be registered
+        // for a capability that was not declared.
+        manifestCapabilities.difference(
+          const <SwayveCapability>{SwayveCapability.sessionCapture},
+        ),
+      );
       expect(harness.context.searchProviders, hasLength(1));
       expect(harness.context.catalogProviders, hasLength(1));
       expect(harness.context.streamProviders, hasLength(1));
       expect(harness.context.artworkProviders, hasLength(1));
       expect(harness.context.playlistProviders, hasLength(1));
       expect(harness.context.artistActivityProviders, hasLength(1));
-      expect(harness.context.authProviders, isEmpty);
+      expect(harness.context.authProviders, hasLength(1));
+      expect(harness.context.libraryProviders, hasLength(1));
       expect(harness.context.lyricsProviders, isEmpty);
       expect(harness.context.scrobbleProviders, isEmpty);
     });

@@ -80,14 +80,18 @@ Future<T> runGuarded<T>(
 /// * every other non-2xx status becomes `SwayvePluginUnavailableException`.
 ///
 /// Note what is deliberately *not* here: `401` and `403` do not become
-/// `SwayvePluginAuthRequiredException`. That exception tells the host to send
-/// the user through this plugin's sign-in flow, and this plugin declares no
-/// `authentication` capability and has no such flow — it talks to SoundCloud's
-/// public API anonymously. A `401` here almost always means the scraped
-/// `client_id` has gone stale, which `SoundCloudClient` already retries once
-/// internally before this is ever reached; one that survives that retry is a
-/// service condition, not a lapsed session, and reporting auth-required would
-/// leave the host offering a button that leads nowhere.
+/// `SwayvePluginAuthRequiredException`. Every call that reaches this function
+/// is an anonymous, `client_id`-only request — a `401` here almost always
+/// means the scraped `client_id` has gone stale, which `SoundCloudClient`
+/// already retries once internally before this is ever reached, and one that
+/// survives that retry is a service condition, not a lapsed session.
+///
+/// The one place this plugin *does* carry a user's own session — `me()` and
+/// `userLikes()`'s optional `sessionCookie` — deliberately bypasses this
+/// function for exactly that reason: a `401`/`403` there means the cookie
+/// itself was rejected, which `throwForStatus`'s blanket
+/// `SwayvePluginUnavailableException` cannot say. See `SoundCloudClient.me`
+/// and `providers/auth_provider.dart`.
 Never throwForStatus(SwayveHttpResponse response, Uri url) {
   if (response.statusCode == 429) {
     throw SwayvePluginRateLimitedException(

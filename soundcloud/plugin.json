@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "id": "app.swayve.plugins.soundcloud",
   "name": "SoundCloud",
   "description": "Adds SoundCloud search, browsing and playback to Swayve.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Swayve",
     "url": "https://github.com/dazacode/swayve-plugins"
@@ -26,10 +26,15 @@
     "streaming",
     "artwork",
     "playlist_read",
-    "artist_activity"
+    "artist_activity",
+    "authentication",
+    "personal_library",
+    "session_capture"
   ],
   "permissions": [
-    "network"
+    "network",
+    "webview",
+    "external_auth"
   ],
   "entrypoint": "soundcloud",
   "source": {
@@ -54,11 +59,28 @@
       "*.sndcdn.com"
     ]
   },
+  "session_capture": {
+    "hosts": [
+      "soundcloud.com"
+    ],
+    "capture": [
+      {
+        "from": "cookie_header",
+        "as_secret": "session_cookie"
+      }
+    ]
+  },
   "timeouts": {
     "requestMs": 10000,
     "operationMs": 20000
   },
   "settings": [
+    {
+      "id": "session_cookie",
+      "type": "secret",
+      "label": "SoundCloud session cookie",
+      "description": "Paste the cookie from a browser signed into soundcloud.com. Lets Swayve see your liked tracks; stored on this device and never sent anywhere else."
+    },
     {
       "id": "region",
       "type": "select",

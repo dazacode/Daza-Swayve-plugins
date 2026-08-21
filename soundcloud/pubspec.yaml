@@ -1,8 +1,8 @@
 name: soundcloud
 description: >-
   Adds SoundCloud search, browsing and playback to Swayve through the Swayve
-  plugin SDK, in pure Dart, using SoundCloud's public unauthenticated API.
-version: 0.1.0
+  plugin SDK, in pure Dart, using SoundCloud's public API.
+version: 0.2.0
 publish_to: none
 repository: https://github.com/dazacode/Daza-Swayve-plugins
 issue_tracker: https://github.com/dazacode/Daza-Swayve-plugins/issues

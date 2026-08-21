@@ -7,8 +7,8 @@ Adds SoundCloud search, browsing and playback to Swayve.
 | **Id** | `app.swayve.plugins.soundcloud` |
 | **Runtime** | `compiled` — the source lives here and is compiled into a Swayve build |
 | **Platforms** | android, ios, windows |
-| **Capabilities** | `search`, `catalog`, `streaming`, `artwork`, `playlist_read`, `artist_activity` |
-| **Permissions** | `network` |
+| **Capabilities** | `search`, `catalog`, `streaming`, `artwork`, `playlist_read`, `artist_activity`, `authentication`, `personal_library`, `session_capture` |
+| **Permissions** | `network`, `webview`, `external_auth` |
 | **Network hosts** | `soundcloud.com`, `api-v2.soundcloud.com`, `*.sndcdn.com` |
 | **Streamable** | yes |
 | **Downloadable** | per track — see [Playback](#playback-progressive-preferred-hls-fallback) |
@@ -31,7 +31,7 @@ From a host:
 import 'package:soundcloud/soundcloud.dart';
 
 final SwayvePlugin plugin = createSoundCloudPlugin();
-await plugin.initialize(context);   // registers six providers, makes zero requests
+await plugin.initialize(context);   // registers eight providers, makes zero requests
 ```
 
 `initialize` does no network work. `SoundCloudClient`'s `client_id` is scraped
@@ -52,8 +52,11 @@ unofficial SoundCloud client does: scrapes the public `client_id` that
 SoundCloud's own web player embeds in its JavaScript bundle, then calls the
 public `api-v2.soundcloud.com` JSON API anonymously with it. This is the same
 category of move as the YouTube Music reference plugin's InnerTube client —
-reverse-engineered, no login required, and built to degrade rather than break
-when the upstream service changes its bundle out from under it.
+reverse-engineered, no login required for anonymous browsing, and built to
+degrade rather than break when the upstream service changes its bundle out
+from under it. See [Signing in](#signing-in-liked-tracks) for the one place
+this plugin *does* carry a user's own session — the signed-in user's own
+liked tracks, which has no anonymous equivalent to scrape at all.
 
 This was researched against two references, neither used as-is:
 
@@ -75,18 +78,20 @@ Everything below is exported from `package:soundcloud/soundcloud.dart`.
 | Symbol | What it is |
 |---|---|
 | `createSoundCloudPlugin()` | The `SwayvePluginFactory`. Cheap, synchronous, no side effects. |
-| `SoundCloudPlugin` | The `SwayvePlugin`. Holds the six providers; exposes them as nullable getters after `initialize`. |
+| `SoundCloudPlugin` | The `SwayvePlugin`. Holds the eight providers; exposes them as nullable getters after `initialize`. |
 | `SoundCloudSearchProvider` | `SwayveSearchProvider`. |
 | `SoundCloudCatalogProvider` | `SwayveCatalogProvider`. Also `region`, read fresh from settings. |
 | `SoundCloudPlaylistProvider` | `SwayvePlaylistProvider` — see [Playlists vs. albums](#playlists-vs-albums). |
 | `SoundCloudArtworkProvider` | `SwayveArtworkProvider`. |
 | `SoundCloudStreamProvider` | `SwayveStreamProvider`. |
 | `SoundCloudArtistActivityProvider` | `SwayveArtistActivityProvider` — an artist's likes and reposts, see the Browse feeds table above. |
+| `SoundCloudAuthProvider` | `SwayveAuthProvider` — see [Signing in](#signing-in-liked-tracks). |
+| `SoundCloudLibraryProvider` | `SwayveLibraryProvider` — the signed-in user's own liked tracks, see [Signing in](#signing-in-liked-tracks). |
 | `SoundCloudClient` | The API client every provider shares. Also `SoundCloudClientIdException`, `SoundCloudPage`. |
 | `SoundCloudIds` / `SoundCloudIdKind` | Minting and reading this plugin's provider-native identifiers. |
 | `SoundCloudArtwork` | Sizing SoundCloud's image URLs without a request, once the image URL is known. |
 | `SoundCloudTimeouts` | The manifest's deadlines, and the seam tests use to shorten them. |
-| `kSoundCloudPluginId`, `kSoundCloudPluginName`, `kSoundCloudPluginVersion`, `kSoundCloudAllowedHosts`, `isAllowedHost` | The manifest's facts, restated in code and checked against `plugin.json` by the test suite. |
+| `kSoundCloudPluginId`, `kSoundCloudPluginName`, `kSoundCloudPluginVersion`, `kSoundCloudAllowedHosts`, `isAllowedHost`, `kSessionCookieSettingId` | The manifest's facts, restated in code and checked against `plugin.json` by the test suite. |
 
 Nothing in that list requires the host to import it. The host talks to
 `SwayveSearchProvider`, `SwayveCatalogProvider`, `SwayveStreamProvider`,
@@ -182,6 +187,47 @@ discipline YouTube Music's README applies to its own browse ids.
 A "Medium" row that guesses wrong about the response shape degrades to fewer
 items — it never throws over a shape mismatch, per [Parsing](#parsing--total-never-throws)
 below.
+
+---
+
+## Signing in: liked tracks
+
+`SoundCloudArtistActivityProvider.likedTracks(id)` (above) reads any known
+user's *public* likes anonymously — no session needed, because SoundCloud
+publishes that listing for anyone. There is no anonymous equivalent for "my
+own liked tracks": nothing in the public API says which user the plugin is,
+so seeing your own likes needs a real session.
+
+There is no OAuth path here either — see
+[above](#why-an-unofficial-api-not-the-official-one) — so this plugin follows
+the YouTube Music reference plugin's own pattern: `SoundCloudAuthProvider`
+(capability `authentication`) manages a session cookie a browser signed into
+`soundcloud.com` already carries, captured by the host's in-app
+`session_capture` flow (or pasted by hand where there's no web view to
+capture from) and written straight to the credential store under the
+`session_cookie` secret setting — never read or logged by anything else in
+this plugin. `authenticate()` proves the cookie by calling SoundCloud's own
+`/me`; `authState()` never touches the network, answering from the stored
+secret alone, the same "cheap now, prove it later" split YouTube Music's own
+auth provider uses and for the same reason — it runs on the app-startup path.
+
+`SoundCloudLibraryProvider.likedTracks(request)` (capability
+`personal_library`) is what a signed-in host actually browses. It resolves
+the signed-in account's numeric user id through `/me` — cached per cookie, so
+paging a large shelf costs one identity lookup rather than one per page — and
+then reads the exact same `/users/{id}/likes` shape
+`SoundCloudArtistActivityProvider` already reads for anyone else's public
+likes, just for the signed-in account's own id and with the cookie carried
+on the request. A call made signed out throws
+`SwayvePluginAuthRequiredException` rather than returning an empty page, per
+the SDK's own contract for that distinction.
+
+**Not exercised against a real signed-in session as part of this change** —
+there's no live account available to verify it against here. `/me`'s exact
+shape is inferred from every other SoundCloud user object this plugin already
+parses live (`username`, `id` at the top level), not proven for a
+cookie-authenticated caller specifically. See `SoundCloudClient.me`'s doc
+comment for the honest version of this claim.
 
 ---
 
@@ -319,7 +365,7 @@ Every provider method is wrapped in `runGuarded` (`lib/src/errors.dart`):
 |---|---|
 | HTTP 429 | `SwayvePluginRateLimitedException`, `retryAfter` parsed from the header (delta-seconds or HTTP-date) |
 | Any other non-2xx | `SwayvePluginUnavailableException` |
-| A `401` that survives one internal `client_id` re-scrape-and-retry | `SwayvePluginUnavailableException` — not auth-required; this plugin declares no `authentication` capability and has no sign-in flow to send anyone through |
+| A `401` that survives one internal `client_id` re-scrape-and-retry, on an anonymous request | `SwayvePluginUnavailableException` — not auth-required; an anonymous request carries no user session for a rejection to be *about* |
 | Offline, DNS, TLS, connection reset | `SwayvePluginUnavailableException` (raised by the host's client) |
 | Body is not JSON, truncated, or the wrong shape | `SwayvePluginMalformedResponseException` — never a raw `TypeError` |
 | The operation outran `timeouts.operationMs` | `SwayvePluginTimeoutException`, carrying the limit |
@@ -343,12 +389,14 @@ manifest at test time.
 
 | File | What it proves |
 |---|---|
-| `manifest_agreement_test.dart` | Identity/constants/hosts/timeouts/`media` block/the `region` setting all match `plugin.json`; entrypoint matches the directory; exactly the declared capabilities are registered; `initialize` makes no request and fails loudly without `network`; `dispose` is safe twice. |
+| `manifest_agreement_test.dart` | Identity/constants/hosts/timeouts/`media` block/the `region` and `session_cookie` settings/the `session_capture` block all match `plugin.json`; entrypoint matches the directory; exactly the declared capabilities are registered (`session_capture` has no provider of its own — the host drives it); `initialize` makes no request and fails loudly without `network`; `dispose` is safe twice. |
 | `client_id_test.dart` | Both scrape spellings; scripts are tried last-to-first and recover from a decoy trailing script; no match is a clean error, not a crash; a `401` clears the cache, re-scrapes, and retries **exactly once**; a second `401` is reported, not looped; concurrent callers share one in-flight scrape. |
 | `search_test.dart` | Normalization, a bad row skipped rather than failing the call, the `is_album` album/playlist split, per-kind endpoint fan-out, the multi-shelf cursor round trip, `limit` on the wire. |
 | `catalog_test.dart` | Chart-kind selection per `SwayveSortOrder`, the `region` setting reaching the wire and reacting to a mid-session change, the chart-envelope unwrap, artist deduplication, discovery filtering (both the flat and sectioned shapes), and every lookup's `null`/foreign-id behavior. |
 | `playlist_test.dart` | The unfiltered discovery listing, in-order track lookup, stub hydration and splicing, a failed hydration batch degrading gracefully, and foreign/missing-id handling. |
 | `artist_activity_test.dart` | Both feeds' happy path, each dropping the non-track item its live-verified fixture mixes in (a liked playlist, a playlist repost); wrong-kind and foreign ids answering an empty page without a request; a `404` user surfacing as `SwayvePluginUnavailableException`. |
+| `auth_provider_test.dart` | Cheap, network-free `authState`; `authenticate` proving a cookie against `/me` and reporting the account's own handle; a rejected/failing/malformed `/me` response failing rather than throwing; the validated-cookie cache; `signOut`; `authStateChanges`' replay-then-publish contract. |
+| `library_provider_test.dart` | Signed-out (and empty-cookie) calls throwing `SwayvePluginAuthRequiredException` before any request; the identity resolution + likes fetch happy path, dropping a liked playlist; a cookie `/me` rejects throwing auth-required rather than an empty page; the resolved id being cached across a second page rather than re-asking `/me`; cancellation. |
 | `stream_test.dart` | Progressive-over-HLS preference and the HLS fallback, per-track `downloadable`, `Unsupported` for an unplayable track or wrong-kind id, `expiresIn`. |
 | `artwork_test.dart` | The size-token ladder, the avatar fallback, undeclared-host rejection, and that this path costs a request unlike YouTube Music's. |
 | `failure_modes_test.dart` | The full status/timeout/cancellation/malformed-body matrix, on every provider. |
@@ -390,7 +438,11 @@ the fields the parser reads.
 long-term stability as SoundCloud's bundle changes over time; every
 rate-limit and regional behavior; `resolveMediaUrl` and the rest of the
 playback path (`/tracks/{id}/media/.../stream/progressive` and its `hls`
-counterpart) have not yet been exercised live. Treat anything in that list as
+counterpart) have not yet been exercised live; and, most recently, the whole
+sign-in path — `/me`'s response shape for a cookie-authenticated caller, and
+whether a plain `Cookie` header on a non-browser HTTP client is actually
+honoured by `api-v2.soundcloud.com` the way a real browser tab's session is.
+Treat anything in that list as
 *plausible but unproven*, the same honest framing YouTube Music's README
 applies to its own unverified browse feeds — and treat everything above it as
 what it is: checked against the real service, not merely a fixture's idea of

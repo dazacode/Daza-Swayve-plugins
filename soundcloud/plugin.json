@@ -3,7 +3,7 @@
   "id": "app.swayve.plugins.soundcloud",
   "name": "SoundCloud",
   "description": "Adds SoundCloud search, browsing and playback to Swayve.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "Swayve",
     "url": "https://github.com/dazacode/swayve-plugins"

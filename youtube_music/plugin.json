@@ -3,7 +3,7 @@
   "id": "app.swayve.plugins.youtube_music",
   "name": "YouTube Music",
   "description": "Adds YouTube Music search, browsing and playback to Swayve.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "Swayve",
     "url": "https://github.com/dazacode/swayve-plugins"

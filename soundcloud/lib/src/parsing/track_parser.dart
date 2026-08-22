@@ -20,7 +20,7 @@ int? trackStubId(Map<String, Object?> json) => intAt(json, ['id']);
 
 /// Turns one SoundCloud track object into a [SwayveTrack], or `null` when
 /// [json] is a stub with no title to show — a caller with stubs to hydrate
-/// should do that first via `SoundCloudClient.hydrateStubs` and only reach
+/// should do that first via `SoundCloudClient.hydratePlaylistTracks` and only reach
 /// this parser with full objects.
 SwayveTrack? parseTrack(Map<String, Object?> json) {
   final int? id = intAt(json, ['id']);

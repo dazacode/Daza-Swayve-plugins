@@ -6,7 +6,7 @@ Adds SoundCloud search, browsing and playback to Swayve.
 |---|---|
 | **Id** | `app.swayve.plugins.soundcloud` |
 | **Runtime** | `compiled` — the source lives here and is compiled into a Swayve build |
-| **Platforms** | android, ios, windows |
+| **Platforms** | android, ios, windows, linux |
 | **Capabilities** | `search`, `catalog`, `streaming`, `artwork`, `playlist_read`, `artist_activity`, `authentication`, `personal_library`, `webview` |
 | **Permissions** | `network`, `webview`, `external_auth` |
 | **Network hosts** | `soundcloud.com`, `api-v2.soundcloud.com`, `api.soundcloud.com`, `secure.soundcloud.com`, `*.sndcdn.com` |

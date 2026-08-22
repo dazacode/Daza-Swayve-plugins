@@ -112,10 +112,3 @@ int? intAt(Object? node, List<Object> path) {
   if (value is String) return int.tryParse(value);
   return null;
 }
-
-/// The double at [path] under [node], or `null`.
-double? doubleAt(Object? node, List<Object> path) {
-  final Object? value = dig(node, path);
-  if (value is num) return value.toDouble();
-  return null;
-}

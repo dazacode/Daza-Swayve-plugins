@@ -21,7 +21,7 @@ const String kSoundCloudPluginId = 'app.swayve.plugins.soundcloud';
 const String kSoundCloudPluginName = 'SoundCloud';
 
 /// The plugin version, identical to `plugin.json`'s `version`.
-const Version kSoundCloudPluginVersion = Version(0, 3, 0);
+const Version kSoundCloudPluginVersion = Version(0, 3, 1);
 
 /// How this plugin presents itself as a *place a query can be sent*, identical
 /// to `plugin.json`'s `source`.
@@ -180,7 +180,7 @@ const String kDefaultDiscoveryTag = 'All Music';
 /// hydrating stubbed playlist tracks.
 const int kTrackBatchSize = 50;
 
-/// How many hydration batches [SoundCloudClient.hydrateStubs] will fetch for
+/// How many hydration batches [SoundCloudClient.hydratePlaylistTracks] will fetch for
 /// one playlist before giving up.
 ///
 /// At [kTrackBatchSize] per batch this is several hundred tracks — longer

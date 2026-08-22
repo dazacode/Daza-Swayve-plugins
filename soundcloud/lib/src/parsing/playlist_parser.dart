@@ -64,7 +64,7 @@ final class ParsedPlaylistEnvelope {
   /// The playlist's `tracks` array, unparsed. Each element is either a full
   /// track object or a stub (`{"id": ..., "kind": "track"}`) — see
   /// [isTrackStub]. The caller resolves stubs (via
-  /// `SoundCloudClient.hydrateStubs`) and splices the result back into place
+  /// `SoundCloudClient.hydratePlaylistTracks`) and splices the result back into place
   /// with [spliceHydratedTracks] before building a final [SwayveTrack] list.
   final List<Object?> rawTracks;
 }

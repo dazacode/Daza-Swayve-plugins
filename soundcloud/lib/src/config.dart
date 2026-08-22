@@ -21,7 +21,7 @@ const String kSoundCloudPluginId = 'app.swayve.plugins.soundcloud';
 const String kSoundCloudPluginName = 'SoundCloud';
 
 /// The plugin version, identical to `plugin.json`'s `version`.
-const Version kSoundCloudPluginVersion = Version(0, 2, 0);
+const Version kSoundCloudPluginVersion = Version(0, 3, 0);
 
 /// How this plugin presents itself as a *place a query can be sent*, identical
 /// to `plugin.json`'s `source`.
@@ -54,20 +54,17 @@ const SwayveSourceDescriptor kSoundCloudSource = SwayveSourceDescriptor(
     SwayveCapability.artwork,
     SwayveCapability.playlistRead,
     SwayveCapability.artistActivity,
-    // The two capabilities behind sign-in, mirroring the YouTube Music
-    // plugin's own pair for the same reason: `personalLibrary` — the
+    // The two capabilities behind sign-in: `personalLibrary` — the
     // signed-in user's own liked tracks — makes no sense without something
     // that can sign in, and the validator enforces that `authentication` is
     // declared alongside it.
     SwayveCapability.authentication,
     SwayveCapability.personalLibrary,
-    // No provider interface of its own — the host drives an in-app sign-in
-    // through its own `SwayveSessionCaptureController`, triggered from
-    // Settings, and writes straight to the credential store key
-    // `authProvider`/`libraryProvider` already read. Declared so the host
-    // knows this plugin supports the flow at all; see `plugin.json`'s
-    // `session_capture` block.
-    SwayveCapability.sessionCapture,
+    // Genuinely used, not merely permission-adjacent: `authenticate()`
+    // drives `context.webView.presentForResult` directly to run the real
+    // OAuth authorization-code flow — exactly the case the SDK's own doc
+    // comment on `SwayveWebViewController` describes as the typical use.
+    SwayveCapability.webview,
   },
 );
 
@@ -82,8 +79,16 @@ const List<String> kSoundCloudAllowedHosts = <String>[
   // `SoundCloudClient.clientId` for why this has to be a page fetch rather
   // than a documented credential.
   'soundcloud.com',
-  // The public v2 JSON API every other request goes through.
+  // The public v2 JSON API every anonymous request goes through — search,
+  // catalog browsing, streaming, an artist's *public* likes/reposts.
   'api-v2.soundcloud.com',
+  // The official v1 API, and the two hosts SoundCloud's own OAuth
+  // authorization-code flow runs through. Unlike `api-v2.soundcloud.com`
+  // above, these are only ever reached with the signed-in user's own
+  // `access_token` — see `providers/auth_provider.dart` and
+  // `providers/library_provider.dart`.
+  'api.soundcloud.com',
+  'secure.soundcloud.com',
   // The script bundle host (where the scraped page's `<script>` tags point),
   // the `i1`-`i4.sndcdn.com` artwork/avatar CDN, and the media edge a
   // resolved stream URL points at. One wildcard covers all three because the
@@ -205,13 +210,67 @@ const Duration kStreamExpiryMargin = Duration(minutes: 2);
 /// The id of the `region` setting, identical to `plugin.json`.
 const String kRegionSettingId = 'region';
 
-/// The id of the `session_cookie` setting, identical to `plugin.json`.
+/// The id of the `client_id` setting, identical to `plugin.json`.
 ///
-/// A `type: "secret"` setting rather than a `string` one: its value goes to
-/// the credential store, never to plugin settings, and is read back with
-/// `context.credentials.readSecret`, not `settings.value`. See
-/// `providers/auth_provider.dart`.
-const String kSessionCookieSettingId = 'session_cookie';
+/// A `type: "secret"` setting, not because a SoundCloud OAuth `client_id` is
+/// itself confidential — it isn't, it appears in a plain URL on every
+/// authorize request — but because it is meaningless without the
+/// [kClientSecretSettingId] beside it, and grouping both under the same
+/// setting type keeps the settings screen's rendering (and its "this is a
+/// paste-in field" affordance) consistent between them rather than treating
+/// one as ordinary and one as sensitive.
+///
+/// There is deliberately no plugin-wide default here: this is *your own*
+/// registered SoundCloud application, not a value this plugin could ship —
+/// SoundCloud closed new developer registrations years ago, and even where
+/// registration is open, embedding one person's app credentials in an
+/// open-source plugin compiled into every install would mean every install
+/// shares one app's rate limit and stands or falls together if SoundCloud
+/// ever revokes it. See `README.md`'s "Signing in" section.
+const String kClientIdSettingId = 'client_id';
+
+/// The id of the `client_secret` setting, identical to `plugin.json`.
+///
+/// Unlike [kClientIdSettingId], this one actually is confidential — SoundCloud's
+/// token exchange requires it on every authorization-code and refresh-token
+/// request. See `providers/auth_provider.dart`.
+const String kClientSecretSettingId = 'client_secret';
+
+/// The origin the official OAuth API is reached through — a different host
+/// from [kApiOrigin] entirely, and the reason this plugin has two API
+/// clients' worth of logic living in one `SoundCloudClient`: `api-v2` is the
+/// scraped, `client_id`-only, anonymous surface every other provider in this
+/// plugin uses, and `kOAuthApiOrigin` is the officially documented surface
+/// that answers for a signed-in user specifically, authenticated with a real
+/// OAuth `access_token` rather than a scraped credential.
+const String kOAuthApiOrigin = 'https://api.soundcloud.com';
+
+/// SoundCloud's own OAuth authorization endpoint — where
+/// `SoundCloudAuthProvider.authenticate` sends the user to sign in and
+/// approve.
+final Uri kOAuthAuthorizeUri = Uri.parse(
+  'https://secure.soundcloud.com/authorize',
+);
+
+/// SoundCloud's own OAuth token endpoint — where an authorization code (or a
+/// stored refresh token) is exchanged for an `access_token`.
+final Uri kOAuthTokenUri = Uri.parse(
+  'https://secure.soundcloud.com/oauth/token',
+);
+
+/// The redirect URI this plugin's OAuth app is registered under.
+///
+/// Not a real, hosted page — it never needs to be, because
+/// `SwayveWebViewController.presentForResult`'s `isComplete` predicate
+/// matches on the *navigation attempt* itself, not on anything the
+/// destination actually serves. It has to be *some* URL SoundCloud will
+/// accept at registration and match exactly at authorize time, and
+/// GitHub Pages is the free, ownership-provable place to park one — the same
+/// move `soundcrowd-plugin-soundcloud`'s and `SqueezeCloud`'s own registered
+/// redirect URIs make, each pointed at their own author's GitHub Pages
+/// rather than a domain bought for the purpose.
+const String kOAuthRedirectUri =
+    'https://dazacode.github.io/swayve/oauth/soundcloud/callback';
 
 /// The sentinel value meaning "no region filter" — the worldwide chart.
 ///

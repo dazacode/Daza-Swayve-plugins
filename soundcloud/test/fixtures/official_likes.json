@@ -1,0 +1,25 @@
+{
+  "collection": [
+    {
+      "id": 9001,
+      "kind": "track",
+      "title": "Official Liked Track One",
+      "duration": 201000,
+      "downloadable": false,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 7001, "kind": "user", "username": "OfficialArtistOne"}
+    },
+    {
+      "id": 9002,
+      "kind": "track",
+      "title": "Official Liked Track Two",
+      "duration": 187000,
+      "downloadable": true,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 7001, "kind": "user", "username": "OfficialArtistOne"}
+    }
+  ],
+  "next_href": "https://api.soundcloud.com/me/likes/tracks?offset=abc&limit=50&linked_partitioning=1"
+}

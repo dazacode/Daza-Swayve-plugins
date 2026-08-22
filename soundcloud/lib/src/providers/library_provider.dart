@@ -1,22 +1,23 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
+import '../auth/oauth_tokens.dart';
 import '../config.dart';
 import '../errors.dart';
-import '../json_path.dart';
 import '../parsing/track_parser.dart';
 import '../soundcloud_client.dart';
 
 /// SoundCloud's answer to `SwayveLibraryProvider`. Capability:
 /// `personal_library`.
 ///
-/// The signed-in user's own liked tracks. Unlike an artist's *public*
-/// activity — see `providers/artist_activity_provider.dart`, which reads the
-/// same `/users/{id}/likes` shape for any known user id, unauthenticated —
-/// this provider has no target id handed to it at all: the plugin's own
-/// stored session cookie *is* the account whose shelf this reads, and
-/// resolving *which* account that is takes an extra round trip
-/// [SoundCloudClient.me] makes on the caller's behalf, because a cookie alone
-/// does not carry a numeric user id this plugin's ids are built from.
+/// The signed-in user's own liked tracks, read through the official API's
+/// `/me/likes/tracks` with the OAuth `access_token`
+/// `SoundCloudAuthProvider.authenticate` obtained — see that provider's doc
+/// comment for why this is a real OAuth flow rather than a captured cookie
+/// forwarded through the anonymous, scraped surface every other provider in
+/// this plugin uses. `/me` needs no numeric user id resolved first, unlike
+/// an artist's *public* likes (`SoundCloudArtistActivityProvider`, reading
+/// the same shape by id for anyone else's profile, unauthenticated): the
+/// access token already names whose likes these are.
 ///
 /// A signed-out call throws `SwayvePluginAuthRequiredException` rather than
 /// an empty page — exactly what [SwayveLibraryProvider.likedTracks] asks of
@@ -29,25 +30,16 @@ final class SoundCloudLibraryProvider implements SwayveLibraryProvider {
     required SwayveCredentialStore credentials,
     this.timeouts = SoundCloudTimeouts.manifest,
   })  : _client = client,
-        _credentials = credentials;
+        _credentials = credentials,
+        _tokens =
+            SoundCloudOAuthTokens(client: client, credentials: credentials);
 
   final SoundCloudClient _client;
   final SwayveCredentialStore _credentials;
+  final SoundCloudOAuthTokens _tokens;
 
   /// The deadlines this provider works to.
   final SoundCloudTimeouts timeouts;
-
-  /// The numeric user id [_resolveMyUserId] last resolved, and the cookie it
-  /// was resolved for.
-  ///
-  /// Cached so that paging through a large liked-tracks shelf costs one `/me`
-  /// lookup rather than one per page — the cursor `userLikes` follows past
-  /// page one is already scoped to this account and does not need the id
-  /// repeated. Invalidated the moment the stored cookie itself changes, which
-  /// is the one case a cached id could be wrong: someone re-ran sign-in with
-  /// a different account while this plugin instance kept running.
-  int? _myUserId;
-  String? _myUserIdForCookie;
 
   @override
   Future<SwayvePage<SwayveTrack>> likedTracks(
@@ -59,59 +51,72 @@ final class SoundCloudLibraryProvider implements SwayveLibraryProvider {
         timeout: timeouts.operation,
         cancel: cancel,
         body: () async {
-          final String? cookie = await _credentials.readSecret(
-            kSessionCookieSettingId,
+          final String? clientId = await _credentials.readSecret(
+            kClientIdSettingId,
           );
-          if (cookie == null || cookie.trim().isEmpty) {
+          final String? clientSecret = await _credentials.readSecret(
+            kClientSecretSettingId,
+          );
+          if (clientId == null ||
+              clientId.trim().isEmpty ||
+              clientSecret == null ||
+              clientSecret.trim().isEmpty) {
             throw const SwayvePluginAuthRequiredException(
               'SoundCloud: sign in to see your liked tracks.',
             );
           }
 
-          final int userId = await _resolveMyUserId(cookie, cancel: cancel);
-          final SoundCloudPage page = await _client.userLikes(
-            userId,
-            cursor: request.cursor,
-            sessionCookie: cookie,
+          final String accessToken = await _tokens.validAccessToken(
+            clientId: clientId,
+            clientSecret: clientSecret,
             cancel: cancel,
           );
-          final List<Object?> unwrapped = <Object?>[
-            for (final Object? item in page.items) unwrapChartItem(item),
-          ];
+
+          final SoundCloudPage page = await _fetchPage(
+            accessToken: accessToken,
+            clientId: clientId,
+            clientSecret: clientSecret,
+            cursor: request.cursor,
+            cancel: cancel,
+          );
           return SwayvePage<SwayveTrack>(
-            items: parseTrackList(unwrapped),
+            items: parseTrackList(page.items),
             cursor: page.nextHref,
           );
         },
       );
 
-  /// The signed-in user's own numeric id, resolved through
-  /// [SoundCloudClient.me] and cached — see [_myUserId].
-  ///
-  /// Throws `SwayvePluginAuthRequiredException` for a cookie SoundCloud does
-  /// not recognise, the same signal `SoundCloudAuthProvider.authenticate`
-  /// treats as a stale session — a call here happens only once `authState`
-  /// has already reported this session as signed in, so a rejection at this
-  /// point means the session has gone bad since, not that nobody ever signed
-  /// in.
-  Future<int> _resolveMyUserId(
-    String cookie, {
+  /// Fetches one page, retrying **exactly once** with a freshly refreshed
+  /// token when the stored one is rejected despite
+  /// [SoundCloudOAuthTokens.validAccessToken] having called it good — the
+  /// same "trust the proactive check, then recover reactively exactly once"
+  /// shape [SoundCloudClient]'s own `client_id` retry follows for the
+  /// anonymous surface. A rejection that survives the retry means the whole
+  /// session is gone, not that this one call had bad luck.
+  Future<SoundCloudPage> _fetchPage({
+    required String accessToken,
+    required String clientId,
+    required String clientSecret,
+    required String? cursor,
     SwayveCancellationToken? cancel,
   }) async {
-    final int? cached = _myUserId;
-    if (cached != null && _myUserIdForCookie == cookie) {
-      return cached;
-    }
-    final Map<String, Object?>? me =
-        await _client.me(sessionCookie: cookie, cancel: cancel);
-    final int? id = me == null ? null : intAt(me, const <Object>['id']);
-    if (id == null) {
-      throw const SwayvePluginAuthRequiredException(
-        'SoundCloud: sign in to see your liked tracks.',
+    try {
+      return await _client.officialMyLikedTracks(
+        accessToken: accessToken,
+        cursor: cursor,
+        cancel: cancel,
+      );
+    } on SwayvePluginAuthRequiredException {
+      final String refreshed = await _tokens.forceRefresh(
+        clientId: clientId,
+        clientSecret: clientSecret,
+        cancel: cancel,
+      );
+      return _client.officialMyLikedTracks(
+        accessToken: refreshed,
+        cursor: cursor,
+        cancel: cancel,
       );
     }
-    _myUserId = id;
-    _myUserIdForCookie = cookie;
-    return id;
   }
 }

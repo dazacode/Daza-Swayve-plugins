@@ -116,30 +116,41 @@ void main() {
     });
 
     test(
-        'the session_cookie setting is a secret matching what the auth and '
-        'library providers read', () {
+        'the client_id and client_secret settings are secrets matching what '
+        'the auth and library providers read', () {
       final List<Object?> settings = manifest['settings']! as List<Object?>;
-      final Map<String, Object?> cookie = settings
-          .cast<Map<String, Object?>>()
-          .firstWhere((e) => e['id'] == kSessionCookieSettingId);
-      expect(cookie['type'], 'secret');
+      final List<Map<String, Object?>> typed =
+          settings.cast<Map<String, Object?>>();
+      final Map<String, Object?> clientId = typed.firstWhere(
+        (e) => e['id'] == kClientIdSettingId,
+      );
+      final Map<String, Object?> clientSecret = typed.firstWhere(
+        (e) => e['id'] == kClientSecretSettingId,
+      );
+      expect(clientId['type'], 'secret');
+      expect(clientSecret['type'], 'secret');
     });
 
-    test('session_capture writes cookie_header to the session_cookie secret',
-        () {
-      final Map<String, Object?> sessionCapture =
-          manifest['session_capture']! as Map<String, Object?>;
-      expect(sessionCapture['hosts'], contains('soundcloud.com'));
-      final List<Object?> capture = sessionCapture['capture']! as List<Object?>;
+    test('the manifest declares no session_capture block', () {
+      // Deliberately absent — see `providers/auth_provider.dart`'s doc
+      // comment for why this plugin runs a real OAuth authorization-code
+      // flow through `context.webView` directly rather than the host's
+      // cookie/page-script capture flow.
+      expect(manifest.containsKey('session_capture'), isFalse);
+    });
+
+    test('the official-API hosts are declared alongside the scraped ones', () {
       expect(
-        capture.cast<Map<String, Object?>>(),
-        contains(
-          allOf(
-            containsPair('from', 'cookie_header'),
-            containsPair('as_secret', kSessionCookieSettingId),
-          ),
-        ),
+        manifestHosts,
+        containsAll(<String>[
+          'api-v2.soundcloud.com',
+          'api.soundcloud.com',
+          'secure.soundcloud.com',
+        ]),
       );
+      expect(kOAuthAuthorizeUri.host, 'secure.soundcloud.com');
+      expect(kOAuthTokenUri.host, 'secure.soundcloud.com');
+      expect(Uri.parse(kOAuthApiOrigin).host, 'api.soundcloud.com');
     });
   });
 
@@ -150,13 +161,13 @@ void main() {
 
       expect(
         harness.context.registeredCapabilities,
-        // `session_capture` is the one capability with no provider interface
-        // behind it — the host drives the in-app sign-in itself, so there is
-        // nothing for the plugin to register for it. Every other declared
-        // capability must have a provider, and no provider may be registered
-        // for a capability that was not declared.
+        // `webview` is the one capability with no provider interface behind
+        // it — `authProvider` calls `context.webView` directly rather than
+        // registering anything for it. Every other declared capability must
+        // have a provider, and no provider may be registered for a
+        // capability that was not declared.
         manifestCapabilities.difference(
-          const <SwayveCapability>{SwayveCapability.sessionCapture},
+          const <SwayveCapability>{SwayveCapability.webview},
         ),
       );
       expect(harness.context.searchProviders, hasLength(1));

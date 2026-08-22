@@ -15,11 +15,10 @@ import 'soundcloud_client.dart';
 ///
 /// It declares nine capabilities — `search`, `catalog`, `streaming`,
 /// `artwork`, `playlist_read`, `artist_activity`, `authentication`,
-/// `personal_library`, `session_capture` — and registers exactly one provider
-/// for each that has one (`session_capture` is host-driven and has no
-/// provider interface — see [identity]). It declares three permissions,
-/// `network`, `webview` and `external_auth`, and touches exactly the context
-/// facilities they guard.
+/// `personal_library`, `webview` — and registers exactly one provider for
+/// each that has one (`webview` has no provider interface of its own — see
+/// [identity]). It declares three permissions, `network`, `webview` and
+/// `external_auth`, and touches exactly the context facilities they guard.
 ///
 /// [initialize] does no network work of its own. `SoundCloudClient`'s
 /// `client_id` is scraped lazily, on the first request any provider actually
@@ -93,29 +92,22 @@ final class SoundCloudPlugin implements SwayvePlugin {
           // without something that can sign in.
           SwayveCapability.authentication,
           SwayveCapability.personalLibrary,
-          // No provider interface of its own, same reasoning as the YouTube
-          // Music plugin's identical declaration: the host drives an in-app
-          // sign-in itself (via its own `SwayveSessionCaptureController`,
-          // triggered from Settings) and writes straight to the credential
-          // store key `authProvider`/`libraryProvider` already read.
-          // Declared so the host knows this plugin supports the flow at all
-          // — see `plugin.json`'s `session_capture` block.
-          SwayveCapability.sessionCapture,
+          // Genuinely used, not merely permission-adjacent: `authProvider`
+          // drives `context.webView.presentForResult` directly to run
+          // SoundCloud's real OAuth authorization-code flow. See
+          // `providers/auth_provider.dart`.
+          SwayveCapability.webview,
         },
         permissions: <SwayvePermission>{
           SwayvePermission.network,
           // Guards `context.credentials`, which `authProvider` and
-          // `libraryProvider` both read the stored `session_cookie` secret
-          // through, and is also what makes declaring that `type: "secret"`
-          // setting legal in the manifest.
+          // `libraryProvider` both read `client_id`/`client_secret`/the
+          // OAuth token pair through, and is also what makes declaring
+          // those `type: "secret"` settings legal in the manifest.
           SwayvePermission.externalAuth,
-          // Required alongside `external_auth` by the `session_capture`
-          // capability, even though this plugin never calls
-          // `context.webView` itself — the host's own capture flow is what
-          // presents the web view, and the validator's rule is structural
-          // ("session_capture is a web view presentation that ends by
-          // writing into the credential store") rather than a check on which
-          // code actually renders one.
+          // Guards `context.webView`, which `authProvider` calls directly
+          // to present SoundCloud's own sign-in page and capture the OAuth
+          // redirect.
           SwayvePermission.webview,
         },
       );
@@ -145,11 +137,13 @@ final class SoundCloudPlugin implements SwayvePlugin {
       client: client,
       timeouts: timeouts,
     );
-    // Reading `context.credentials` is what asserts the `external_auth`
-    // permission, the same way `context.http` above asserted `network`.
+    // Reading `context.credentials` and `context.webView` is what asserts
+    // the `external_auth` and `webview` permissions, the same way
+    // `context.http` above asserted `network`.
     _auth = SoundCloudAuthProvider(
       client: client,
       credentials: context.credentials,
+      webView: context.webView,
       timeouts: timeouts,
     );
     _library = SoundCloudLibraryProvider(

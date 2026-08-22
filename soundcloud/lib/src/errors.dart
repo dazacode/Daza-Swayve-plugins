@@ -86,12 +86,12 @@ Future<T> runGuarded<T>(
 /// already retries once internally before this is ever reached, and one that
 /// survives that retry is a service condition, not a lapsed session.
 ///
-/// The one place this plugin *does* carry a user's own session — `me()` and
-/// `userLikes()`'s optional `sessionCookie` — deliberately bypasses this
-/// function for exactly that reason: a `401`/`403` there means the cookie
-/// itself was rejected, which `throwForStatus`'s blanket
-/// `SwayvePluginUnavailableException` cannot say. See `SoundCloudClient.me`
-/// and `providers/auth_provider.dart`.
+/// The places this plugin *does* carry a user's own session —
+/// `officialMe`, `officialMyLikedTracks`, and the two OAuth token-endpoint
+/// calls — deliberately bypass this function for exactly that reason: a
+/// `401`/`403`/`400` there means the credential itself was rejected, which
+/// `throwForStatus`'s blanket `SwayvePluginUnavailableException` cannot say.
+/// See those methods and `providers/auth_provider.dart`.
 Never throwForStatus(SwayveHttpResponse response, Uri url) {
   if (response.statusCode == 429) {
     throw SwayvePluginRateLimitedException(

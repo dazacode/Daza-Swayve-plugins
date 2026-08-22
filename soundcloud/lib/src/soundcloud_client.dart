@@ -496,75 +496,252 @@ final class SoundCloudClient {
   /// One page of [id]'s liked tracks (and liked playlists, unfiltered here)
   /// — `/users/{id}/likes`.
   ///
+  /// Anonymous, always — this is the scraped `api-v2` surface, used only for
+  /// a *public* profile's likes (`SoundCloudArtistActivityProvider`). The
+  /// signed-in user's own likes go through [officialMyLikedTracks] instead,
+  /// against the official API with a real OAuth token — see that method's
+  /// doc comment for why a plain public fetch by id is not simply reused
+  /// unauthenticated for the signed-in user's own shelf.
+  ///
   /// Confirmed live: each item wraps either `{"track": {...}}` or
   /// `{"playlist": {...}}` alongside `created_at`/`kind: "like"`, the same
   /// `"track"` wrapper key [unwrapChartItem] already handles — no bespoke
   /// unwrapping needed. Filtering the mixed feed down to tracks only is
   /// `SoundCloudArtistActivityProvider`'s job, not this client's.
-  ///
-  /// [sessionCookie] is optional and additive: `SoundCloudArtistActivityProvider`
-  /// calls this anonymously for any public profile, unchanged. `SoundCloudLibrary
-  /// Provider` passes the signed-in user's own stored cookie instead, for the
-  /// same page shape read as *their own* likes rather than a public listing of
-  /// someone else's — see that provider's doc comment for why a plain public
-  /// fetch by id is not simply reused unauthenticated for the signed-in user's
-  /// own shelf.
   Future<SoundCloudPage> userLikes(
     int id, {
     String? cursor,
-    String? sessionCookie,
     SwayveCancellationToken? cancel,
   }) =>
-      pageFor(
-        cursor,
-        _apiUri('/users/$id/likes'),
-        headers: _cookieHeader(sessionCookie),
+      pageFor(cursor, _apiUri('/users/$id/likes'), cancel: cancel);
+
+  // ---------------------------------------------------------------------
+  // official OAuth API — signed-in requests only, never client_id
+  // ---------------------------------------------------------------------
+  //
+  // Everything above this point talks to `api-v2.soundcloud.com`
+  // anonymously, with the scraped `client_id` this file exists to manage.
+  // The two methods below are a different surface entirely:
+  // `api.soundcloud.com`, the officially documented API, authenticated with
+  // a real OAuth `access_token` a signed-in user obtained through
+  // `SoundCloudAuthProvider`'s authorization-code flow — no `client_id`
+  // query parameter, no scraping, no anonymous fallback. See
+  // `README.md`'s "Signing in" section for why the anonymous surface cannot
+  // answer "my own liked tracks" at all, and why this plugin talks to two
+  // different SoundCloud API generations rather than one.
+  //
+  // **Not exercised against a real signed-in session as part of this
+  // change** — the authorization-code exchange that produces a real
+  // `access_token` needs an interactive browser consent step this plugin's
+  // own test suite cannot simulate; only a real device run can complete it.
+  // The header format (`Authorization: OAuth <token>`) and both endpoint
+  // shapes below are taken directly from SoundCloud's own developers guide
+  // and from `soundcrowd-plugin-soundcloud`/`SqueezeCloud`, two independent,
+  // actively-used open-source clients that implement this exact flow
+  // against this exact host.
+
+  Future<SwayveHttpResponse> _officialGet(
+    String path, {
+    required String accessToken,
+    Map<String, String> params = const <String, String>{},
+    SwayveCancellationToken? cancel,
+  }) {
+    final Uri url = Uri.parse('$kOAuthApiOrigin$path').replace(
+      queryParameters: <String, String>{
+        ...Uri.parse('$kOAuthApiOrigin$path').queryParameters,
+        ...params,
+      },
+    );
+    return _rawGet(
+      url,
+      headers: <String, String>{'authorization': 'OAuth $accessToken'},
+      cancel: cancel,
+    );
+  }
+
+  /// The signed-in user behind [accessToken] — the official API's `/me`.
+  ///
+  /// `null` for a token SoundCloud does not (or no longer) recognise
+  /// (`401`/`403`) — the caller's cue to attempt a refresh, or fall back to
+  /// asking for a fresh sign-in when refreshing has already been tried. See
+  /// `providers/auth_provider.dart`.
+  Future<Map<String, Object?>?> officialMe({
+    required String accessToken,
+    SwayveCancellationToken? cancel,
+  }) async {
+    final SwayveHttpResponse response = await _officialGet(
+      '/me',
+      accessToken: accessToken,
+      cancel: cancel,
+    );
+    if (response.statusCode == 401 || response.statusCode == 403) return null;
+    if (!response.isSuccess) {
+      throwForStatus(response, Uri.parse('$kOAuthApiOrigin/me'));
+    }
+    final Object? body = response.bodyAsJson;
+    if (body is! Map) {
+      malformedResponse(
+        'expected a JSON object from $kOAuthApiOrigin/me but got '
+        '${body.runtimeType}.',
+      );
+    }
+    return mapOf(body);
+  }
+
+  /// One page of the signed-in user's own liked tracks — the official API's
+  /// `/me/likes/tracks`. Needs no id of its own to look up first: `/me`
+  /// already means "whoever this `access_token` belongs to," which is the
+  /// whole reason this plugin talks to the official API for this one thing
+  /// rather than reusing [userLikes] with a resolved numeric id — this
+  /// endpoint simply does not exist on the anonymous `api-v2` surface at
+  /// all.
+  ///
+  /// [cursor] is `next_href`, exactly as [userLikes] and the rest of this
+  /// client already page — but a *complete URL* on `api.soundcloud.com`
+  /// this time, not `api-v2.soundcloud.com`, so it is followed directly
+  /// with the same [accessToken] header rather than through [pageFor],
+  /// which assumes the anonymous, `client_id`-bearing surface.
+  ///
+  /// Throws `SwayvePluginAuthRequiredException` for a token SoundCloud
+  /// rejects (`401`/`403`) — the caller (`SoundCloudLibraryProvider`) has
+  /// already attempted one refresh by the time this is reached, so a
+  /// rejection here means the whole session needs a fresh sign-in, not
+  /// another retry.
+  Future<SoundCloudPage> officialMyLikedTracks({
+    required String accessToken,
+    String? cursor,
+    SwayveCancellationToken? cancel,
+  }) async {
+    final Uri url = cursor == null
+        ? Uri.parse('$kOAuthApiOrigin/me/likes/tracks').replace(
+            queryParameters: <String, String>{'linked_partitioning': '1'},
+          )
+        : Uri.tryParse(cursor) ??
+            malformedResponse(
+              'a pagination cursor from the official API was not a usable '
+              'URL: $cursor',
+            );
+    if (!isAllowedHost(url.host)) {
+      throw SwayvePluginUnsupportedException(
+        'SoundCloud will not follow a liked-tracks cursor onto '
+        '${url.host}: not declared in the plugin manifest.',
+      );
+    }
+    final SwayveHttpResponse response = await _rawGet(
+      url,
+      headers: <String, String>{'authorization': 'OAuth $accessToken'},
+      cancel: cancel,
+    );
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const SwayvePluginAuthRequiredException(
+        'SoundCloud: sign in to see your liked tracks.',
+      );
+    }
+    if (!response.isSuccess) throwForStatus(response, url);
+    final Object? body = response.bodyAsJson;
+    if (body is! Map) {
+      malformedResponse(
+        'expected a JSON object from ${url.host}${url.path} but got '
+        '${body.runtimeType}.',
+      );
+    }
+    final Map<String, Object?> json = mapOf(body);
+    return SoundCloudPage(
+      items: listAt(json, <Object>['collection']),
+      nextHref: stringAt(json, <Object>['next_href']),
+    );
+  }
+
+  /// Exchanges an authorization [code] (from the redirect
+  /// `SoundCloudAuthProvider.authenticate` captured) for a fresh
+  /// `access_token`/`refresh_token` pair — SoundCloud's own token endpoint,
+  /// `POST secure.soundcloud.com/oauth/token`.
+  ///
+  /// [codeVerifier] is the PKCE verifier the authorize request's
+  /// `code_challenge` was derived from — see `auth/pkce.dart`. SoundCloud's
+  /// own guide states PKCE is required, not optional, for this exchange.
+  Future<Map<String, Object?>> exchangeAuthorizationCode({
+    required String clientId,
+    required String clientSecret,
+    required String code,
+    required String codeVerifier,
+    SwayveCancellationToken? cancel,
+  }) =>
+      _tokenRequest(
+        <String, String>{
+          'grant_type': 'authorization_code',
+          'client_id': clientId,
+          'client_secret': clientSecret,
+          'redirect_uri': kOAuthRedirectUri,
+          'code': code,
+          'code_verifier': codeVerifier,
+        },
         cancel: cancel,
       );
 
-  /// The `cookie` header map [sessionCookie] becomes, or `null` for none —
-  /// the shape every cookie-carrying call below hands to [_authedGet].
-  Map<String, String>? _cookieHeader(String? sessionCookie) =>
-      sessionCookie == null || sessionCookie.trim().isEmpty
-          ? null
-          : <String, String>{'cookie': sessionCookie};
+  /// Exchanges a stored `refresh_token` for a new `access_token` (and,
+  /// possibly, a rotated `refresh_token` — see
+  /// `providers/auth_provider.dart`'s token-storage doc comment for how
+  /// that is handled) without any user interaction.
+  Future<Map<String, Object?>> refreshAccessToken({
+    required String clientId,
+    required String clientSecret,
+    required String refreshToken,
+    SwayveCancellationToken? cancel,
+  }) =>
+      _tokenRequest(
+        <String, String>{
+          'grant_type': 'refresh_token',
+          'client_id': clientId,
+          'client_secret': clientSecret,
+          'refresh_token': refreshToken,
+        },
+        cancel: cancel,
+      );
 
-  /// The signed-in user behind [sessionCookie] — SoundCloud's own `/me`.
-  ///
-  /// `null` for a cookie SoundCloud does not recognise (`401`/`403`) or for
-  /// an account that has somehow stopped resolving (`404`) — a caller
-  /// checking whether sign-in still works cannot tell those apart from the
-  /// response alone, and both mean the same thing to it: the stored cookie no
-  /// longer proves who this is. See `providers/auth_provider.dart` and
-  /// `providers/library_provider.dart`, the two callers.
-  ///
-  /// **Not exercised against a real signed-in session as part of this
-  /// change** — there is no live account available to verify it against
-  /// here. The shape assumed (`id`, `username` at the top level) matches
-  /// every other SoundCloud user object this plugin already parses (see
-  /// `test/fixtures/user_full.json`), but that is inference from a public
-  /// profile lookup, not proof this endpoint answers the same way for a
-  /// cookie-authenticated caller.
-  Future<Map<String, Object?>?> me({
-    required String sessionCookie,
+  Future<Map<String, Object?>> _tokenRequest(
+    Map<String, String> form, {
     SwayveCancellationToken? cancel,
   }) async {
-    final result = await _authedGet(
-      _apiUri('/me'),
-      headers: <String, String>{'cookie': sessionCookie},
+    if (!isAllowedHost(kOAuthTokenUri.host)) {
+      throw SwayvePluginUnsupportedException(
+        'SoundCloud will not request ${kOAuthTokenUri.host}: not declared '
+        "in the plugin manifest's network.hosts.",
+      );
+    }
+    final SwayveHttpResponse response = await _http.post(
+      kOAuthTokenUri,
+      headers: const <String, String>{
+        'content-type': 'application/x-www-form-urlencoded',
+        'accept': 'application/json',
+      },
+      body: form.entries
+          .map(
+            (e) => '${Uri.encodeQueryComponent(e.key)}='
+                '${Uri.encodeQueryComponent(e.value)}',
+          )
+          .join('&'),
+      timeout: timeouts.request,
       cancel: cancel,
     );
-    if (result.response.statusCode == 401 ||
-        result.response.statusCode == 403 ||
-        result.response.statusCode == 404) {
-      return null;
+    if (response.statusCode == 400 || response.statusCode == 401) {
+      // SoundCloud answers a rejected code or a revoked/expired refresh
+      // token this way — `invalid_grant`, in the OAuth spec's own
+      // vocabulary — which is not a service failure, it is the flow itself
+      // having failed. The caller (`SoundCloudAuthProvider`) turns this
+      // into a failed `SwayveAuthState` rather than letting the SDK's
+      // generic exception hierarchy speak for it.
+      throw SwayvePluginAuthRequiredException(
+        'SoundCloud rejected the token exchange '
+        '(${response.statusCode}).',
+      );
     }
-    if (!result.response.isSuccess) throwForStatus(result.response, result.url);
-    final Object? body = result.response.bodyAsJson;
+    if (!response.isSuccess) throwForStatus(response, kOAuthTokenUri);
+    final Object? body = response.bodyAsJson;
     if (body is! Map) {
       malformedResponse(
-        'expected a JSON object from ${result.url.host}${result.url.path} '
-        'but got ${body.runtimeType}.',
+        'expected a JSON object from the token endpoint but got '
+        '${body.runtimeType}.',
       );
     }
     return mapOf(body);

@@ -7,9 +7,9 @@ Adds SoundCloud search, browsing and playback to Swayve.
 | **Id** | `app.swayve.plugins.soundcloud` |
 | **Runtime** | `compiled` — the source lives here and is compiled into a Swayve build |
 | **Platforms** | android, ios, windows |
-| **Capabilities** | `search`, `catalog`, `streaming`, `artwork`, `playlist_read`, `artist_activity`, `authentication`, `personal_library`, `session_capture` |
+| **Capabilities** | `search`, `catalog`, `streaming`, `artwork`, `playlist_read`, `artist_activity`, `authentication`, `personal_library`, `webview` |
 | **Permissions** | `network`, `webview`, `external_auth` |
-| **Network hosts** | `soundcloud.com`, `api-v2.soundcloud.com`, `*.sndcdn.com` |
+| **Network hosts** | `soundcloud.com`, `api-v2.soundcloud.com`, `api.soundcloud.com`, `secure.soundcloud.com`, `*.sndcdn.com` |
 | **Streamable** | yes |
 | **Downloadable** | per track — see [Playback](#playback-progressive-preferred-hls-fallback) |
 | **Dependencies** | `swayve_plugin_sdk`. That is the entire list. |
@@ -41,33 +41,50 @@ its critical path, and principle 1 says Swayve works with zero plugins.
 
 ---
 
-## Why an unofficial API, not the official one
+## Two SoundCloud APIs, on purpose
 
-SoundCloud has an official, OAuth-based API (`client_id` + `client_secret` +
-`redirect_uri`, registered per app). It closed new app registrations years
-ago, so there is no path for this plugin to obtain its own credentials —
-which rules out the "correct" integration outright, not as a preference but
-as a fact about what's reachable. The plugin instead does what every other
-unofficial SoundCloud client does: scrapes the public `client_id` that
-SoundCloud's own web player embeds in its JavaScript bundle, then calls the
-public `api-v2.soundcloud.com` JSON API anonymously with it. This is the same
-category of move as the YouTube Music reference plugin's InnerTube client —
-reverse-engineered, no login required for anonymous browsing, and built to
-degrade rather than break when the upstream service changes its bundle out
-from under it. See [Signing in](#signing-in-liked-tracks) for the one place
-this plugin *does* carry a user's own session — the signed-in user's own
-liked tracks, which has no anonymous equivalent to scrape at all.
+This plugin talks to two different generations of SoundCloud's API, and
+which one a call goes through is deliberate, not incidental.
 
-This was researched against two references, neither used as-is:
+**Everything anonymous** — search, charts, streaming, an artist's *public*
+likes and reposts — goes through the scraped, unofficial
+`api-v2.soundcloud.com`, the same surface every unofficial SoundCloud client
+uses: `SoundCloudClient` pulls the public `client_id` SoundCloud's own web
+player embeds in its JavaScript bundle and calls the JSON API anonymously
+with it. This is the same category of move as the YouTube Music reference
+plugin's InnerTube client — reverse-engineered, no login required, and built
+to degrade rather than break when the upstream service changes its bundle
+out from under it.
 
-* `soundcrowd-plugin-soundcloud` (Kotlin, OAuth-based) — its endpoint
-  catalogue was a useful map of SoundCloud's API surface, but its transport
-  (registered app credentials, HLS-only, `/me/...` endpoints) isn't available
-  here.
+**Signing in** — the one thing anonymous access structurally cannot answer,
+since there is no anonymous concept of *me* — goes through the real,
+officially documented `api.soundcloud.com` and a genuine OAuth 2
+authorization-code exchange with PKCE. See [Signing in](#signing-in-liked-tracks)
+for the full account, including why an earlier version of this plugin tried
+carrying a captured browser cookie through the anonymous surface instead, and
+why that does not work.
+
+Registering a real OAuth application is the one part of this that isn't
+free: SoundCloud closed new developer registrations years ago, so there is no
+credential this plugin could ship pre-registered the way `api-v2`'s scraped
+`client_id` effectively is public. See [Signing in](#signing-in-liked-tracks)
+for what that means for you.
+
+This was researched against three references, none used as-is:
+
+* `soundcrowd-plugin-soundcloud` (Kotlin, OAuth-based) — confirmed the
+  official API's endpoint shapes (`/me`, `/me/likes/tracks`) and the
+  `Authorization: OAuth <token>` header format before a line of the OAuth
+  flow below was written.
+* `SqueezeCloud` (Perl, OAuth-based) — confirmed the same endpoints
+  independently, plus the exact PKCE authorization-code exchange shape
+  (`grant_type=authorization_code`, `code_verifier`, `secure.soundcloud.com/oauth/token`)
+  this plugin's own flow follows.
 * `sound-on-fire` (Dart, public `client_id` scrape) — the transport approach
-  this plugin follows, but its own implementation only covers search and
-  stream resolution with no browsing, pagination, playlists or users; this
-  plugin goes considerably further.
+  the anonymous surface follows, but its own implementation only covers
+  search and stream resolution with no browsing, pagination, playlists,
+  users, or sign-in at all; this plugin goes considerably further on every
+  axis.
 
 ---
 
@@ -91,7 +108,7 @@ Everything below is exported from `package:soundcloud/soundcloud.dart`.
 | `SoundCloudIds` / `SoundCloudIdKind` | Minting and reading this plugin's provider-native identifiers. |
 | `SoundCloudArtwork` | Sizing SoundCloud's image URLs without a request, once the image URL is known. |
 | `SoundCloudTimeouts` | The manifest's deadlines, and the seam tests use to shorten them. |
-| `kSoundCloudPluginId`, `kSoundCloudPluginName`, `kSoundCloudPluginVersion`, `kSoundCloudAllowedHosts`, `isAllowedHost`, `kSessionCookieSettingId` | The manifest's facts, restated in code and checked against `plugin.json` by the test suite. |
+| `kSoundCloudPluginId`, `kSoundCloudPluginName`, `kSoundCloudPluginVersion`, `kSoundCloudAllowedHosts`, `isAllowedHost`, `kClientIdSettingId`, `kClientSecretSettingId`, `kOAuthApiOrigin`, `kOAuthAuthorizeUri`, `kOAuthTokenUri`, `kOAuthRedirectUri` | The manifest's facts, restated in code and checked against `plugin.json` by the test suite. |
 
 Nothing in that list requires the host to import it. The host talks to
 `SwayveSearchProvider`, `SwayveCatalogProvider`, `SwayveStreamProvider`,
@@ -118,7 +135,8 @@ permission — the getter throws `SwayvePermissionDeniedException`
 
 | Package | Why not |
 |---|---|
-| **Any wrapper around SoundCloud's official SDK** | Requires a registered `client_id`/`client_secret` this plugin cannot obtain — see [above](#why-an-unofficial-api-not-the-official-one). Not a trade-off, a dead end. |
+| **Any wrapper around SoundCloud's official SDK** | Would still need the registered `client_id`/`client_secret` this plugin asks the user for directly — see [Two SoundCloud APIs](#two-soundcloud-apis-on-purpose) — and would bring its own HTTP stack besides, the same hole the next row describes. |
+| **`package:crypto`** | The one dependency the OAuth flow could plausibly have justified — PKCE needs a SHA-256. Hand-rolled instead in `lib/src/auth/pkce.dart`, the same discipline `sapisid_hash.dart`'s hand-rolled SHA-1 already follows in the YouTube Music reference plugin, and for the same reason: a plugin's dependency surface is something the manifest and the permission model cannot see or enforce, so it stays reviewable by staying small. |
 | **Any package bringing its own HTTP stack** (`dio`, `package:http`, etc.) | Every request it made would bypass `context.http` — and therefore the `network` permission and the `network.hosts` allowlist. Same hole the YouTube Music plugin's README describes for `dart_ytmusic_api`. |
 | **An HTML parsing package** (`html`, `beautiful_soup_dart`) | The only HTML this plugin ever reads is one page's `<script src="...">` tags, extracted with `RegExp` in `SoundCloudClient._scrapeClientId`. A DOM parser would be real weight for one shallow pattern. |
 
@@ -198,36 +216,89 @@ publishes that listing for anyone. There is no anonymous equivalent for "my
 own liked tracks": nothing in the public API says which user the plugin is,
 so seeing your own likes needs a real session.
 
-There is no OAuth path here either — see
-[above](#why-an-unofficial-api-not-the-official-one) — so this plugin follows
-the YouTube Music reference plugin's own pattern: `SoundCloudAuthProvider`
-(capability `authentication`) manages a session cookie a browser signed into
-`soundcloud.com` already carries, captured by the host's in-app
-`session_capture` flow (or pasted by hand where there's no web view to
-capture from) and written straight to the credential store under the
-`session_cookie` secret setting — never read or logged by anything else in
-this plugin. `authenticate()` proves the cookie by calling SoundCloud's own
-`/me`; `authState()` never touches the network, answering from the stored
-secret alone, the same "cheap now, prove it later" split YouTube Music's own
-auth provider uses and for the same reason — it runs on the app-startup path.
+### A cookie does not work here — confirmed live
+
+An earlier version of this plugin tried the same trick the YouTube Music
+reference plugin uses: capture the session cookie a browser signed into
+`soundcloud.com` already carries, and forward it as a `Cookie` header on
+`api-v2.soundcloud.com`'s `/me`. Tested live, with a real signed-in cookie:
+`/me` answers `401` **identically** whether the request carries that cookie
+or nothing at all. `api-v2.soundcloud.com` sits behind bot-detection
+(DataDome — visible in its own response headers,
+`access-control-allow-headers: ... X-Datadome-ClientId ...`) that a
+non-browser HTTP client cannot pass regardless of how valid the credential
+is. This plugin does not attempt to defeat that protection — see the
+`session-capture-*` commit history for the full diagnostic account, including
+the tool that proved it (`tool/verify_session.dart` in an earlier revision).
+
+### The real path: OAuth against the official API
+
+`api.soundcloud.com` — a different host, documented, meant for registered
+third-party applications rather than SoundCloud's own web client — answers
+`/me` and `/me/likes/tracks` for a real OAuth `access_token`, confirmed by
+reading two independent, actively-used open-source SoundCloud clients that
+already implement this exact flow (`soundcrowd-plugin-soundcloud`,
+`SqueezeCloud` — see [above](#two-soundcloud-apis-on-purpose)).
+
+`SoundCloudAuthProvider.authenticate()` (capability `authentication`) runs a
+real OAuth 2 authorization-code exchange with PKCE (mandatory per
+SoundCloud's own developer guide, not optional hardening —
+`lib/src/auth/pkce.dart`):
+
+1. Generates a fresh PKCE `code_verifier`/`code_challenge` pair — never
+   reused across sign-ins, never stored.
+2. Presents `secure.soundcloud.com/authorize` through
+   `context.webView.presentForResult` — the SDK's own primitive built
+   exactly for "an OAuth-style sign-in: present the provider's login page,
+   watch for the redirect, hand the plugin back that URL," and one this
+   plugin is the first in this codebase to actually exercise (see
+   `SwayveWebViewController`'s doc comment).
+3. Reads the `code` off the redirect to this plugin's registered
+   `redirect_uri` — see [Whose application this is](#whose-application-this-is)
+   for why that redirect points at a GitHub Pages URL rather than a domain
+   this project owns, and why that's fine: nothing needs to actually load
+   there, only be navigated to.
+4. Exchanges the code — plus the verifier, proving this exchange came from
+   the same flow that requested the code — at
+   `secure.soundcloud.com/oauth/token` for an `access_token`/`refresh_token`
+   pair, stored via `SoundCloudOAuthTokens` (`lib/src/auth/oauth_tokens.dart`).
 
 `SoundCloudLibraryProvider.likedTracks(request)` (capability
-`personal_library`) is what a signed-in host actually browses. It resolves
-the signed-in account's numeric user id through `/me` — cached per cookie, so
-paging a large shelf costs one identity lookup rather than one per page — and
-then reads the exact same `/users/{id}/likes` shape
-`SoundCloudArtistActivityProvider` already reads for anyone else's public
-likes, just for the signed-in account's own id and with the cookie carried
-on the request. A call made signed out throws
-`SwayvePluginAuthRequiredException` rather than returning an empty page, per
-the SDK's own contract for that distinction.
+`personal_library`) reads `/me/likes/tracks` directly with that token — no
+identity resolution needed first, unlike the earlier cookie-based design:
+`/me` already means "whoever this token belongs to." A token that has
+expired (or that the API rejects despite looking unexpired) is refreshed
+automatically, retried exactly once; a refresh that itself fails clears the
+whole stored session and reports `SwayvePluginAuthRequiredException` rather
+than returning an empty page.
 
-**Not exercised against a real signed-in session as part of this change** —
-there's no live account available to verify it against here. `/me`'s exact
-shape is inferred from every other SoundCloud user object this plugin already
-parses live (`username`, `id` at the top level), not proven for a
-cookie-authenticated caller specifically. See `SoundCloudClient.me`'s doc
-comment for the honest version of this claim.
+### Whose application this is
+
+SoundCloud closed new developer registrations years ago, so unlike
+`soundcrowd-plugin-soundcloud` and `SqueezeCloud` — each of which ships one
+shared `client_id`/`client_secret` baked into their own source, for anyone
+running their code to use — this plugin has no credential it could ship
+pre-registered. It asks for **your own** instead: `client_id` and
+`client_secret`, two `type: "secret"` settings pasted once into the host's
+settings screen, read back only through `context.credentials` and never
+committed to this repository. If SoundCloud ever reopens registration, or a
+shared application becomes available, this is the assumption that would need
+revisiting.
+
+The registered `redirect_uri` is fixed at
+`kOAuthRedirectUri` (`lib/src/config.dart`) and has to match whatever you
+register your own application under exactly — SoundCloud validates it
+byte-for-byte.
+
+### Not exercised against a real signed-in session as part of this change
+
+The authorization-code exchange needs an interactive browser consent step —
+signing in, approving the app — that this plugin's own test suite cannot
+simulate; `FakeSwayveWebViewController` scripts the *shape* of a completed
+flow, not a real one. The endpoint shapes, header format, and PKCE
+requirement are all taken from SoundCloud's own developer guide and cross-
+checked against two independent working clients, but the honest status is
+still: verified by two other people's running code, not yet by this one's.
 
 ---
 
@@ -366,6 +437,7 @@ Every provider method is wrapped in `runGuarded` (`lib/src/errors.dart`):
 | HTTP 429 | `SwayvePluginRateLimitedException`, `retryAfter` parsed from the header (delta-seconds or HTTP-date) |
 | Any other non-2xx | `SwayvePluginUnavailableException` |
 | A `401` that survives one internal `client_id` re-scrape-and-retry, on an anonymous request | `SwayvePluginUnavailableException` — not auth-required; an anonymous request carries no user session for a rejection to be *about* |
+| A `401`/`403` from the official API (`/me`, `/me/likes/tracks`), or a rejected token exchange | `SwayvePluginAuthRequiredException` — the one place this plugin's error handling *does* single out an auth failure, because these calls genuinely carry a user's own OAuth token. See [Signing in](#signing-in-liked-tracks). |
 | Offline, DNS, TLS, connection reset | `SwayvePluginUnavailableException` (raised by the host's client) |
 | Body is not JSON, truncated, or the wrong shape | `SwayvePluginMalformedResponseException` — never a raw `TypeError` |
 | The operation outran `timeouts.operationMs` | `SwayvePluginTimeoutException`, carrying the limit |
@@ -389,14 +461,15 @@ manifest at test time.
 
 | File | What it proves |
 |---|---|
-| `manifest_agreement_test.dart` | Identity/constants/hosts/timeouts/`media` block/the `region` and `session_cookie` settings/the `session_capture` block all match `plugin.json`; entrypoint matches the directory; exactly the declared capabilities are registered (`session_capture` has no provider of its own — the host drives it); `initialize` makes no request and fails loudly without `network`; `dispose` is safe twice. |
+| `manifest_agreement_test.dart` | Identity/constants/hosts/timeouts/`media` block/the `region`, `client_id` and `client_secret` settings/the official-API hosts all match `plugin.json`; no `session_capture` block; entrypoint matches the directory; exactly the declared capabilities are registered (`webview` has no provider of its own — `authProvider` calls `context.webView` directly); `initialize` makes no request and fails loudly without `network`; `dispose` is safe twice. |
 | `client_id_test.dart` | Both scrape spellings; scripts are tried last-to-first and recover from a decoy trailing script; no match is a clean error, not a crash; a `401` clears the cache, re-scrapes, and retries **exactly once**; a second `401` is reported, not looped; concurrent callers share one in-flight scrape. |
 | `search_test.dart` | Normalization, a bad row skipped rather than failing the call, the `is_album` album/playlist split, per-kind endpoint fan-out, the multi-shelf cursor round trip, `limit` on the wire. |
 | `catalog_test.dart` | Chart-kind selection per `SwayveSortOrder`, the `region` setting reaching the wire and reacting to a mid-session change, the chart-envelope unwrap, artist deduplication, discovery filtering (both the flat and sectioned shapes), and every lookup's `null`/foreign-id behavior. |
 | `playlist_test.dart` | The unfiltered discovery listing, in-order track lookup, stub hydration and splicing, a failed hydration batch degrading gracefully, and foreign/missing-id handling. |
 | `artist_activity_test.dart` | Both feeds' happy path, each dropping the non-track item its live-verified fixture mixes in (a liked playlist, a playlist repost); wrong-kind and foreign ids answering an empty page without a request; a `404` user surfacing as `SwayvePluginUnavailableException`. |
-| `auth_provider_test.dart` | Cheap, network-free `authState`; `authenticate` proving a cookie against `/me` and reporting the account's own handle; a rejected/failing/malformed `/me` response failing rather than throwing; the validated-cookie cache; `signOut`; `authStateChanges`' replay-then-publish contract. |
-| `library_provider_test.dart` | Signed-out (and empty-cookie) calls throwing `SwayvePluginAuthRequiredException` before any request; the identity resolution + likes fetch happy path, dropping a liked playlist; a cookie `/me` rejects throwing auth-required rather than an empty page; the resolved id being cached across a second page rather than re-asking `/me`; cancellation. |
+| `pkce_test.dart` | `sha256Bytes` against the NIST/FIPS 180-4 test vectors (empty string, `"abc"`, the two-block example); `codeChallengeFor` against RFC 7636 Appendix B's own worked example; verifier shape and non-collision. |
+| `auth_provider_test.dart` | Cheap, network-free `authState`; failing without presenting a web view when no app is configured; a completed flow's authorize-URL shape (PKCE, app credentials), token-exchange body, and stored token pair; a best-effort account label that degrades to nameless rather than failing sign-in; a dismissed/denied/code-less redirect each failing distinctly; a rejected token exchange failing rather than throwing; `signOut` clearing the token pair but leaving the app credentials alone; `authStateChanges`' replay-then-publish contract. |
+| `library_provider_test.dart` | No-app and app-but-never-signed-in calls throwing `SwayvePluginAuthRequiredException` before any request; the official API's liked-tracks happy path with the `Authorization: OAuth` header; a cursor followed as a complete URL; a `401` triggering exactly one refresh-then-retry; a `401` that survives the refresh clearing the whole session; a proactively expired stored token refreshed before the fetch, not after; cancellation. |
 | `stream_test.dart` | Progressive-over-HLS preference and the HLS fallback, per-track `downloadable`, `Unsupported` for an unplayable track or wrong-kind id, `expiresIn`. |
 | `artwork_test.dart` | The size-token ladder, the avatar fallback, undeclared-host rejection, and that this path costs a request unlike YouTube Music's. |
 | `failure_modes_test.dart` | The full status/timeout/cancellation/malformed-body matrix, on every provider. |
@@ -434,19 +507,24 @@ way. Both fixtures (`test/fixtures/user_likes.json`,
 `test/fixtures/user_reposts.json`) are built from that live shape, trimmed to
 the fields the parser reads.
 
+**Confirmed dead, live:** the cookie-forwarding approach to `/me` on
+`api-v2.soundcloud.com` — a real signed-in cookie and no credential at all
+get answered identically, `401` — see [Signing in](#signing-in-liked-tracks)
+for the full account. This is not a gap in the list below; it is a checked,
+closed question.
+
 **Still not validated against live traffic:** the client_id scrape's
 long-term stability as SoundCloud's bundle changes over time; every
 rate-limit and regional behavior; `resolveMediaUrl` and the rest of the
 playback path (`/tracks/{id}/media/.../stream/progressive` and its `hls`
-counterpart) have not yet been exercised live; and, most recently, the whole
-sign-in path — `/me`'s response shape for a cookie-authenticated caller, and
-whether a plain `Cookie` header on a non-browser HTTP client is actually
-honoured by `api-v2.soundcloud.com` the way a real browser tab's session is.
-Treat anything in that list as
-*plausible but unproven*, the same honest framing YouTube Music's README
-applies to its own unverified browse feeds — and treat everything above it as
-what it is: checked against the real service, not merely a fixture's idea of
-one.
+counterpart); and the OAuth sign-in flow end to end — the endpoint shapes and
+header format are taken from SoundCloud's own guide and two independent
+working open-source clients, but the interactive authorization-code exchange
+itself needs a real browser consent step no test suite can simulate. Treat
+anything in that list as *plausible but unproven*, the same honest framing
+YouTube Music's README applies to its own unverified browse feeds — and
+treat everything above it as what it is: checked against the real service,
+not merely a fixture's idea of one.
 
 ---
 

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:soundcloud/soundcloud.dart';
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
-import 'package:swayve_plugin_sdk/testing.dart';
 import 'package:test/test.dart';
 
 import 'support.dart';
 
-/// `SoundCloudAuthProvider` — capability `authentication`.
+/// `SoundCloudAuthProvider` — capability `authentication`, the real OAuth
+/// authorization-code flow.
 void main() {
   late PluginHarness harness;
 
@@ -17,141 +17,203 @@ void main() {
 
   tearDown(() => harness.stop());
 
+  Future<void> configureApp() async {
+    await harness.credentials.writeSecret(kClientIdSettingId, 'fake-client-id');
+    await harness.credentials.writeSecret(
+      kClientSecretSettingId,
+      'fake-client-secret',
+    );
+  }
+
   group('authState', () {
-    test('no stored cookie is signed out', () async {
+    test('no stored session is signed out', () async {
       final SwayveAuthState state = await harness.auth.authState();
       expect(state.status, SwayveAuthStatus.signedOut);
-      expect(harness.http.requests, isEmpty);
-    });
-
-    test('a stored cookie is read as signed in without touching the network',
-        () async {
-      await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
-      );
-      final SwayveAuthState state = await harness.auth.authState();
-      expect(state.status, SwayveAuthStatus.signedIn);
-      expect(
-        harness.http.requests,
-        isEmpty,
-        reason: 'authState must be cheap: no round trip, ever.',
-      );
-    });
-
-    test('an empty stored cookie is signed out', () async {
-      await harness.credentials.writeSecret(kSessionCookieSettingId, '');
-      final SwayveAuthState state = await harness.auth.authState();
-      expect(state.status, SwayveAuthStatus.signedOut);
-    });
-  });
-
-  group('authenticate', () {
-    test('no stored cookie fails without making a request', () async {
-      final SwayveAuthState state = await harness.auth.authenticate();
-      expect(state.status, SwayveAuthStatus.failed);
-      expect(state.message, isNotNull);
       expect(harness.http.requests, isEmpty);
     });
 
     test(
-        'a cookie SoundCloud answers /me for becomes signed in, with the '
-        "account's own handle", () async {
+        'a stored access token is read as signed in without touching the '
+        'network', () async {
       await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
+        'oauth_access_token',
+        'stored-token',
       );
-      harness.enqueueClientId();
-      harness.http.enqueueText(fixtureText('me.json'));
-      final SwayveAuthState state = await harness.auth.authenticate();
-      expect(state.status, SwayveAuthStatus.signedIn);
-      expect(state.accountLabel, 'signed-in-listener');
-
-      final RecordedHttpRequest request = harness.http.lastRequest!;
-      expect(
-        request.headers['cookie'],
-        'sc_anonymous_id=abc; oauth_token=secret',
-      );
-    });
-
-    test('a rejected cookie (401) becomes failed, not thrown', () async {
-      await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=bad',
-      );
-      harness.enqueueClientId();
-      // `/me` answering 401 after the client_id retry already happened is
-      // exactly what `SoundCloudClient.me` treats as "not this cookie" —
-      // see its doc comment.
-      harness.http.enqueueResponse(
-        const SwayveHttpResponse(statusCode: 401),
-      );
-      harness.enqueueClientId();
-      harness.http.enqueueResponse(
-        const SwayveHttpResponse(statusCode: 401),
-      );
-      final SwayveAuthState state = await harness.auth.authenticate();
-      expect(state.status, SwayveAuthStatus.failed);
-      expect(state.message, isNotNull);
-    });
-
-    test('a service failure becomes failed, not thrown', () async {
-      await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
-      );
-      harness.enqueueClientId();
-      harness.http.enqueueResponse(
-        const SwayveHttpResponse(statusCode: 500),
-      );
-      final SwayveAuthState state = await harness.auth.authenticate();
-      expect(state.status, SwayveAuthStatus.failed);
-      expect(state.message, isNotNull);
-    });
-
-    test('a malformed response becomes failed, not thrown', () async {
-      await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
-      );
-      harness.enqueueClientId();
-      harness.http.enqueueJson(<Object?>['not', 'an', 'object']);
-      final SwayveAuthState state = await harness.auth.authenticate();
-      expect(state.status, SwayveAuthStatus.failed);
-    });
-
-    test('a validated cookie is reused by a later authState call', () async {
-      await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
-      );
-      harness.enqueueClientId();
-      harness.http.enqueueText(fixtureText('me.json'));
-      await harness.auth.authenticate();
-      final int afterAuthenticate = harness.http.requests.length;
-
       final SwayveAuthState state = await harness.auth.authState();
       expect(state.status, SwayveAuthStatus.signedIn);
+      expect(harness.http.requests, isEmpty);
+    });
+  });
+
+  group('authenticate — not configured', () {
+    test('fails without presenting a web view when no app is configured',
+        () async {
+      final SwayveAuthState state = await harness.auth.authenticate();
+      expect(state.status, SwayveAuthStatus.failed);
+      expect(state.message, contains('client'));
+      expect(harness.webView.presentations, isEmpty);
+      expect(harness.http.requests, isEmpty);
+    });
+  });
+
+  group('authenticate — configured', () {
+    setUp(configureApp);
+
+    test('a completed flow signs in and stores the token pair', () async {
+      harness.webView.enqueueNavigation([
+        Uri.parse(
+          '$kOAuthRedirectUri?code=fake-auth-code&state=irrelevant',
+        ),
+      ]);
+      harness.http
+        ..enqueueJson(fixture('oauth_token.json'))
+        ..enqueueJson(fixture('official_me.json'));
+
+      final SwayveAuthState state = await harness.auth.authenticate();
+
+      expect(state.status, SwayveAuthStatus.signedIn);
+      expect(state.accountLabel, 'signed-in-listener');
       expect(
-        harness.http.requests,
-        hasLength(afterAuthenticate),
-        reason: 'authState reused the result authenticate already proved '
-            'for this exact cookie, rather than asking again.',
+        await harness.credentials.readSecret('oauth_access_token'),
+        'fake-access-token-abc123',
       );
+      expect(
+        await harness.credentials.readSecret('oauth_refresh_token'),
+        'fake-refresh-token-def456',
+      );
+    });
+
+    test('the authorize URL carries PKCE and the app credentials', () async {
+      harness.webView.enqueueNavigation([
+        Uri.parse('$kOAuthRedirectUri?code=fake-auth-code'),
+      ]);
+      harness.http
+        ..enqueueJson(fixture('oauth_token.json'))
+        ..enqueueJson(fixture('official_me.json'));
+
+      await harness.auth.authenticate();
+
+      final Uri presented = harness.webView.presentations.single.start;
+      expect(presented.host, kOAuthAuthorizeUri.host);
+      expect(presented.queryParameters['client_id'], 'fake-client-id');
+      expect(presented.queryParameters['redirect_uri'], kOAuthRedirectUri);
+      expect(presented.queryParameters['response_type'], 'code');
+      expect(presented.queryParameters['code_challenge_method'], 'S256');
+      expect(presented.queryParameters['code_challenge'], isNotEmpty);
+    });
+
+    test(
+        'the token exchange carries the code, the app credentials and the '
+        'PKCE verifier', () async {
+      harness.webView.enqueueNavigation([
+        Uri.parse('$kOAuthRedirectUri?code=fake-auth-code'),
+      ]);
+      harness.http
+        ..enqueueJson(fixture('oauth_token.json'))
+        ..enqueueJson(fixture('official_me.json'));
+
+      await harness.auth.authenticate();
+
+      final String body = harness.http.requests.first.body as String;
+      expect(body, contains('grant_type=authorization_code'));
+      expect(body, contains('client_id=fake-client-id'));
+      expect(body, contains('client_secret=fake-client-secret'));
+      expect(body, contains('code=fake-auth-code'));
+      expect(body, contains('code_verifier='));
+      expect(
+        harness.http.requests.first.url.host,
+        kOAuthTokenUri.host,
+      );
+    });
+
+    test('a sign-in that never gets an account label still signs in', () async {
+      harness.webView.enqueueNavigation([
+        Uri.parse('$kOAuthRedirectUri?code=fake-auth-code'),
+      ]);
+      harness.http
+        ..enqueueJson(fixture('oauth_token.json'))
+        ..enqueueResponse(const SwayveHttpResponse(statusCode: 500));
+
+      final SwayveAuthState state = await harness.auth.authenticate();
+      expect(state.status, SwayveAuthStatus.signedIn);
+      expect(state.accountLabel, isNull);
+    });
+
+    test('a dismissed web view fails without a token exchange', () async {
+      harness.webView.enqueueDismissal();
+
+      final SwayveAuthState state = await harness.auth.authenticate();
+      expect(state.status, SwayveAuthStatus.failed);
+      expect(state.message, contains('cancelled'));
+      expect(harness.http.requests, isEmpty);
+    });
+
+    test('a redirect carrying an error fails with SoundCloud\'s own reason',
+        () async {
+      harness.webView.enqueueNavigation([
+        Uri.parse('$kOAuthRedirectUri?error=access_denied'),
+      ]);
+
+      final SwayveAuthState state = await harness.auth.authenticate();
+      expect(state.status, SwayveAuthStatus.failed);
+      expect(state.message, contains('access_denied'));
+      expect(harness.http.requests, isEmpty);
+    });
+
+    test('a redirect with neither a code nor an error fails cleanly', () async {
+      harness.webView.enqueueNavigation([Uri.parse(kOAuthRedirectUri)]);
+
+      final SwayveAuthState state = await harness.auth.authenticate();
+      expect(state.status, SwayveAuthStatus.failed);
+      expect(state.message, contains('authorization code'));
+      expect(harness.http.requests, isEmpty);
+    });
+
+    test('a rejected token exchange fails, not throws', () async {
+      harness.webView.enqueueNavigation([
+        Uri.parse('$kOAuthRedirectUri?code=fake-auth-code'),
+      ]);
+      harness.http.enqueueResponse(
+        SwayveHttpResponse.json(
+          <String, Object?>{'error': 'invalid_grant'},
+          statusCode: 401,
+        ),
+      );
+
+      final SwayveAuthState state = await harness.auth.authenticate();
+      expect(state.status, SwayveAuthStatus.failed);
+      expect(state.message, isNotNull);
     });
   });
 
   group('signOut', () {
-    test('deletes the stored secret and reports signed out', () async {
+    test('clears the token pair but leaves the app credentials alone',
+        () async {
+      await configureApp();
       await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
+        'oauth_access_token',
+        'stored-token',
       );
+      await harness.credentials.writeSecret(
+        'oauth_refresh_token',
+        'stored-refresh',
+      );
+
       await harness.auth.signOut();
 
       expect(
-        await harness.credentials.readSecret(kSessionCookieSettingId),
+        await harness.credentials.readSecret('oauth_access_token'),
         isNull,
+      );
+      expect(
+        await harness.credentials.readSecret('oauth_refresh_token'),
+        isNull,
+      );
+      expect(
+        await harness.credentials.readSecret(kClientIdSettingId),
+        'fake-client-id',
+        reason: "signing out is not the same as un-registering the user's "
+            'own app.',
       );
       final SwayveAuthState state = await harness.auth.authState();
       expect(state.status, SwayveAuthStatus.signedOut);
@@ -165,8 +227,8 @@ void main() {
   group('authStateChanges', () {
     test('a new listener is sent the current state immediately', () async {
       await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
+        'oauth_access_token',
+        'stored-token',
       );
       await harness.auth.authState();
 
@@ -187,21 +249,20 @@ void main() {
       addTearDown(subscription.cancel);
 
       await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
+        'oauth_access_token',
+        'stored-token',
       );
       await harness.auth.authState();
       await harness.auth.signOut();
 
-      // Pump the event loop so the broadcast stream's async delivery lands.
       await Future<void>.delayed(Duration.zero);
 
       expect(
         seen,
         containsAllInOrder(<SwayveAuthStatus>[
-          SwayveAuthStatus.signedOut, // The initial state, sent on listen.
-          SwayveAuthStatus.signedIn, // From authState().
-          SwayveAuthStatus.signedOut, // From signOut().
+          SwayveAuthStatus.signedOut,
+          SwayveAuthStatus.signedIn,
+          SwayveAuthStatus.signedOut,
         ]),
       );
     });

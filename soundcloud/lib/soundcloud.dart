@@ -16,8 +16,9 @@
 /// The plugin is **pure Dart**. It depends on `swayve_plugin_sdk` and nothing
 /// else — no Flutter, no HTTP client — because every capability it needs is
 /// mediated by `SwayvePluginContext`. See `README.md` for why it talks to
-/// SoundCloud's public, unauthenticated API rather than the official OAuth
-/// one.
+/// two different generations of the SoundCloud API: the public, scraped one
+/// for everything anonymous, and the official, OAuth one for the signed-in
+/// user's own liked tracks.
 library;
 
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
@@ -30,9 +31,14 @@ export 'src/config.dart'
         SoundCloudTimeouts,
         chartKindFor,
         isAllowedHost,
+        kClientIdSettingId,
+        kClientSecretSettingId,
         kDefaultRegion,
+        kOAuthApiOrigin,
+        kOAuthAuthorizeUri,
+        kOAuthRedirectUri,
+        kOAuthTokenUri,
         kRegionSettingId,
-        kSessionCookieSettingId,
         kSoundCloudAllowedHosts,
         kSoundCloudPluginId,
         kSoundCloudPluginName,

@@ -5,7 +5,8 @@ import 'package:test/test.dart';
 
 import 'support.dart';
 
-/// `SoundCloudLibraryProvider.likedTracks` — capability `personal_library`.
+/// `SoundCloudLibraryProvider.likedTracks` — capability `personal_library`,
+/// the official API's `/me/likes/tracks`.
 void main() {
   late PluginHarness harness;
 
@@ -15,46 +16,53 @@ void main() {
 
   tearDown(() => harness.stop());
 
-  group('signed out', () {
+  Future<void> configureApp() async {
+    await harness.credentials.writeSecret(kClientIdSettingId, 'fake-client-id');
+    await harness.credentials.writeSecret(
+      kClientSecretSettingId,
+      'fake-client-secret',
+    );
+  }
+
+  Future<void> signIn() async {
+    await configureApp();
+    await harness.credentials.writeSecret(
+      'oauth_access_token',
+      'valid-access-token',
+    );
+    await harness.credentials.writeSecret(
+      'oauth_refresh_token',
+      'valid-refresh-token',
+    );
+  }
+
+  group('no app configured', () {
     test('throws auth-required rather than returning an empty page', () async {
       await expectLater(
         harness.library.likedTracks(SwayveBrowseRequest.first),
         throwsA(isA<SwayvePluginAuthRequiredException>()),
       );
-      expect(
-        harness.http.requests,
-        isEmpty,
-        reason: 'No cookie means nothing to send — the check happens before '
-            'any request is made.',
-      );
+      expect(harness.http.requests, isEmpty);
     });
+  });
 
-    test('an empty stored cookie is treated as signed out', () async {
-      await harness.credentials.writeSecret(kSessionCookieSettingId, '   ');
+  group('app configured but never signed in', () {
+    setUp(configureApp);
+
+    test('throws auth-required rather than returning an empty page', () async {
       await expectLater(
         harness.library.likedTracks(SwayveBrowseRequest.first),
         throwsA(isA<SwayvePluginAuthRequiredException>()),
       );
+      expect(harness.http.requests, isEmpty);
     });
   });
 
   group('signed in', () {
-    setUp(() async {
-      await harness.credentials.writeSecret(
-        kSessionCookieSettingId,
-        'sc_anonymous_id=abc; oauth_token=secret',
-      );
-    });
+    setUp(signIn);
 
-    test(
-        'resolves the account, then parses its likes, dropping a liked '
-        'playlist', () async {
-      // One `client_id` scrape for the whole call, not one per request it
-      // makes internally — `SoundCloudClient` caches it — so `/me` and
-      // `/users/{id}/likes` share the single scrape queued here.
-      harness.enqueueClientId();
-      harness.http.enqueueText(fixtureText('me.json'));
-      harness.http.enqueueText(fixtureText('user_likes.json'));
+    test('parses the official API\'s liked tracks', () async {
+      harness.http.enqueueJson(fixture('official_likes.json'));
 
       final SwayvePage<SwayveTrack> page = await harness.library.likedTracks(
         SwayveBrowseRequest.first,
@@ -63,70 +71,98 @@ void main() {
       expect(page.items, hasLength(2));
       expect(
         page.items.map((t) => t.title),
-        <String>['Liked Track One', 'Liked Track Two'],
+        <String>['Official Liked Track One', 'Official Liked Track Two'],
       );
       expect(page.hasMore, isTrue);
 
-      final Uri likesRequest = harness.requestedUrls.last;
-      expect(likesRequest.path, '/users/42099/likes');
+      final Uri requested = harness.http.lastRequest!.url;
+      expect(requested.host, 'api.soundcloud.com');
+      expect(requested.path, '/me/likes/tracks');
+    });
+
+    test('sends the access token as an OAuth authorization header', () async {
+      harness.http.enqueueJson(fixture('official_likes.json'));
+      await harness.library.likedTracks(SwayveBrowseRequest.first);
+
+      final RecordedHttpRequest request = harness.http.lastRequest!;
+      expect(request.headers['authorization'], 'OAuth valid-access-token');
+    });
+
+    test('a cursor is followed as a complete URL, not rebuilt', () async {
+      harness.http.enqueueJson(fixture('official_likes.json'));
+      await harness.library.likedTracks(
+        const SwayveBrowseRequest(
+          cursor: 'https://api.soundcloud.com/me/likes/tracks'
+              '?offset=xyz&linked_partitioning=1',
+        ),
+      );
+
+      final Uri requested = harness.http.lastRequest!.url;
+      expect(requested.queryParameters['offset'], 'xyz');
+    });
+
+    test('a 401 triggers exactly one refresh, then retries', () async {
+      harness.http
+        ..enqueueResponse(const SwayveHttpResponse(statusCode: 401))
+        ..enqueueJson(fixture('oauth_token.json'))
+        ..enqueueJson(fixture('official_likes.json'));
+
+      final SwayvePage<SwayveTrack> page = await harness.library.likedTracks(
+        SwayveBrowseRequest.first,
+      );
+
+      expect(page.items, hasLength(2));
+      // First attempt (401), refresh, retried attempt — three requests.
+      expect(harness.http.requests, hasLength(3));
+      expect(
+        harness.http.requests.last.headers['authorization'],
+        'OAuth fake-access-token-abc123',
+        reason: 'The retry uses the freshly refreshed token, not the stale '
+            'one that was just rejected.',
+      );
     });
 
     test(
-        'a cookie /me does not recognise throws auth-required, not an '
-        'empty page', () async {
-      harness.enqueueClientId();
-      harness.http.enqueueResponse(const SwayveHttpResponse(statusCode: 401));
-      harness.enqueueClientId();
-      harness.http.enqueueResponse(const SwayveHttpResponse(statusCode: 401));
+        'a 401 that survives the refresh throws auth-required, clearing '
+        'the session', () async {
+      harness.http
+        ..enqueueResponse(const SwayveHttpResponse(statusCode: 401))
+        ..enqueueResponse(
+          SwayveHttpResponse.json(
+            <String, Object?>{'error': 'invalid_grant'},
+            statusCode: 401,
+          ),
+        );
 
       await expectLater(
         harness.library.likedTracks(SwayveBrowseRequest.first),
         throwsA(isA<SwayvePluginAuthRequiredException>()),
       );
-    });
-
-    test(
-        'the stored cookie is sent on both the identity lookup and the '
-        'likes request', () async {
-      harness.enqueueClientId();
-      harness.http.enqueueText(fixtureText('me.json'));
-      harness.http.enqueueText(fixtureText('user_likes.json'));
-
-      await harness.library.likedTracks(SwayveBrowseRequest.first);
-
-      for (final RecordedHttpRequest request in harness.http.requests) {
-        if (request.url.path == '/me' || request.url.path.endsWith('/likes')) {
-          expect(
-            request.headers['cookie'],
-            'sc_anonymous_id=abc; oauth_token=secret',
-          );
-        }
-      }
-    });
-
-    test(
-        'a second page reuses the resolved account rather than asking /me '
-        'again', () async {
-      harness.enqueueClientId();
-      harness.http.enqueueText(fixtureText('me.json'));
-      harness.http.enqueueText(fixtureText('user_likes.json'));
-      await harness.library.likedTracks(SwayveBrowseRequest.first);
-      final int afterFirstPage = harness.http.requests.length;
-
-      harness.http.enqueueText(fixtureText('user_likes.json'));
-      await harness.library.likedTracks(
-        const SwayveBrowseRequest(
-          cursor: 'https://api-v2.soundcloud.com/users/42099/likes'
-              '?offset=abc&limit=8',
-        ),
-      );
-
       expect(
-        harness.http.requests.where((r) => r.url.path == '/me'),
-        hasLength(1),
-        reason: 'The account only needed resolving once for this cookie.',
+        await harness.credentials.readSecret('oauth_access_token'),
+        isNull,
+        reason: 'A refresh token SoundCloud rejects ends the whole session, '
+            'not just this one call.',
       );
-      expect(harness.http.requests.length, greaterThan(afterFirstPage));
+    });
+
+    test('an expired stored token is refreshed before the fetch, not after',
+        () async {
+      await harness.credentials.writeSecret(
+        'oauth_access_token_expires_at',
+        DateTime.now()
+            .toUtc()
+            .subtract(const Duration(hours: 1))
+            .toIso8601String(),
+      );
+      harness.http
+        ..enqueueJson(fixture('oauth_token.json'))
+        ..enqueueJson(fixture('official_likes.json'));
+
+      await harness.library.likedTracks(SwayveBrowseRequest.first);
+
+      expect(harness.http.requests, hasLength(2));
+      expect(harness.http.requests.first.url.host, kOAuthTokenUri.host);
     });
 
     test('honours cancellation', () async {

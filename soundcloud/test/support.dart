@@ -176,9 +176,14 @@ final class PluginHarness {
   SoundCloudLibraryProvider get library => plugin.libraryProvider!;
 
   /// The in-memory credential store behind `context.credentials`, for
-  /// scripting a stored `session_cookie` without going through a settings UI
-  /// that does not exist in this test suite.
+  /// scripting stored secrets without going through a settings UI that does
+  /// not exist in this test suite.
   InMemorySwayveCredentialStore get credentials => context.fakeCredentials;
+
+  /// The scripted web view behind `context.webView`, for driving
+  /// `SoundCloudAuthProvider.authenticate`'s OAuth flow without a real
+  /// browser — see `FakeSwayveWebViewController.enqueueNavigation`.
+  FakeSwayveWebViewController get webView => context.fakeWebView;
 
   /// Every request the plugin has made, as URLs.
   List<Uri> get requestedUrls => http.requests.map((r) => r.url).toList();

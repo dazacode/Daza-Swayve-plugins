@@ -3,7 +3,7 @@
   "id": "app.swayve.plugins.soundcloud",
   "name": "SoundCloud",
   "description": "Adds SoundCloud search, browsing and playback to Swayve.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "Swayve",
     "url": "https://github.com/dazacode/swayve-plugins"
@@ -29,7 +29,7 @@
     "artist_activity",
     "authentication",
     "personal_library",
-    "session_capture"
+    "webview"
   ],
   "permissions": [
     "network",
@@ -56,18 +56,9 @@
     "hosts": [
       "soundcloud.com",
       "api-v2.soundcloud.com",
+      "api.soundcloud.com",
+      "secure.soundcloud.com",
       "*.sndcdn.com"
-    ]
-  },
-  "session_capture": {
-    "hosts": [
-      "soundcloud.com"
-    ],
-    "capture": [
-      {
-        "from": "cookie_header",
-        "as_secret": "session_cookie"
-      }
     ]
   },
   "timeouts": {
@@ -76,10 +67,16 @@
   },
   "settings": [
     {
-      "id": "session_cookie",
+      "id": "client_id",
       "type": "secret",
-      "label": "SoundCloud session cookie",
-      "description": "Paste the cookie from a browser signed into soundcloud.com. Lets Swayve see your liked tracks; stored on this device and never sent anywhere else."
+      "label": "SoundCloud API client ID",
+      "description": "Your own registered SoundCloud app's client ID. Needed to see your liked tracks — see README.md. Stored on this device, sent only to SoundCloud."
+    },
+    {
+      "id": "client_secret",
+      "type": "secret",
+      "label": "SoundCloud API client secret",
+      "description": "Your own registered SoundCloud app's client secret, from the same place as the client ID. Stored on this device, sent only to SoundCloud."
     },
     {
       "id": "region",

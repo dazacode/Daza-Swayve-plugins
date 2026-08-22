@@ -13,12 +13,12 @@ that must keep working without a single `if (plugin.id == …)`.
 |---|---|
 | **Id** | `app.swayve.plugins.youtube_music` |
 | **Runtime** | `compiled` — the source lives here and is compiled into a Swayve build |
-| **Platforms** | android, ios, windows |
-| **Capabilities** | `search`, `catalog`, `streaming`, `webview`, `artwork` |
-| **Permissions** | `network`, `webview` |
-| **Network hosts** | `music.youtube.com`, `www.youtube.com`, `i.ytimg.com` |
+| **Platforms** | android, ios, windows, linux |
+| **Capabilities** | `search`, `catalog`, `streaming`, `webview`, `artwork`, `authentication`, `personal_library`, `session_capture` |
+| **Permissions** | `network`, `webview`, `external_auth` |
+| **Network hosts** | `music.youtube.com`, `www.youtube.com`, `i.ytimg.com`, `lh3.googleusercontent.com`, `*.googlevideo.com` |
 | **Streamable** | yes |
-| **Downloadable** | **no** — deliberately, see below |
+| **Downloadable** | yes — a deliberate reversal of this plugin's earlier embed-only design, see below |
 | **Dependencies** | `swayve_plugin_sdk`. That is the entire list. |
 
 ---
@@ -165,59 +165,79 @@ Check that before you check the API.
 
 ---
 
-## Playback: an embedded player, not an extracted stream
+## Playback: an extracted stream when it can, an embedded player when it can't
 
-`resolvePlayback` returns a `SwayvePlayableSource` of kind `webEmbed` pointing
-at Google's own embedded player:
+`resolvePlayback` answers one of two ways, chosen by the hints the host sends —
+`SwayvePlaybackHints.preferAudioOnly` and `.allowWebEmbed`:
 
-```
-https://www.youtube.com/embed/<videoId>?enablejsapi=1&playsinline=1&rel=0
-```
+* **Audio** — a direct, already-signed media address for an audio-only
+  rendition, extracted from a real player response. The host's own engine
+  plays it and can keep it on the device.
+* **Video** — the embedded player page, for a host that asked for the video
+  rather than the sound file:
 
-It does **not** extract a media URL. That is a decision:
+  ```
+  https://www.youtube.com/embed/<videoId>?enablejsapi=1&playsinline=1&rel=0
+  ```
 
-* Extraction works by reproducing the signature logic of a player the service
-  controls. It breaks whenever that player changes, which makes a plugin that
-  looked healthy yesterday silently useless today.
-* It takes the plugin somewhere the service has not invited it. The embedded
-  player is the surface Google publishes for exactly this purpose.
-* It keeps the service's own controls, branding and terms in front of the user
-  at the moment of playback, which is where they belong.
+This reverses an earlier decision in this plugin, deliberately — see
+`lib/src/providers/stream_provider.dart`'s class comment for the fuller
+account. The player endpoint used to be asked as a client (`WEB_REMIX`) that
+answers with a signature the plugin would have had to reproduce by executing a
+function out of a deliberately obfuscated, multi-megabyte `base.js` — something
+no pure-Dart plugin with no JavaScript runtime can do, and something that
+breaks the moment that function changes. The player endpoint is now asked as
+`VISIONOS` (`lib/src/config.dart`'s `kPlayerClientName`), the one client left
+that answers with media addresses **already signed**: no cipher to solve, no
+throttling parameter to unscramble, no JavaScript to run. That door is not
+guaranteed to stay open forever — `ANDROID`, `IOS` and `ANDROID_VR` all worked
+this way once and no longer do — so extraction failing closed
+(`YouTubeStreamRefusal.extractionClosed`) falls back to the embedded player
+rather than failing outright: the plugin degrades to what it used to be,
+instead of breaking.
 
-The provider **checks `SwayveHostInfo.supportedEmbeds` first**. A host that
-renders no web embed gets `SwayvePluginUnsupportedException` — not a URL that
-will fail later. Degrading silently would turn a clear capability mismatch into
-an unexplained stall; the host's `_canPlay` path drops an unresolvable track
-from the queue, which is the right outcome and only happens if the plugin is
+The embed path still exists for its own reason, independent of extraction: a
+host asking for the video wants the picture, not just the sound. The provider
+**checks `SwayveHostInfo.supportedEmbeds` first**. A host that renders no web
+embed gets `SwayvePluginUnsupportedException` — not a URL that will fail
+later. Degrading silently would turn a clear capability mismatch into an
+unexplained stall; the host's `_canPlay` path drops an unresolvable track from
+the queue, which is the right outcome and only happens if the plugin is
 honest. `SwayveWebEmbedKind.inAppWebView` is preferred over `iframe` because it
 gives the host a surface it owns; both are supported, and `enablejsapi=1` is
 set so the controls the embed advertises (`play`, `pause`, `seek`, `volume`,
 `positionUpdates`) are ones the host can actually drive through the player's
 own JavaScript API. Advertising a control the host cannot drive would be worse
 than advertising none: the SDK says an absent control must be disabled in the
-UI, so an over-claim becomes a button that does nothing.
+UI, so an over-claim becomes a button that does nothing. `expiresIn` is `null`
+for an embed because an embed URL genuinely does not expire — the player
+behind it re-resolves its own media — while a resolved audio address carries
+the expiry the player response itself stated, less a safety margin.
 
-`resolvePlayback` makes **no network request**. It sits on the play path and is
-called again whenever a source expires, so it is arithmetic on a video id and
-nothing else. `expiresIn` is `null` because an embed URL genuinely does not
-expire — the player behind it re-resolves its own media.
+### Why `media.downloadable` is `true`
 
-### Why `media.downloadable` is `false`
+Spec §17: streamable must never imply downloadable — the rule matters here
+precisely because the answer changed. `media.downloadable` used to be `false`,
+back when every resolution was an embed: a page to render, not bytes to keep,
+with no artefact this plugin could hand the host to store. That stopped being
+the whole story once audio extraction was added — a directly-fetchable media
+address genuinely *is* something the host can keep — so `true` is not a default
+this plugin fell into but a considered commitment, made deliberately alongside
+the extraction change:
 
-Spec §17: streamable must never imply downloadable. Here the two are genuinely
-different facts. An embed is **a page to render, not bytes to keep** — there is
-no artefact this plugin could hand the host to store, and no offline right it
-holds to grant. So:
+* `plugin.json` says `"media": { "streamable": true, "downloadable": true, "offlineCache": false }`;
+* every extracted audio `SwayvePlayableSource` reports
+  `SwayveAvailability(streamable: true, downloadable: true)`, agreeing with the
+  manifest;
+* every embedded-player `SwayvePlayableSource`, by contrast, reports
+  `SwayveAvailability.streamOnly` — a page is not bytes to keep, whatever the
+  manifest allows for the audio path, and the SDK reads the resolved source as
+  well as the manifest precisely so the two can differ per resolution.
 
-* `plugin.json` says `"media": { "streamable": true, "downloadable": false, "offlineCache": false }`;
-* every `SwayveTrack` and `SwayveAlbum` reports
-  `SwayveAvailability(streamable: true, downloadable: false, onDevice: false)`;
-* every `SwayvePlayableSource` repeats it, because the host reads the resolved
-  source and not just the manifest, and the two must agree.
-
-There is a test for each of those three. A future contributor who adds stream
-extraction would have to change the manifest, the availability constant and the
-resolved source together, and would fail the test that compares them.
+There is a test for each of those. Fetching media directly still stays
+contrary to YouTube's terms — this is a policy commitment, not a technical
+one — and downloadable being `true` is a promise the manifest makes about what
+the resolved source is capable of, not an endorsement of downloading it.
 
 ---
 
@@ -312,11 +332,17 @@ decides what a failure was:
 | Anything unforeseen | `SwayvePluginUnavailableException`, with the original as `cause` |
 
 Note what is deliberately absent: **`401`/`403` do not become
-`SwayvePluginAuthRequiredException`**. That exception tells the host to send
-the user through this plugin's sign-in flow, and this plugin declares no
-`authentication` capability and has no such flow. A 403 from the anonymous web
-client means a regional or consent block, not a lapsed session, and reporting
-auth-required would leave the host offering a button that leads nowhere.
+`SwayvePluginAuthRequiredException`** from `throwForStatus`, even though this
+plugin does declare `authentication` now. InnerTube simply does not use those
+statuses to say a session has lapsed — a stale or rejected session cookie still
+answers `200`, with either the "sign in to see your liked songs" placeholder
+(`looksSignedOut`) or, for the player endpoint, a `LOGIN_REQUIRED`
+`playabilityStatus`, both handled explicitly where they arise
+(`providers/library_provider.dart`, `providers/auth_provider.dart`,
+`parsing/stream_parser.dart`). A `401`/`403` reaching `throwForStatus` at all
+means something else — a regional or consent block on the anonymous web
+client — and reporting auth-required for that would send someone to re-paste a
+cookie that was never the problem.
 
 Cancellation is checked before any work starts and raced against the work
 afterwards, so a host that has lost interest never waits on an in-flight
@@ -376,9 +402,12 @@ never asked for fails here rather than on a user's phone.
 | `search_test.dart` | A realistic payload normalizes into `SwayveTrack`/`Album`/`Artist`/`Playlist` with the right ids, artists, album refs, durations and explicit flags; an unreadable row is skipped and reported as `partial`; the continuation token round-trips as a cursor; `kinds` is filtered on the wire *and* in the result; `limit` is a ceiling per kind; the `region` setting reaches the wire and a mid-session change is picked up. |
 | `catalog_test.dart` | Feeds partition by kind; `limit` and cursors work; each `SwayveSortOrder` selects a feed and none fails; album and artist lookup read their headers; a foreign or wrong-kind id returns `null` **without a request**; id classification and `SwayveMediaId` round-tripping. |
 | `artwork_test.dart` | Each `SwayveArtworkSize` maps onto its own `i.ytimg.com` variant with no request at all; images on undeclared hosts are dropped; images on declared hosts are kept. |
-| `stream_test.dart` | `resolvePlayback` returns a `webEmbed` with the expected URL and controls and makes no request; an in-app web view is preferred; an iframe-only host still gets an embed; **an empty `supportedEmbeds` throws `SwayvePluginUnsupportedException`**; so do `allowWebEmbed: false`, a non-track id, and a foreign id; every resolved source reports `downloadable: false` and agrees with the manifest. |
-| `failure_modes_test.dart` | 429 → rate-limited with `retryAfter` (seconds, HTTP-date, and unparseable); 5xx and transport failure → unavailable; an exotic error → unavailable with the original as `cause`; 403 → unavailable, *not* auth-required; garbage, truncated and wrong-shaped bodies → malformed, never `TypeError`; a hang → timeout; a cancelled token → cancelled, on every provider. |
+| `stream_test.dart` | Audio resolution: a preferred rendition is chosen by codec support and bitrate ceiling, the visitor identity is minted once and reused (and re-minted on a refused session), duration and expiry are read honestly, and the resolved source's `downloadable: true` agrees with the manifest. Video/embed resolution: `resolvePlayback` returns a `webEmbed` with the expected URL and controls and makes no request; an in-app web view is preferred; an iframe-only host still gets an embed; **an empty `supportedEmbeds` throws `SwayvePluginUnsupportedException`**; an embed's `SwayveAvailability` is stream-only, never claiming a download right. Degradation: extraction closing falls back to the embed and logs a warning; a host with no embed gets unavailable instead; a non-track id and a foreign id are refused without a request. |
+| `failure_modes_test.dart` | 429 → rate-limited with `retryAfter` (seconds, HTTP-date, and unparseable); 5xx and transport failure → unavailable; an exotic error → unavailable with the original as `cause`; 403 → unavailable, *not* auth-required, on the anonymous surface these tests exercise; garbage, truncated and wrong-shaped bodies → malformed, never `TypeError`; a hang → timeout; a cancelled token → cancelled, on every provider. |
 | `network_allowlist_test.dart` | **Every outbound request, across every provider, targets a host in `plugin.json`'s `network.hosts`** — checked against the manifest itself, not against the plugin's copy of it. Also: every URL handed onward for the host to fetch (artwork, the embed) is on a declared host, and `isAllowedHost` rejects near-misses such as `music.youtube.com.evil.example.com`. |
+| `sapisid_hash_test.dart` | `sha1Bytes` against the standard NIST test vectors (empty string, `"abc"`, the pangram, a multi-block message); `sapisidHashAuthorization` reads `__Secure-3PAPISID` ahead of plain `SAPISID`, falls back correctly, handles a cookie value containing `=`, and is `null` when neither cookie is present. |
+| `auth_provider_test.dart` | `authState` never touches the network and answers from whether a cookie is stored; `authenticate` fails without a request when nothing is stored, becomes signed in for a cookie InnerTube answers for, and becomes a failed (never thrown) state for a rejected or malformed response; a validated cookie is reused by a later `authState` call; `signOut` deletes the stored secret and never throws; `authStateChanges` sends a new listener the current state immediately, is a broadcast stream, and publishes every later change. |
+| `library_provider_test.dart` | A signed-out call throws auth-required rather than returning an empty page; a signed-in call parses liked tracks through the shared feed parser, hands back an empty (not error) page for nothing liked yet, and round-trips the cursor; the browse carries the stored cookie, a computed `authorization` header, and the stored `page_id` as `x-goog-pageid` when one is configured; the browse id is the liked-songs playlist; an empty stored cookie is treated as signed out; cancellation is honoured. |
 
 ### Fixture-verified versus live-validated — read this before trusting it
 
@@ -389,12 +418,37 @@ mapping, every timeout and cancellation path, the permission model, the
 allowlist discipline, and the shape of what the host receives. Those are
 properties of this code given an input, and the tests pin them exactly.
 
-**Not yet validated against live traffic.** The fixtures' *shapes* are modelled
-on InnerTube's real, observed structure — `musicResponsiveListItemRenderer`,
-`musicTwoRowItemRenderer`, `musicShelfRenderer`, `musicDetailHeaderRenderer`,
+**Confirmed live, against real accounts.** Since this section was first
+written, the signed-in path has actually been exercised against
+`music.youtube.com` — not just modelled on its observed shapes:
+
+* the `session_cookie` → `SAPISIDHASH` `Authorization` header this plugin
+  computes (`lib/src/auth/sapisid_hash.dart`) is accepted by InnerTube for a
+  real signed-in session;
+* browsing the Liked Music playlist (`VLLM`) for that session, including
+  paging past the first response — InnerTube answers a continuation's second
+  page in a flatter shape than the first (`onResponseReceivedActions[]
+  .appendContinuationItemsAction.continuationItems` rather than
+  `continuationContents`), which only surfaced by trying it live;
+* the signed-out placeholder (`looksSignedOut`) and its distinction from a
+  genuinely empty Liked Music playlist;
+* `x-goog-pageid` selecting the right channel on a real multi-channel
+  account — confirmed empirically, not merely inferred from other clients:
+  without it, a channel's own Liked Music answered as a normal, parseable,
+  entirely *empty* page, with it, the real count.
+
+See `providers/library_provider.dart`, `providers/auth_provider.dart`,
+`parsing/feed_parser.dart` and `auth/sapisid_hash.dart` for exactly what each
+of those doc comments claims and where.
+
+**Not yet validated against live traffic.** Everything else — the fixtures'
+*shapes* are modelled on InnerTube's real, observed structure —
+`musicResponsiveListItemRenderer`, `musicTwoRowItemRenderer`,
+`musicShelfRenderer`, `musicDetailHeaderRenderer`,
 `musicImmersiveHeaderRenderer`, `browseEndpointContextMusicConfig.pageType`,
-`continuations[].nextContinuationData.continuation` — but no request in this
-repository has ever been sent to YouTube Music. Specifically unverified:
+`continuations[].nextContinuationData.continuation` — but the anonymous
+search/browse/streaming surface has not itself been exercised against live
+traffic as part of this repository's own testing. Specifically unverified:
 
 * whether the request as composed here is **accepted** at all: the InnerTube
   client version (`1.20240403.01.00`) ages, and no public API key is sent — if
@@ -410,10 +464,10 @@ repository has ever been sent to YouTube Music. Specifically unverified:
   simulated honestly.
 
 Treat the parsers as *correct given a payload of the documented shape*, and the
-request composition as *plausible but unproven*. Validating against live
-traffic — and then committing the real payloads as fixtures — is the obvious
-next step, and it is the step that would move most of the second list into the
-first.
+anonymous-surface request composition as *plausible but unproven* — the
+signed-in path above is the one part of this list that has moved from
+"plausible" to "confirmed." Validating the rest against live traffic — and
+then committing the real payloads as fixtures — is the obvious next step.
 
 ---
 

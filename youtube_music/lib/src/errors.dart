@@ -78,12 +78,17 @@ Future<T> runGuarded<T>(
 /// * every other non-2xx status becomes `SwayvePluginUnavailableException`.
 ///
 /// Note what is deliberately *not* here: `401` and `403` do not become
-/// `SwayvePluginAuthRequiredException`. That exception tells the host to send
-/// the user through this plugin's sign-in flow, and this plugin declares no
-/// `authentication` capability and has no such flow — YouTube Music answers
-/// the anonymous web client, and a 403 from it means a regional or consent
-/// block, not "your session lapsed". Reporting auth-required would leave the
-/// host offering a button that leads nowhere.
+/// `SwayvePluginAuthRequiredException`, even though this plugin does declare
+/// `authentication` now. InnerTube does not use those statuses to say a
+/// session has lapsed — a stale or rejected cookie still answers `200` with
+/// either the "sign in to see your liked songs" placeholder
+/// (`looksSignedOut` in `parsing/feed_parser.dart`, checked in
+/// `providers/library_provider.dart` and `providers/auth_provider.dart`) or,
+/// for the player endpoint, a `LOGIN_REQUIRED` `playabilityStatus` (see
+/// `parsing/stream_parser.dart`). A 401 or 403 reaching this function at all
+/// means something else — a regional or consent block on the anonymous web
+/// client — and reporting auth-required for that would send the user to
+/// re-paste a cookie that was never the problem.
 Never throwForStatus(SwayveHttpResponse response, Uri url) {
   if (response.statusCode == 429) {
     throw SwayvePluginRateLimitedException(

@@ -21,15 +21,11 @@
 /// {origin}")}``. It is not published by Google as a stable API; it is
 /// reverse-engineered behaviour reproduced by essentially every unofficial
 /// YouTube Music client. The implementation below follows that
-/// widely-documented pattern as best understood from public prior art, but it
-/// has **not** been exercised against a real, signed-in `music.youtube.com`
-/// session — there is no live account available to verify it against here.
-/// See `providers/auth_provider.dart` and the change that introduced this
-/// file for the explicit flag: this needs live-account verification before
-/// shipping. [sha1Bytes] itself is verified against the standard NIST test
-/// vectors in `test/sapisid_hash_test.dart`, so if authentication ever fails
-/// against a real account, the SHA-1 primitive is the least likely culprit —
-/// look at the header assembly and the cookie names read instead.
+/// widely-documented pattern and has since been exercised against real,
+/// signed-in `music.youtube.com` sessions, including a multi-channel account
+/// — see `providers/library_provider.dart`'s doc comment. [sha1Bytes] itself
+/// is also verified against the standard NIST test vectors in
+/// `test/sapisid_hash_test.dart`.
 library;
 
 import 'dart:convert';

@@ -21,7 +21,7 @@ const String kYouTubeMusicPluginId = 'app.swayve.plugins.youtube_music';
 const String kYouTubeMusicPluginName = 'YouTube Music';
 
 /// The plugin version, identical to `plugin.json`'s `version`.
-const Version kYouTubeMusicPluginVersion = Version(0, 2, 0);
+const Version kYouTubeMusicPluginVersion = Version(0, 2, 1);
 
 /// The hostnames this plugin is permitted to reach, identical to
 /// `plugin.json`'s `network.hosts`.
@@ -279,15 +279,13 @@ abstract final class YouTubeMusicFeeds {
 
   /// The browse id for the signed-in user's own "Liked Music" playlist.
   ///
-  /// **Unverified, best-effort — needs checking against a real signed-in
-  /// account before this ships.** `LM` is the reserved playlist id unofficial
-  /// YouTube Music clients (`ytmusicapi` among them) use for a user's liked
-  /// songs, and this plugin's own [YouTubeMusicIds.playlistBrowseId] already
-  /// encodes the same `VL`-prefixing rule every other playlist browse in this
-  /// plugin goes through — `playlistBrowseId('LM')` and this constant name
-  /// the same string. That agreement is reassuring but is not proof: nobody
-  /// has exercised this against a live account as part of this change. See
-  /// `providers/library_provider.dart`.
+  /// `LM` is the reserved playlist id unofficial YouTube Music clients
+  /// (`ytmusicapi` among them) use for a user's liked songs, and this
+  /// plugin's own [YouTubeMusicIds.playlistBrowseId] already encodes the same
+  /// `VL`-prefixing rule every other playlist browse in this plugin goes
+  /// through — `playlistBrowseId('LM')` and this constant name the same
+  /// string. Confirmed against real signed-in accounts, including a
+  /// multi-channel one — see `providers/library_provider.dart`.
   static const String likedSongs = 'VLLM';
 }
 

@@ -23,8 +23,6 @@ import 'json_path.dart';
 /// only pick the closest of whatever the payload offered, and reports the real
 /// dimensions of what it picked.
 abstract final class YouTubeMusicArtwork {
-  /// The `i.ytimg.com` variant that best serves [size], with its real pixel
-  /// dimensions.
   /// The `i.ytimg.com` variant serving [size].
   ///
   /// `original` stops at `hqdefault` rather than reaching for

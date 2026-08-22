@@ -90,24 +90,37 @@ final class YouTubeMusicSearchProvider implements SwayveSearchProvider {
 
           final _Cursors cursors = _Cursors.decode(query.cursor);
 
-          final _Shelf songs = await _shelf(
+          // The two shelves are independent InnerTube requests, so a paired
+          // search fires them together rather than waiting on the catalogue
+          // before asking about videos — halving the wall-clock cost of the
+          // case this pairing exists for.
+          final Future<_Shelf> songsRequest = _shelf(
             text,
             params: kinds.length == 1 ? filterFor(kinds.single) : null,
             cursor: cursors.songs,
             exhausted: cursors.isContinuation && cursors.songs == null,
             cancel: cancel,
           );
-          cancel?.throwIfCancelled();
-
-          final _Shelf videos = paired
-              ? await _shelf(
+          final Future<_Shelf> videosRequest = paired
+              ? _shelf(
                   text,
                   params: YouTubeMusicSearchFilters.videos,
                   cursor: cursors.videos,
                   exhausted: cursors.isContinuation && cursors.videos == null,
                   cancel: cancel,
                 )
-              : _Shelf.none;
+              : Future<_Shelf>.value(_Shelf.none);
+
+          // `Future.wait` rather than two separate awaits: with the request
+          // already in flight, awaiting the songs shelf alone and letting a
+          // failure there skip past the still-pending videos request would
+          // leave that second future's error unhandled.
+          final List<_Shelf> shelves = await Future.wait(
+            <Future<_Shelf>>[songsRequest, videosRequest],
+          );
+          final _Shelf songs = shelves[0];
+          final _Shelf videos = shelves[1];
+          cancel?.throwIfCancelled();
 
           // The catalogue first, then the uploads. Not a ranking of quality —
           // an upload is often the better recording — but of confidence: a

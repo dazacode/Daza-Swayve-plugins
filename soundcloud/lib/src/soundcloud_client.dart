@@ -814,29 +814,58 @@ final class SoundCloudClient {
       );
     }
 
-    final Map<int, SwayveTrack> hydrated = <int, SwayveTrack>{};
-    int batches = 0;
-    for (int start = 0;
-        start < stubs.length && batches < kMaxHydrationBatches;
-        start += kTrackBatchSize, batches++) {
-      final List<int> batch =
-          stubs.sublist(start, math.min(start + kTrackBatchSize, stubs.length));
-      try {
-        final List<Map<String, Object?>> fetched =
-            await tracksByIds(batch, cancel: cancel);
-        for (final Map<String, Object?> json in fetched) {
-          final SwayveTrack? track = parseTrack(json);
-          final int? id = intAt(json, <Object>['id']);
-          if (track != null && id != null) hydrated[id] = track;
-        }
-      } on SwayvePluginException {
-        continue;
-      }
-    }
+    final List<List<int>> batches = <List<int>>[
+      for (int start = 0, count = 0;
+          start < stubs.length && count < kMaxHydrationBatches;
+          start += kTrackBatchSize, count++)
+        stubs.sublist(start, math.min(start + kTrackBatchSize, stubs.length)),
+    ];
+
+    // Fetched together rather than one after another: each batch asks
+    // `/tracks?ids=` for a disjoint set of ids, so nothing about the second
+    // batch depends on what the first one answered. A playlist that needs
+    // every one of [kMaxHydrationBatches] to hydrate would otherwise pay for
+    // ten round trips in series against one operation budget that already has
+    // to cover all of them.
+    final List<Map<int, SwayveTrack>> results =
+        await Future.wait(<Future<Map<int, SwayveTrack>>>[
+      for (final List<int> batch in batches) _hydrateBatch(batch, cancel),
+    ]);
+
+    final Map<int, SwayveTrack> hydrated = <int, SwayveTrack>{
+      for (final Map<int, SwayveTrack> result in results) ...result,
+    };
     return _withReleaseRef(
       spliceHydratedTracks(envelope.rawTracks, hydrated),
       envelope,
     );
+  }
+
+  /// One hydration batch's tracks, keyed by id — or empty when the batch
+  /// itself failed.
+  ///
+  /// A batch that throws is caught here rather than left to fail the whole
+  /// `Future.wait`: its stubs are simply absent from the result, per
+  /// [spliceHydratedTracks]'s "keep what was gathered" rule, and one bad
+  /// batch must not take the others down with it now that they are in flight
+  /// together.
+  Future<Map<int, SwayveTrack>> _hydrateBatch(
+    List<int> batch,
+    SwayveCancellationToken? cancel,
+  ) async {
+    try {
+      final List<Map<String, Object?>> fetched =
+          await tracksByIds(batch, cancel: cancel);
+      final Map<int, SwayveTrack> hydrated = <int, SwayveTrack>{};
+      for (final Map<String, Object?> json in fetched) {
+        final SwayveTrack? track = parseTrack(json);
+        final int? id = intAt(json, <Object>['id']);
+        if (track != null && id != null) hydrated[id] = track;
+      }
+      return hydrated;
+    } on SwayvePluginException {
+      return const <int, SwayveTrack>{};
+    }
   }
 
   /// Stamps every track in [tracks] with [envelope]'s own id and title as

@@ -82,17 +82,25 @@ final class SoundCloudSearchProvider implements SwayveSearchProvider {
             );
           }
 
-          final SoundCloudPage trackPage =
-              await shelf(SwayveSearchKind.track, cursors.track);
+          // The four shelves are independent requests — up to four every
+          // time `kinds` is left at its default of "everything" — so they are
+          // fired together rather than one after another. `Future.wait` with
+          // its default `eagerError: false` still waits for every shelf even
+          // when one throws, so a failure here does not leave a still-pending
+          // request's error unhandled.
+          final List<SoundCloudPage> pages = await Future.wait(
+            <Future<SoundCloudPage>>[
+              shelf(SwayveSearchKind.track, cursors.track),
+              shelf(SwayveSearchKind.album, cursors.album),
+              shelf(SwayveSearchKind.artist, cursors.artist),
+              shelf(SwayveSearchKind.playlist, cursors.playlist),
+            ],
+          );
           cancel?.throwIfCancelled();
-          final SoundCloudPage albumPage =
-              await shelf(SwayveSearchKind.album, cursors.album);
-          cancel?.throwIfCancelled();
-          final SoundCloudPage artistPage =
-              await shelf(SwayveSearchKind.artist, cursors.artist);
-          cancel?.throwIfCancelled();
-          final SoundCloudPage playlistPage =
-              await shelf(SwayveSearchKind.playlist, cursors.playlist);
+          final SoundCloudPage trackPage = pages[0];
+          final SoundCloudPage albumPage = pages[1];
+          final SoundCloudPage artistPage = pages[2];
+          final SoundCloudPage playlistPage = pages[3];
 
           final List<SwayveAlbum> albums = <SwayveAlbum>[
             for (final Object? item in albumPage.items)

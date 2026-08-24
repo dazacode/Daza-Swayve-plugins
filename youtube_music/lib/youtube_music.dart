@@ -9,7 +9,7 @@
 ///
 /// ```dart
 /// final SwayvePlugin plugin = createYouTubeMusicPlugin();
-/// await plugin.initialize(context);   // registers six providers
+/// await plugin.initialize(context);   // registers seven providers
 /// ```
 ///
 /// The plugin is **pure Dart**. It depends on `swayve_plugin_sdk` and nothing
@@ -41,6 +41,7 @@ export 'src/config.dart'
         kStreamExpiryMargin,
         kStreamLifetime,
         kYouTubeMusicAllowedHosts,
+        kYouTubeMusicMetadataSearchHosts,
         kYouTubeMusicPluginId,
         kYouTubeMusicPluginName,
         kYouTubeMusicPluginVersion,
@@ -51,6 +52,7 @@ export 'src/providers/artwork_provider.dart';
 export 'src/providers/auth_provider.dart';
 export 'src/providers/catalog_provider.dart';
 export 'src/providers/library_provider.dart';
+export 'src/providers/metadata_search_provider.dart';
 export 'src/providers/search_provider.dart';
 export 'src/providers/stream_provider.dart';
 export 'src/youtube_music_plugin.dart' show YouTubeMusicPlugin;

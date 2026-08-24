@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 6,
   "id": "app.swayve.plugins.youtube_music",
   "name": "YouTube Music",
   "description": "Adds YouTube Music search, browsing and playback to Swayve.",
@@ -28,7 +28,8 @@
     "artwork",
     "authentication",
     "personal_library",
-    "session_capture"
+    "session_capture",
+    "metadata_search"
   ],
   "permissions": [
     "network",
@@ -45,6 +46,12 @@
       "albums",
       "artists",
       "videos"
+    ],
+    "supportedHosts": [
+      "music.youtube.com",
+      "www.youtube.com",
+      "youtube.com",
+      "youtu.be"
     ]
   },
   "media": {

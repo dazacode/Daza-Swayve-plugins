@@ -149,6 +149,10 @@ final class PluginHarness {
   /// The registered library provider.
   YouTubeMusicLibraryProvider get library => plugin.libraryProvider!;
 
+  /// The registered metadata-search provider.
+  YouTubeMusicMetadataSearchProvider get metadataSearch =>
+      plugin.metadataSearchProvider!;
+
   /// The in-memory credential store behind `context.credentials`, for
   /// scripting a stored `session_cookie` without going through a settings UI
   /// that does not exist in this test suite.

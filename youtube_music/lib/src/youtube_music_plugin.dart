@@ -6,16 +6,17 @@ import 'providers/artwork_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/library_provider.dart';
+import 'providers/metadata_search_provider.dart';
 import 'providers/search_provider.dart';
 import 'providers/stream_provider.dart';
 
 /// The YouTube Music plugin.
 ///
-/// It declares seven capabilities — `search`, `catalog`, `streaming`,
-/// `artwork`, `authentication`, `personal_library`, `session_capture` — and
-/// registers exactly one provider for each during [initialize] that has one
-/// (`webview` and `session_capture` are the two with no provider interface;
-/// both are host-driven — see [identity]).
+/// It declares eight capabilities — `search`, `catalog`, `streaming`,
+/// `artwork`, `authentication`, `personal_library`, `session_capture`,
+/// `metadata_search` — and registers exactly one provider for each during
+/// [initialize] that has one (`webview` and `session_capture` are the two
+/// with no provider interface; both are host-driven — see [identity]).
 /// It declares three permissions, `network`, `webview` and `external_auth`,
 /// and touches exactly the context facilities they guard.
 ///
@@ -42,6 +43,7 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
   YouTubeMusicStreamProvider? _stream;
   YouTubeMusicAuthProvider? _auth;
   YouTubeMusicLibraryProvider? _library;
+  YouTubeMusicMetadataSearchProvider? _metadataSearch;
 
   /// The client every provider shares, or `null` before [initialize].
   InnerTubeClient? get client => _client;
@@ -63,6 +65,11 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
 
   /// The registered library provider, or `null` before [initialize].
   YouTubeMusicLibraryProvider? get libraryProvider => _library;
+
+  /// The registered metadata-search provider, or `null` before
+  /// [initialize].
+  YouTubeMusicMetadataSearchProvider? get metadataSearchProvider =>
+      _metadataSearch;
 
   @override
   SwayvePluginIdentity get identity => const SwayvePluginIdentity(
@@ -96,6 +103,10 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
           // plugin supports the flow at all; see `plugin.json`'s
           // `session_capture` block for hosts and capture entries.
           SwayveCapability.sessionCapture,
+          // Finds candidates for a track this app has not identified —
+          // MusicBrainz's blind spot: extended mixes, bootlegs, unreleased
+          // music. See `metadata_search_provider.dart`.
+          SwayveCapability.metadataSearch,
         },
         permissions: <SwayvePermission>{
           SwayvePermission.network,
@@ -147,6 +158,10 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
       credentials: context.credentials,
       timeouts: timeouts,
     );
+    _metadataSearch = YouTubeMusicMetadataSearchProvider(
+      client: client,
+      timeouts: timeouts,
+    );
 
     context
       ..registerSearchProvider(_search!)
@@ -154,7 +169,8 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
       ..registerStreamProvider(_stream!)
       ..registerArtworkProvider(_artwork!)
       ..registerAuthProvider(_auth!)
-      ..registerLibraryProvider(_library!);
+      ..registerLibraryProvider(_library!)
+      ..registerMetadataSearchProvider(_metadataSearch!);
 
     context.log.info(
       'YouTube Music ready: region ${client.region}, language '
@@ -178,5 +194,6 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
     _stream = null;
     _auth = null;
     _library = null;
+    _metadataSearch = null;
   }
 }

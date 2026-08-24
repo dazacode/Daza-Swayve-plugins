@@ -47,6 +47,10 @@ void main() {
             .map((SwayveContentType type) => type.wireName)
             .toSet(),
       );
+      expect(
+        (source['supportedHosts']! as List<Object?>).cast<String>().toSet(),
+        kYouTubeMusicSource.supportedHosts,
+      );
     });
 
     test('the source stands behind exactly the capabilities declared', () {
@@ -187,8 +191,7 @@ void main() {
       );
     });
 
-    test(
-        'the session_capture block agrees with the secrets it feeds', () {
+    test('the session_capture block agrees with the secrets it feeds', () {
       // The host reads this block to drive an in-app sign-in that writes
       // straight into the credential store keys the manual-paste flow
       // already uses. If `as_secret` here ever drifted from the setting ids
@@ -201,9 +204,9 @@ void main() {
           (sessionCapture['hosts']! as List<Object?>).cast<String>();
       expect(hosts, contains('music.youtube.com'));
 
-      final List<Map<String, Object?>> capture = (sessionCapture['capture']!
-              as List<Object?>)
-          .cast<Map<String, Object?>>();
+      final List<Map<String, Object?>> capture =
+          (sessionCapture['capture']! as List<Object?>)
+              .cast<Map<String, Object?>>();
       final Set<String> asSecrets = capture
           .map((Map<String, Object?> entry) => entry['as_secret']! as String)
           .toSet();
@@ -241,6 +244,7 @@ void main() {
       expect(harness.context.artworkProviders, hasLength(1));
       expect(harness.context.authProviders, hasLength(1));
       expect(harness.context.libraryProviders, hasLength(1));
+      expect(harness.context.metadataSearchProviders, hasLength(1));
       expect(harness.context.lyricsProviders, isEmpty);
       expect(harness.context.scrobbleProviders, isEmpty);
       expect(harness.context.playlistProviders, isEmpty);

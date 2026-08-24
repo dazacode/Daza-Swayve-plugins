@@ -363,5 +363,20 @@ const SwayveSourceDescriptor kYouTubeMusicSource = SwayveSourceDescriptor(
     SwayveCapability.authentication,
     SwayveCapability.personalLibrary,
     SwayveCapability.sessionCapture,
+    SwayveCapability.metadataSearch,
   },
+  supportedHosts: kYouTubeMusicMetadataSearchHosts,
 );
+
+/// The website hostnames [YouTubeMusicMetadataSearchProvider.resolveUrl]
+/// answers for — every shape a person could plausibly paste in, not just
+/// the one [kMusicOrigin] uses. `youtube.com`/`youtu.be` are covered
+/// because a track that lives only as a video upload is just as often
+/// linked from plain YouTube as from the Music front end, and the two
+/// serve the same catalogue behind one video id.
+const Set<String> kYouTubeMusicMetadataSearchHosts = <String>{
+  'music.youtube.com',
+  'www.youtube.com',
+  'youtube.com',
+  'youtu.be',
+};

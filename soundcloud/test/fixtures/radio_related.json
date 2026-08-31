@@ -1,0 +1,45 @@
+{
+  "collection": [
+    {
+      "id": 111222333,
+      "kind": "track",
+      "title": "Seed Repeated By Upstream",
+      "permalink_url": "https://soundcloud.com/testartist/midnight-drive",
+      "duration": 214000,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 555666, "kind": "user", "username": "TestArtist"}
+    },
+    {
+      "track": {
+        "id": 991001,
+        "kind": "track",
+        "title": "Related One",
+        "permalink_url": "https://soundcloud.com/related/one",
+        "duration": 180000,
+        "streamable": true,
+        "policy": "ALLOW",
+        "user": {"id": 700001, "kind": "user", "username": "RelatedArtist"}
+      }
+    },
+    {
+      "id": 991002,
+      "kind": "track",
+      "title": "Related Two",
+      "permalink_url": "https://soundcloud.com/related/two",
+      "duration": 200000,
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 700002, "kind": "user", "username": "AnotherArtist"}
+    },
+    {
+      "id": 991001,
+      "kind": "track",
+      "title": "Related One Duplicate",
+      "streamable": true,
+      "policy": "ALLOW",
+      "user": {"id": 700001, "kind": "user", "username": "RelatedArtist"}
+    }
+  ],
+  "next_href": "https://api-v2.soundcloud.com/tracks/111222333/related?limit=2&offset=2"
+}

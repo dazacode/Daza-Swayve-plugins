@@ -165,6 +165,9 @@ final class PluginHarness {
   /// The registered playlist provider.
   SoundCloudPlaylistProvider get playlist => plugin.playlistProvider!;
 
+  /// The registered radio provider.
+  SoundCloudRadioProvider get radio => plugin.radioProvider!;
+
   /// The registered artist-activity provider.
   SoundCloudArtistActivityProvider get artistActivity =>
       plugin.artistActivityProvider!;

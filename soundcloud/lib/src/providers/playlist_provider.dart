@@ -53,7 +53,7 @@ final class SoundCloudPlaylistProvider implements SwayvePlaylistProvider {
           final List<SwayvePlaylist> playlists = <SwayvePlaylist>[
             for (final Object? item in page.items)
               if (parsePlaylistEnvelope(mapOf(item)) case final envelope?)
-                if (!envelope.isAlbum) playlistFromEnvelope(envelope),
+                playlistFromEnvelope(envelope),
           ];
           return SwayvePage<SwayvePlaylist>(
             items: playlists,

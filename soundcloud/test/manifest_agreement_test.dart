@@ -175,6 +175,8 @@ void main() {
       expect(harness.context.streamProviders, hasLength(1));
       expect(harness.context.artworkProviders, hasLength(1));
       expect(harness.context.playlistProviders, hasLength(1));
+      expect(harness.context.radioProviders, hasLength(1));
+      expect(harness.context.radioProviders, hasLength(1));
       expect(harness.context.artistActivityProviders, hasLength(1));
       expect(harness.context.authProviders, hasLength(1));
       expect(harness.context.libraryProviders, hasLength(1));

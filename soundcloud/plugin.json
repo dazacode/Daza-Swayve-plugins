@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 7,
   "id": "app.swayve.plugins.soundcloud",
   "name": "SoundCloud",
   "description": "Adds SoundCloud search, browsing and playback to Swayve.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "author": {
     "name": "Swayve",
     "url": "https://github.com/dazacode/swayve-plugins"
@@ -26,6 +26,7 @@
     "streaming",
     "artwork",
     "playlist_read",
+    "radio",
     "artist_activity",
     "authentication",
     "personal_library",

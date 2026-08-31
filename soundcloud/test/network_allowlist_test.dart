@@ -82,6 +82,21 @@ void main() {
       expectAllowlisted();
     });
 
+    test('across radio and related tracks', () async {
+      harness.enqueueClientId();
+      harness.http.enqueueText(fixtureText('radio_related.json'));
+      await harness.radio.related(SoundCloudIds.track(111222333));
+      expectAllowlisted();
+
+      harness.http.enqueueText(fixtureText('radio_related.json'));
+      final SwayveRadio? radio = await harness.radio.startRadio(
+        SoundCloudIds.track(111222333),
+      );
+      expect(radio, isNotNull);
+      await harness.radio.radioTracks(radio!, SwayveBrowseRequest.first);
+      expectAllowlisted();
+    });
+
     test('following a next_href cursor', () async {
       harness.enqueueClientId();
       harness.http.enqueueText(fixtureText('search_tracks.json'));

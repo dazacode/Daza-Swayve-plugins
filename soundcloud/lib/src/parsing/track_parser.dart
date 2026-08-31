@@ -73,6 +73,7 @@ SwayveTrack? parseTrack(Map<String, Object?> json) {
     },
     externalUrl: permalinkUrl == null ? null : Uri.tryParse(permalinkUrl),
     alternateNames: _alternateNamesOf(json, username: username),
+    canSeedRadio: true,
   );
 }
 

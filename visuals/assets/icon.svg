@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Moving visuals plugin for Swayve">
+  <rect width="64" height="64" rx="14" fill="#111827"/>
+  <path d="M14 42V22h7l11 12V22h7v20h-7L21 30v12z" fill="#f9fafb"/>
+  <path d="M45 22h5v20h-5z" fill="#38bdf8"/>
+  <path d="M49 18h3v28h-3z" fill="#a78bfa" opacity=".8"/>
+</svg>

@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "type": "searchResults",
+      "id": "search-1",
+      "attributes": {
+        "trackingId": "fixture-search"
+      }
+    }
+  ],
+  "included": [
+    {
+      "type": "videos",
+      "id": "video-123",
+      "attributes": {
+        "title": "Midnight City",
+        "duration": "PT4M3S",
+        "explicit": false,
+        "isrc": "TIDALFIXTURE"
+      }
+    }
+  ]
+}

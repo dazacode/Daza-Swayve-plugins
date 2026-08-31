@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 7,
+  "id": "app.swayve.plugins.visuals",
+  "name": "Moving Visuals",
+  "description": "Finds official moving visuals for whatever is playing by matching the recording against TIDAL's catalog and video manifest API.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Swayve",
+    "url": "https://github.com/dazacode/swayve-plugins"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/dazacode/Daza-Swayve-plugins/tree/main/visuals",
+  "repository": "https://github.com/dazacode/Daza-Swayve-plugins",
+  "swayvePluginApi": 1,
+  "minimumSwayveVersion": "0.1.0",
+  "runtime": "compiled",
+  "platforms": [
+    "android",
+    "ios",
+    "windows",
+    "linux",
+    "macos"
+  ],
+  "capabilities": [
+    "visuals"
+  ],
+  "permissions": [
+    "network",
+    "external_auth"
+  ],
+  "entrypoint": "visuals",
+  "media": {
+    "streamable": false,
+    "downloadable": false,
+    "offlineCache": false
+  },
+  "network": {
+    "hosts": [
+      "openapi.tidal.com",
+      "*.tidal.com"
+    ]
+  },
+  "settings": [
+    {
+      "id": "tidal_access_token",
+      "type": "secret",
+      "label": "TIDAL access token",
+      "description": "An OAuth access token issued for the official TIDAL Developer Platform. It is stored as a secret and never logged."
+    }
+  ],
+  "timeouts": {
+    "requestMs": 10000,
+    "operationMs": 20000
+  },
+  "keywords": [
+    "visuals",
+    "canvas",
+    "music-video",
+    "tidal"
+  ],
+  "icon": "assets/icon.svg"
+}

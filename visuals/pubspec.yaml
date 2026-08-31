@@ -1,0 +1,25 @@
+name: visuals
+description: >-
+  A source-agnostic moving-visuals provider for Swayve. Resolves official
+  TIDAL music-video manifests for tracks published by any plugin.
+version: 0.1.0
+publish_to: none
+repository: https://github.com/dazacode/Daza-Swayve-plugins
+issue_tracker: https://github.com/dazacode/Daza-Swayve-plugins/issues
+
+environment:
+  sdk: ^3.6.0
+
+# Pure Dart. All metadata requests go through SwayvePluginContext.http so the
+# network permission and manifest host allowlist remain enforceable by the
+# host. No HTML scraper or second HTTP stack belongs in this plugin.
+dependencies:
+  swayve_plugin_sdk:
+    git:
+      url: https://github.com/dazacode/swayve-plugins.git
+      path: packages/swayve_plugin_sdk
+      ref: e0c105d2d917bccf8c5cd2a7f3241f5c050e6213
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.25.0

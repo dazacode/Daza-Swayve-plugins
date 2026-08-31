@@ -1,0 +1,12 @@
+{
+  "data": {
+    "type": "videoManifests",
+    "id": "video-123",
+    "attributes": {
+      "videoPresentation": "FULL",
+      "link": {
+        "href": "https://cdn.example.com/videos/video-123/master.m3u8"
+      }
+    }
+  }
+}

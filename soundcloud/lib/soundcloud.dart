@@ -10,7 +10,7 @@
 ///
 /// ```dart
 /// final SwayvePlugin plugin = createSoundCloudPlugin();
-/// await plugin.initialize(context);   // registers eight providers
+/// await plugin.initialize(context);   // registers nine providers
 /// ```
 ///
 /// The plugin is **pure Dart**. It depends on `swayve_plugin_sdk` and nothing
@@ -54,6 +54,7 @@ export 'src/providers/auth_provider.dart';
 export 'src/providers/catalog_provider.dart';
 export 'src/providers/library_provider.dart';
 export 'src/providers/playlist_provider.dart';
+export 'src/providers/radio_provider.dart';
 export 'src/providers/search_provider.dart';
 export 'src/providers/stream_provider.dart';
 export 'src/soundcloud_client.dart'

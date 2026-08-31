@@ -429,6 +429,27 @@ final class SoundCloudClient {
   }) =>
       _getJsonOrNull(_apiUri('/users/$id'), cancel: cancel);
 
+  /// One page of tracks related to [id].
+  ///
+  /// This is the service-native recommender behind SoundCloud radio and the
+  /// finite related shelf. It uses the same collection/next_href envelope as
+  /// the other anonymous feeds, so cursor validation and client-id recovery
+  /// remain centralized in [pageFor].
+  Future<SoundCloudPage> relatedTracks(
+    int id, {
+    int limit = kDefaultRadioLimit,
+    String? cursor,
+    SwayveCancellationToken? cancel,
+  }) =>
+      pageFor(
+        cursor,
+        _apiUri('/tracks/$id/related', <String, String>{
+          'limit': '$limit',
+          'linked_partitioning': '1',
+        }),
+        cancel: cancel,
+      );
+
   /// One page of SoundCloud's charts — the feed behind `catalog.tracks()`.
   ///
   /// `/featured_tracks/<bucket>/<genre>`, not `/charts` — see the class

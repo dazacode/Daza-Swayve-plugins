@@ -83,6 +83,8 @@ final class SoundCloudArtworkProvider implements SwayveArtworkProvider {
                 stringAt(json, <Object>['avatar_url']),
                 size,
               );
+            case SoundCloudIdKind.radio:
+              return null;
           }
         },
       );

@@ -20,8 +20,27 @@ void main() {
       final SwayvePage<SwayvePlaylist> page =
           await harness.playlist.playlists(SwayveBrowseRequest.first);
 
+      expect(page.items, hasLength(2));
+      expect(
+          page.items.map((playlist) => playlist.title),
+          containsAll(<String>[
+            'A Real Album',
+            'A Plain Playlist',
+          ]),
+      );
+    });
+
+    test('parses playlist metadata without exposing album rows', () async {
+      harness.enqueueClientId();
+      harness.http.enqueueText(fixtureText('discovery_sectioned.json'));
+
+      final SwayvePage<SwayvePlaylist> page =
+          await harness.playlist.playlists(SwayveBrowseRequest.first);
+
       expect(page.items, hasLength(1));
-      expect(page.items.single.title, 'A Plain Playlist');
+      expect(page.items.single.id, SoundCloudIds.playlist(3002));
+      expect(page.items.single.trackCount, 8);
+      expect(page.items.single.ownerName, 'ArtistOne');
     });
   });
 

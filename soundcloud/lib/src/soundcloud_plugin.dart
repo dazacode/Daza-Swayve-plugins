@@ -7,6 +7,7 @@ import 'providers/auth_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/playlist_provider.dart';
+import 'providers/radio_provider.dart';
 import 'providers/search_provider.dart';
 import 'providers/stream_provider.dart';
 import 'soundcloud_client.dart';
@@ -41,6 +42,7 @@ final class SoundCloudPlugin implements SwayvePlugin {
   SoundCloudStreamProvider? _stream;
   SoundCloudArtworkProvider? _artwork;
   SoundCloudPlaylistProvider? _playlist;
+  SoundCloudRadioProvider? _radio;
   SoundCloudArtistActivityProvider? _artistActivity;
   SoundCloudAuthProvider? _auth;
   SoundCloudLibraryProvider? _library;
@@ -62,6 +64,9 @@ final class SoundCloudPlugin implements SwayvePlugin {
 
   /// The registered playlist provider, or `null` before [initialize].
   SoundCloudPlaylistProvider? get playlistProvider => _playlist;
+
+  /// The registered radio provider, or `null` before [initialize].
+  SoundCloudRadioProvider? get radioProvider => _radio;
 
   /// The registered artist-activity provider, or `null` before [initialize].
   SoundCloudArtistActivityProvider? get artistActivityProvider =>
@@ -85,6 +90,7 @@ final class SoundCloudPlugin implements SwayvePlugin {
           SwayveCapability.streaming,
           SwayveCapability.artwork,
           SwayveCapability.playlistRead,
+          SwayveCapability.radio,
           SwayveCapability.artistActivity,
           // The two capabilities behind sign-in. `personalLibrary` requires
           // `authentication` be declared too — the validator enforces this —
@@ -133,6 +139,7 @@ final class SoundCloudPlugin implements SwayvePlugin {
     _stream = SoundCloudStreamProvider(client: client, timeouts: timeouts);
     _artwork = SoundCloudArtworkProvider(client: client, timeouts: timeouts);
     _playlist = SoundCloudPlaylistProvider(client: client, timeouts: timeouts);
+    _radio = SoundCloudRadioProvider(client: client, timeouts: timeouts);
     _artistActivity = SoundCloudArtistActivityProvider(
       client: client,
       timeouts: timeouts,
@@ -158,6 +165,7 @@ final class SoundCloudPlugin implements SwayvePlugin {
       ..registerStreamProvider(_stream!)
       ..registerArtworkProvider(_artwork!)
       ..registerPlaylistProvider(_playlist!)
+      ..registerRadioProvider(_radio!)
       ..registerArtistActivityProvider(_artistActivity!)
       ..registerAuthProvider(_auth!)
       ..registerLibraryProvider(_library!);
@@ -179,6 +187,7 @@ final class SoundCloudPlugin implements SwayvePlugin {
     _stream = null;
     _artwork = null;
     _playlist = null;
+    _radio = null;
     _artistActivity = null;
     _auth = null;
     _library = null;

@@ -21,7 +21,7 @@ const String kSoundCloudPluginId = 'app.swayve.plugins.soundcloud';
 const String kSoundCloudPluginName = 'SoundCloud';
 
 /// The plugin version, identical to `plugin.json`'s `version`.
-const Version kSoundCloudPluginVersion = Version(0, 3, 1);
+const Version kSoundCloudPluginVersion = Version(0, 4, 0);
 
 /// How this plugin presents itself as a *place a query can be sent*, identical
 /// to `plugin.json`'s `source`.
@@ -53,6 +53,7 @@ const SwayveSourceDescriptor kSoundCloudSource = SwayveSourceDescriptor(
     SwayveCapability.streaming,
     SwayveCapability.artwork,
     SwayveCapability.playlistRead,
+    SwayveCapability.radio,
     SwayveCapability.artistActivity,
     // The two capabilities behind sign-in: `personalLibrary` — the
     // signed-in user's own liked tracks — makes no sense without something
@@ -192,6 +193,9 @@ const int kMaxHydrationBatches = 10;
 /// How many continuation pages a single playlist's own `tracks` listing will
 /// follow when it is paged past a single response.
 const int kMaxPlaylistListingPages = 10;
+
+/// The default page size for the related-track recommender.
+const int kDefaultRadioLimit = 50;
 
 /// A conservative floor for how long a resolved media URL stays valid.
 ///

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
+import 'apple_music_client.dart';
 import 'tidal_client.dart';
 
 /// Boundary for adding another official visuals source without changing the
@@ -42,11 +43,48 @@ final class TidalVisualsSource implements VisualsSource {
   }
 }
 
+/// Apple Music's official catalog preview-video source.
+final class AppleMusicVisualsSource implements VisualsSource {
+  AppleMusicVisualsSource({
+    required AppleMusicClient client,
+    required String? Function() developerToken,
+    required String? Function() storefront,
+  })  : _client = client,
+        _developerToken = developerToken,
+        _storefront = storefront;
+
+  final AppleMusicClient _client;
+  final String? Function() _developerToken;
+  final String? Function() _storefront;
+
+  @override
+  Future<SwayveVisual?> visual(
+    SwayveTrack track, {
+    SwayveCancellationToken? cancel,
+  }) {
+    final token = _developerToken()?.trim();
+    if (token == null || token.isEmpty) {
+      throw const SwayvePluginAuthRequiredException(
+        'Configure an Apple Music developer token to resolve visuals.',
+      );
+    }
+    final rawStorefront = _storefront()?.trim().toLowerCase();
+    final storefront =
+        rawStorefront != null && RegExp(r'^[a-z]{2}$').hasMatch(rawStorefront)
+            ? rawStorefront
+            : 'us';
+    return _client.visual(
+      track,
+      developerToken: token,
+      storefront: storefront,
+      cancel: cancel,
+    );
+  }
+}
+
 /// The SDK provider that tries registered source adapters in order.
 ///
-/// TIDAL is the only source currently registered. The list and interface are
-/// deliberately source-agnostic so a future Apple Music adapter can be added
-/// when it has a safe, host-compatible authorization path.
+/// Official sources are tried in order and remain source-agnostic to the host.
 final class SourceAgnosticVisualsProvider implements SwayveVisualsProvider {
   /// Creates a provider from source adapters.
   SourceAgnosticVisualsProvider(

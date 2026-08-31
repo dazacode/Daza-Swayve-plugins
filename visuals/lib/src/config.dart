@@ -21,10 +21,17 @@ const Version kVisualsPluginVersion = Version(0, 1, 0);
 const List<String> kVisualsAllowedHosts = <String>[
   'openapi.tidal.com',
   '*.tidal.com',
+  'api.music.apple.com',
 ];
 
 /// The secret setting containing the TIDAL OAuth access token.
 const String kTidalAccessTokenSettingId = 'tidal_access_token';
+
+/// The Apple Music developer token setting.
+const String kAppleMusicDeveloperTokenSettingId = 'apple_music_developer_token';
+
+/// The Apple Music storefront setting, for example `us`.
+const String kAppleMusicStorefrontSettingId = 'apple_music_storefront';
 
 /// Official TIDAL API origin.
 final Uri kTidalApiOrigin = Uri.parse('https://openapi.tidal.com');

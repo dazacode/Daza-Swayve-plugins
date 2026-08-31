@@ -37,7 +37,8 @@
   "network": {
     "hosts": [
       "openapi.tidal.com",
-      "*.tidal.com"
+      "*.tidal.com",
+      "api.music.apple.com"
     ]
   },
   "settings": [
@@ -46,6 +47,18 @@
       "type": "secret",
       "label": "TIDAL access token",
       "description": "An OAuth access token issued for the official TIDAL Developer Platform. It is stored as a secret and never logged."
+    },
+    {
+      "id": "apple_music_developer_token",
+      "type": "secret",
+      "label": "Apple Music developer token",
+      "description": "An Apple Music API developer token. It is stored as a secret and never logged."
+    },
+    {
+      "id": "apple_music_storefront",
+      "type": "text",
+      "label": "Apple Music storefront",
+      "description": "Two-letter Apple Music storefront code, such as us."
     }
   ],
   "timeouts": {

@@ -1,6 +1,7 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
+import 'apple_music_client.dart';
 import 'tidal_client.dart';
 import 'visuals_provider.dart';
 
@@ -51,13 +52,24 @@ final class VisualsPlugin implements SwayvePlugin {
           accessToken: () =>
               context.settings.value<String>(kTidalAccessTokenSettingId),
         ),
+        AppleMusicVisualsSource(
+          client: AppleMusicClient(
+            http: context.http,
+            timeouts: timeouts,
+          ),
+          developerToken: () => context.settings.value<String>(
+            kAppleMusicDeveloperTokenSettingId,
+          ),
+          storefront: () => context.settings.value<String>(
+            kAppleMusicStorefrontSettingId,
+          ),
+        ),
       ],
       timeouts: timeouts,
     );
     context.registerVisualsProvider(_visuals!);
     context.log.info(
-      'Moving visuals ready: official TIDAL video manifests only; '
-      'Apple Music is not enabled.',
+      'Moving visuals ready: official TIDAL and Apple Music previews.',
     );
   }
 

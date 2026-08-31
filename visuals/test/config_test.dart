@@ -7,6 +7,7 @@ void main() {
   test('manifest hosts accept official TIDAL API and media subdomains', () {
     expect(isAllowedHost('openapi.tidal.com'), isTrue);
     expect(isAllowedHost('resources.tidal.com'), isTrue);
+    expect(isAllowedHost('api.music.apple.com'), isTrue);
     expect(isAllowedHost('tidal.com.evil.example'), isFalse);
   });
 

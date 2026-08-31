@@ -1,0 +1,31 @@
+name: lyrics
+description: >-
+  A source-agnostic lyrics provider for Swayve. Matches a track from any other
+  plugin against open lyric databases and returns word-level, synced or plain
+  lyrics, in pure Dart.
+version: 0.1.0
+publish_to: none
+repository: https://github.com/dazacode/Daza-Swayve-plugins
+issue_tracker: https://github.com/dazacode/Daza-Swayve-plugins/issues
+
+environment:
+  sdk: ^3.6.0
+
+# Pure Dart, and the dependency list is one line long on purpose. Every byte
+# this plugin fetches goes through `context.http`, which is what makes the
+# `network` permission and the manifest's host allowlist mean anything — see
+# the "Dependencies we deliberately do not have" section of
+# `youtube_music/README.md`, which this plugin is held to as well. That rules
+# out `http` and `dio`, and it also rules out the XML packages that would have
+# saved the TTML parser in `lib/src/parsing/`: a parser is cheaper to write
+# than a hole in the permission model is to close.
+dependencies:
+  swayve_plugin_sdk:
+    git:
+      url: https://github.com/dazacode/swayve-plugins.git
+      path: packages/swayve_plugin_sdk
+      ref: e0c105d2d917bccf8c5cd2a7f3241f5c050e6213
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.25.0

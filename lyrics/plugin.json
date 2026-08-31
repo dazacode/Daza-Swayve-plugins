@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 7,
+  "id": "app.swayve.plugins.lyrics",
+  "name": "Lyrics",
+  "description": "Finds lyrics for whatever is playing — word-level, synced or plain — by matching the recording against open lyric databases. Works with tracks from any other plugin.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Swayve",
+    "url": "https://github.com/dazacode/swayve-plugins"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/dazacode/Daza-Swayve-plugins/tree/main/lyrics",
+  "repository": "https://github.com/dazacode/Daza-Swayve-plugins",
+  "swayvePluginApi": 1,
+  "minimumSwayveVersion": "0.1.0",
+  "runtime": "compiled",
+  "platforms": [
+    "android",
+    "ios",
+    "windows",
+    "linux",
+    "macos"
+  ],
+  "capabilities": [
+    "lyrics"
+  ],
+  "permissions": [
+    "network"
+  ],
+  "entrypoint": "lyrics",
+  "media": {
+    "streamable": false,
+    "downloadable": false,
+    "offlineCache": false
+  },
+  "network": {
+    "hosts": [
+      "lrclib.net",
+      "lyrics-api.boidu.dev"
+    ]
+  },
+  "timeouts": {
+    "requestMs": 10000,
+    "operationMs": 20000
+  },
+  "keywords": [
+    "lyrics",
+    "synced",
+    "karaoke",
+    "lrc",
+    "lrclib"
+  ],
+  "icon": "assets/icon.svg"
+}

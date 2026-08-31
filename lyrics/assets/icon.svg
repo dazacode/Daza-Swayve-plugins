@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Lyrics plugin for Swayve">
+  <title>Lyrics plugin for Swayve</title>
+  <!--
+    An original mark drawn for this plugin. It is deliberately not derived from
+    any lyric service's branding: no LRCLIB mark, no BetterLyrics mark, no
+    Apple Music lyric glyph. It is three lines of text with the middle one
+    lit — which is what a synced lyric looks like and what this plugin is for.
+    See licenses/NOTICE.md.
+  -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="none" stroke="currentColor" stroke-width="3" opacity="0.35"/>
+  <g stroke="currentColor" stroke-linecap="round" stroke-width="4">
+    <line x1="17" y1="23" x2="42" y2="23" opacity="0.3"/>
+    <line x1="17" y1="32" x2="47" y2="32"/>
+    <line x1="17" y1="41" x2="38" y2="41" opacity="0.3"/>
+  </g>
+</svg>

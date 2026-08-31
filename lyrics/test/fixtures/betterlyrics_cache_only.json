@@ -1,0 +1,4 @@
+{
+  "error": "Service running in cache-only mode. No cached lyrics available for this query.",
+  "provider": "kugou"
+}

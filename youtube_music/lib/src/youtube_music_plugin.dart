@@ -6,17 +6,21 @@ import 'providers/artwork_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/library_provider.dart';
+import 'providers/lyrics_provider.dart';
 import 'providers/metadata_search_provider.dart';
+import 'providers/playlist_provider.dart';
+import 'providers/radio_provider.dart';
 import 'providers/search_provider.dart';
 import 'providers/stream_provider.dart';
 
 /// The YouTube Music plugin.
 ///
-/// It declares eight capabilities — `search`, `catalog`, `streaming`,
-/// `artwork`, `authentication`, `personal_library`, `session_capture`,
-/// `metadata_search` — and registers exactly one provider for each during
-/// [initialize] that has one (`webview` and `session_capture` are the two
-/// with no provider interface; both are host-driven — see [identity]).
+/// It declares twelve capabilities — `search`, `catalog`, `streaming`,
+/// `webview`, `artwork`, `authentication`, `personal_library`,
+/// `session_capture`, `metadata_search`, `radio`, `playlist_read`, `lyrics`
+/// — and registers exactly one provider for each during [initialize] that has
+/// one (`webview` and `session_capture` are the two with no provider
+/// interface; both are host-driven — see [identity]).
 /// It declares three permissions, `network`, `webview` and `external_auth`,
 /// and touches exactly the context facilities they guard.
 ///
@@ -44,6 +48,9 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
   YouTubeMusicAuthProvider? _auth;
   YouTubeMusicLibraryProvider? _library;
   YouTubeMusicMetadataSearchProvider? _metadataSearch;
+  YouTubeMusicRadioProvider? _radio;
+  YouTubeMusicPlaylistProvider? _playlists;
+  YouTubeMusicLyricsProvider? _lyrics;
 
   /// The client every provider shares, or `null` before [initialize].
   InnerTubeClient? get client => _client;
@@ -70,6 +77,15 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
   /// [initialize].
   YouTubeMusicMetadataSearchProvider? get metadataSearchProvider =>
       _metadataSearch;
+
+  /// The registered radio provider, or `null` before [initialize].
+  YouTubeMusicRadioProvider? get radioProvider => _radio;
+
+  /// The registered playlist provider, or `null` before [initialize].
+  YouTubeMusicPlaylistProvider? get playlistProvider => _playlists;
+
+  /// The registered lyrics provider, or `null` before [initialize].
+  YouTubeMusicLyricsProvider? get lyricsProvider => _lyrics;
 
   @override
   SwayvePluginIdentity get identity => const SwayvePluginIdentity(
@@ -107,6 +123,20 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
           // MusicBrainz's blind spot: extended mixes, bootlegs, unreleased
           // music. See `metadata_search_provider.dart`.
           SwayveCapability.metadataSearch,
+          // An endless station off a seed, from YouTube Music's own
+          // recommender rather than anything computed here — the SDK asks a
+          // provider to say nothing at all unless the service genuinely has
+          // one behind it. See `radio_provider.dart`.
+          SwayveCapability.radio,
+          // Read-only, and there is no write sibling to grow into: the SDK's
+          // `playlistRead` covers browsing playlists the service already
+          // holds, and this plugin creates and edits nothing.
+          SwayveCapability.playlistRead,
+          // Synced lines, out of YouTube's caption tracks rather than YouTube
+          // Music's own lyrics page — which answers "Lyrics not available"
+          // for an anonymous session, measured. See `lyrics_provider.dart`
+          // for why that door is closed and why the attribution matters.
+          SwayveCapability.lyrics,
         },
         permissions: <SwayvePermission>{
           SwayvePermission.network,
@@ -138,7 +168,16 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
       settings: context.settings,
       timeouts: timeouts,
     );
-    _catalog = YouTubeMusicCatalogProvider(client: client, timeouts: timeouts);
+    // Reading `context.credentials` is what asserts the `external_auth`
+    // permission, the same way `context.http` above asserted `network`. The
+    // catalog provider takes it so a signed-in listener's home feed is
+    // actually theirs — see `YouTubeMusicCatalogProvider.feedFor`.
+    final SwayveCredentialStore credentials = context.credentials;
+    _catalog = YouTubeMusicCatalogProvider(
+      client: client,
+      credentials: credentials,
+      timeouts: timeouts,
+    );
     _artwork = YouTubeMusicArtworkProvider(client: client, timeouts: timeouts);
     _stream = YouTubeMusicStreamProvider(
       host: context.host,
@@ -146,22 +185,31 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
       log: context.log,
       timeouts: timeouts,
     );
-    // Reading `context.credentials` is what asserts the `external_auth`
-    // permission, the same way `context.http` above asserted `network`.
     _auth = YouTubeMusicAuthProvider(
       client: client,
-      credentials: context.credentials,
+      credentials: credentials,
       timeouts: timeouts,
     );
     _library = YouTubeMusicLibraryProvider(
       client: client,
-      credentials: context.credentials,
+      credentials: credentials,
       timeouts: timeouts,
     );
     _metadataSearch = YouTubeMusicMetadataSearchProvider(
       client: client,
       timeouts: timeouts,
     );
+    _radio = YouTubeMusicRadioProvider(
+      client: client,
+      settings: context.settings,
+      timeouts: timeouts,
+    );
+    _playlists = YouTubeMusicPlaylistProvider(
+      client: client,
+      credentials: credentials,
+      timeouts: timeouts,
+    );
+    _lyrics = YouTubeMusicLyricsProvider(client: client, timeouts: timeouts);
 
     context
       ..registerSearchProvider(_search!)
@@ -170,7 +218,10 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
       ..registerArtworkProvider(_artwork!)
       ..registerAuthProvider(_auth!)
       ..registerLibraryProvider(_library!)
-      ..registerMetadataSearchProvider(_metadataSearch!);
+      ..registerMetadataSearchProvider(_metadataSearch!)
+      ..registerRadioProvider(_radio!)
+      ..registerPlaylistProvider(_playlists!)
+      ..registerLyricsProvider(_lyrics!);
 
     context.log.info(
       'YouTube Music ready: region ${client.region}, language '
@@ -195,5 +246,8 @@ final class YouTubeMusicPlugin implements SwayvePlugin {
     _auth = null;
     _library = null;
     _metadataSearch = null;
+    _radio = null;
+    _playlists = null;
+    _lyrics = null;
   }
 }

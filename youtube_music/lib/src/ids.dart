@@ -79,11 +79,34 @@ abstract final class YouTubeMusicIds {
   static SwayveMediaId mediaId(String value) =>
       SwayveMediaId(kYouTubeMusicPluginId, value);
 
-  /// The browse id to send for a playlist [value].
+  /// The browse id to send for a playlist [value], with exactly one `VL`
+  /// prefix on it.
   ///
   /// YouTube Music browses a playlist under a `VL`-prefixed id while linking
-  /// to it under its bare `PL`/`OLAK` id. Normalizing here keeps that quirk
-  /// out of the providers.
-  static String playlistBrowseId(String value) =>
-      value.startsWith('VL') ? value : 'VL$value';
+  /// to it under its bare `PL`/`OLAK`/`RDCLAK` id. Normalizing here keeps
+  /// that quirk out of the providers.
+  ///
+  /// **Strip, then add — never "prepend unless it is already there".** The
+  /// ids this is handed come from three places that disagree about the
+  /// prefix: a `browseEndpoint` in a response arrives already `VL`-prefixed,
+  /// a `playlistId` on a watch endpoint arrives bare, and a `SwayveMediaId`
+  /// the host hands back may be either, because it is whichever of the two
+  /// this plugin happened to mint it from. Feeding an already-prefixed id
+  /// through a naive prepend produces `VLVLPL…`, which InnerTube answers
+  /// with a 400 — and feeding it through this twice is a no-op, which is the
+  /// property the call sites actually rely on.
+  static String playlistBrowseId(String value) => 'VL${barePlaylistId(value)}';
+
+  /// [value] with every leading `VL` browse prefix taken off.
+  ///
+  /// Safe to loop: no YouTube playlist id begins with `VL` — they begin with
+  /// `PL`, `OLAK`, `RD`, `LM`, `UU`, `FL` or `SR` — so the only `VL` a value
+  /// can carry is the browse prefix, however many times it has been applied.
+  static String barePlaylistId(String value) {
+    String bare = value;
+    while (bare.startsWith('VL')) {
+      bare = bare.substring(2);
+    }
+    return bare;
+  }
 }

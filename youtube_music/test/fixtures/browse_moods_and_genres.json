@@ -1,0 +1,50 @@
+{
+  "responseContext": {
+    "visitorData": "Cgs5a01HX3V4VEJIVSiL9NPUBjIKCgJVUxIEGgAgMw%3D%3D"
+  },
+  "contents": {
+    "singleColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "selected": true,
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "gridRenderer": {
+                      "header": {
+                        "gridHeaderRenderer": {"title": {"runs": [{"text": "Moods & moments"}]}}
+                      },
+                      "items": [
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Chill"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX1JOQWZFeDByc2Jm"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Commute"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX044Z2o5WERLckpU"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Energize"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX2lRZUZiMnNrQnJW"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Feel good"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uXzZQbDB5eThLRTQ3"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Focus"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX0NvNGNhWThMYWRh"}}}}
+                      ]
+                    }
+                  },
+                  {
+                    "gridRenderer": {
+                      "header": {
+                        "gridHeaderRenderer": {"title": {"runs": [{"text": "Genres"}]}}
+                      },
+                      "items": [
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "African"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX0UzWGxlRE5jMDVk"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Arabic"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX3VOQWxsblVZTFNE"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Blues"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX2NXUkgxdW0zUHJp"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Bollywood & Indian"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX2hacTRJOU5KcndD"}}}},
+                        {"musicNavigationButtonRenderer": {"buttonText": {"runs": [{"text": "Brazilian"}]}, "clickCommand": {"browseEndpoint": {"browseId": "FEmusic_moods_and_genres_category", "params": "ggMPOg1uX3Vmb2NXbUdLcHNU"}}}}
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -9,7 +9,7 @@
 ///
 /// ```dart
 /// final SwayvePlugin plugin = createYouTubeMusicPlugin();
-/// await plugin.initialize(context);   // registers seven providers
+/// await plugin.initialize(context);   // registers ten providers
 /// ```
 ///
 /// The plugin is **pure Dart**. It depends on `swayve_plugin_sdk` and nothing
@@ -27,6 +27,7 @@ export 'src/artwork.dart' show YouTubeMusicArtwork;
 export 'src/auth/sapisid_hash.dart' show sapisidHashAuthorization, sha1Bytes;
 export 'src/config.dart'
     show
+        YouTubeMusicClientIdentity,
         YouTubeMusicTimeouts,
         isAllowedHost,
         kDefaultIncludeVideos,
@@ -34,6 +35,7 @@ export 'src/config.dart'
         kIncludeVideosSettingId,
         kPageIdHeader,
         kPageIdSettingId,
+        kCaptionsClients,
         kPlayerClientName,
         kRegionSettingId,
         kSessionCookieSettingId,
@@ -46,13 +48,27 @@ export 'src/config.dart'
         kYouTubeMusicPluginName,
         kYouTubeMusicPluginVersion,
         kYouTubeMusicSource;
+export 'src/config.dart' show YouTubeMusicFeeds, YouTubeMusicRadio;
 export 'src/embed_document.dart' show youTubeEmbedDocument;
 export 'src/ids.dart' show YouTubeMusicIdKind, YouTubeMusicIds;
 export 'src/providers/artwork_provider.dart';
 export 'src/providers/auth_provider.dart';
 export 'src/providers/catalog_provider.dart';
+export 'src/parsing/caption_parser.dart' show parseCaptionLines;
+export 'src/parsing/mood_parser.dart' show MoodChip, parseMoodChips;
+export 'src/parsing/watch_parser.dart'
+    show
+        ParsedWatchQueue,
+        WatchSeed,
+        isAudioOnlyType,
+        parseWatchQueue,
+        relatedBrowseIdOf,
+        trackKindForMusicVideoType;
 export 'src/providers/library_provider.dart';
+export 'src/providers/lyrics_provider.dart';
 export 'src/providers/metadata_search_provider.dart';
+export 'src/providers/playlist_provider.dart';
+export 'src/providers/radio_provider.dart';
 export 'src/providers/search_provider.dart';
 export 'src/providers/stream_provider.dart';
 export 'src/youtube_music_plugin.dart' show YouTubeMusicPlugin;

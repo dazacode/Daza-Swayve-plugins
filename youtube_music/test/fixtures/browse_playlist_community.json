@@ -1,0 +1,50 @@
+{
+  "responseContext": {
+    "visitorData": "Cgs3T0Z2dGxwUGZ0cyiL9NPUBjIKCgJVUxIEGgAgHg%3D%3D"
+  },
+  "contents": {
+    "twoColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "selected": true,
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "musicResponsiveHeaderRenderer": {"thumbnail": {"musicThumbnailRenderer": {"thumbnail": {"thumbnails": [{"url": "https://yt3.ggpht.com/D2FLPsQrA8HvoDyRuYT3b5dE8No_v3v-cn0sAXHTkbLBuLupo2o4oJAYS5D7XzJjwEu4e5s1vGs=s1200", "width": 1200, "height": 1200}]}}}, "title": {"runs": [{"text": "Top 80s hits"}]}, "subtitle": {"runs": [{"text": "Playlist"}, {"text": " • "}, {"text": "2020"}]}, "secondSubtitle": {"runs": [{"text": "8.3K views"}, {"text": " • "}, {"text": "20 tracks"}, {"text": " • "}, {"text": "1 hour, 23 minutes"}]}}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "secondaryContents": {
+        "sectionListRenderer": {
+          "contents": [
+            {
+              "musicPlaylistShelfRenderer": {
+                "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt",
+                "contents": [
+                  {
+                    "musicResponsiveListItemRenderer": {"thumbnail": {"musicThumbnailRenderer": {"thumbnail": {"thumbnails": [{"url": "https://i.ytimg.com/vi/UG3VcCAlUgE/hqdefault.jpg?sqp=-oaymwEWCJADEOEBIAQqCggAEOADGC0guwJIWg&rs=AMzJL3kIX0VzRujDVMFLafCkZx6fnYM3Og", "width": 400, "height": 225}]}}}, "overlay": {"musicItemThumbnailOverlayRenderer": {"content": {"musicPlayButtonRenderer": {"playNavigationEndpoint": {"watchEndpoint": {"videoId": "UG3VcCAlUgE", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUBygYQNTZCNDRGNkQxMDU1N0NDNg%3D%3D", "playlistSetVideoId": "56B44F6D10557CC6", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}}}}, "flexColumns": [{"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "When Doves Cry", "navigationEndpoint": {"watchEndpoint": {"videoId": "UG3VcCAlUgE", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUB", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "Prince & The Revolution", "navigationEndpoint": {"browseEndpoint": {"browseId": "UCPIZb3A7k6zLefVNtaAmvGg", "browseEndpointContextSupportedConfigs": {"browseEndpointContextMusicConfig": {"pageType": "MUSIC_PAGE_TYPE_ARTIST"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {}}}], "fixedColumns": [{"musicResponsiveListItemFixedColumnRenderer": {"text": {"runs": [{"text": "3:45"}]}, "size": "MUSIC_RESPONSIVE_LIST_ITEM_FIXED_COLUMN_SIZE_SMALL"}}], "playlistItemData": {"playlistSetVideoId": "56B44F6D10557CC6", "videoId": "UG3VcCAlUgE", "voteSortValue": 1602393873}, "multiSelectCheckbox": {"checkboxRenderer": {"onSelectionChangeCommand": {"updateMultiSelectStateCommand": {"multiSelectParams": "CAISIlBMQ0ZWSmV5N1phcEo0RWdKWlE3SFhMdjNOdU9ibFFDSnQ=", "multiSelectItem": "Ch8KC1VHM1ZjQ0FsVWdFEhA1NkI0NEY2RDEwNTU3Q0M2"}}, "checkedState": "CHECKBOX_CHECKED_STATE_UNCHECKED"}}}
+                  },
+                  {
+                    "musicResponsiveListItemRenderer": {"thumbnail": {"musicThumbnailRenderer": {"thumbnail": {"thumbnails": [{"url": "https://i.ytimg.com/vi/Zi_XLOBDo_Y/hqdefault.jpg?sqp=-oaymwEWCJADEOEBIAQqCggAEOADGC0guwJIWg&rs=AMzJL3nl9_1lu27GfLzUUl32kqN7tX4uog", "width": 400, "height": 225}]}}}, "overlay": {"musicItemThumbnailOverlayRenderer": {"content": {"musicPlayButtonRenderer": {"playNavigationEndpoint": {"watchEndpoint": {"videoId": "Zi_XLOBDo_Y", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUBygYQMjg5RjRBNDZERjBBMzBEMtIHCQkGAfohPsuPPg%3D%3D", "playlistSetVideoId": "289F4A46DF0A30D2", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}}}}, "flexColumns": [{"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "Billie Jean", "navigationEndpoint": {"watchEndpoint": {"videoId": "Zi_XLOBDo_Y", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUB", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "Michael Jackson", "navigationEndpoint": {"browseEndpoint": {"browseId": "UCoIOOL7QKuBhQHVKL8y7BEQ", "browseEndpointContextSupportedConfigs": {"browseEndpointContextMusicConfig": {"pageType": "MUSIC_PAGE_TYPE_ARTIST"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {}}}], "fixedColumns": [{"musicResponsiveListItemFixedColumnRenderer": {"text": {"runs": [{"text": "4:56"}]}, "size": "MUSIC_RESPONSIVE_LIST_ITEM_FIXED_COLUMN_SIZE_SMALL"}}], "playlistItemData": {"playlistSetVideoId": "289F4A46DF0A30D2", "videoId": "Zi_XLOBDo_Y", "voteSortValue": 1602393901}, "multiSelectCheckbox": {"checkboxRenderer": {"onSelectionChangeCommand": {"updateMultiSelectStateCommand": {"multiSelectParams": "CAISIlBMQ0ZWSmV5N1phcEo0RWdKWlE3SFhMdjNOdU9ibFFDSnQ=", "multiSelectItem": "Ch8KC1ppX1hMT0JEb19ZEhAyODlGNEE0NkRGMEEzMEQy"}}, "checkedState": "CHECKBOX_CHECKED_STATE_UNCHECKED"}}}
+                  },
+                  {
+                    "musicResponsiveListItemRenderer": {"thumbnail": {"musicThumbnailRenderer": {"thumbnail": {"thumbnails": [{"url": "https://i.ytimg.com/vi/s__rX_WL100/hqdefault.jpg?sqp=-oaymwEWCJADEOEBIAQqCggAEOADGC0guwJIWg&rs=AMzJL3mMR5f3sMz-i2nPRCHcTz-u9Cj2gQ", "width": 400, "height": 225}]}}}, "overlay": {"musicItemThumbnailOverlayRenderer": {"content": {"musicPlayButtonRenderer": {"playNavigationEndpoint": {"watchEndpoint": {"videoId": "s__rX_WL100", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUBygYQMDE3MjA4RkFBODUyMzNGOQ%3D%3D", "playlistSetVideoId": "017208FAA85233F9", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}}}}, "flexColumns": [{"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "Like a Virgin (Extended Dance Remix)", "navigationEndpoint": {"watchEndpoint": {"videoId": "s__rX_WL100", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUB", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "Madonna", "navigationEndpoint": {"browseEndpoint": {"browseId": "UCo4CrqhIV_tSOGdDWfVyCsg", "browseEndpointContextSupportedConfigs": {"browseEndpointContextMusicConfig": {"pageType": "MUSIC_PAGE_TYPE_ARTIST"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {}}}], "fixedColumns": [{"musicResponsiveListItemFixedColumnRenderer": {"text": {"runs": [{"text": "3:50"}]}, "size": "MUSIC_RESPONSIVE_LIST_ITEM_FIXED_COLUMN_SIZE_SMALL"}}], "playlistItemData": {"playlistSetVideoId": "017208FAA85233F9", "videoId": "s__rX_WL100", "voteSortValue": 1602393912}, "multiSelectCheckbox": {"checkboxRenderer": {"onSelectionChangeCommand": {"updateMultiSelectStateCommand": {"multiSelectParams": "CAISIlBMQ0ZWSmV5N1phcEo0RWdKWlE3SFhMdjNOdU9ibFFDSnQ=", "multiSelectItem": "Ch8KC3NfX3JYX1dMMTAwEhAwMTcyMDhGQUE4NTIzM0Y5"}}, "checkedState": "CHECKBOX_CHECKED_STATE_UNCHECKED"}}}
+                  },
+                  {
+                    "musicResponsiveListItemRenderer": {"thumbnail": {"musicThumbnailRenderer": {"thumbnail": {"thumbnails": [{"url": "https://i.ytimg.com/vi/1w7OgIMMRc4/hqdefault.jpg?sqp=-oaymwEWCJADEOEBIAQqCggAEOADGC0guwJIWg&rs=AMzJL3mUUb6J2yXtmuqA3P4AAlxrnWTc7w", "width": 400, "height": 225}]}}}, "overlay": {"musicItemThumbnailOverlayRenderer": {"content": {"musicPlayButtonRenderer": {"playNavigationEndpoint": {"watchEndpoint": {"videoId": "1w7OgIMMRc4", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUBygYQNTIxNTJCNDk0NkMyRjczRg%3D%3D", "playlistSetVideoId": "52152B4946C2F73F", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}}}}, "flexColumns": [{"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "Sweet Child O' Mine", "navigationEndpoint": {"watchEndpoint": {"videoId": "1w7OgIMMRc4", "playlistId": "PLCFVJey7ZapJ4EgJZQ7HXLv3NuOblQCJt", "playerParams": "iAQB8AUB", "watchEndpointMusicSupportedConfigs": {"watchEndpointMusicConfig": {"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {"runs": [{"text": "Guns N' Roses", "navigationEndpoint": {"browseEndpoint": {"browseId": "UCSLbbBoUqpin6BE34whSOvA", "browseEndpointContextSupportedConfigs": {"browseEndpointContextMusicConfig": {"pageType": "MUSIC_PAGE_TYPE_ARTIST"}}}}}]}}}, {"musicResponsiveListItemFlexColumnRenderer": {"text": {}}}], "fixedColumns": [{"musicResponsiveListItemFixedColumnRenderer": {"text": {"runs": [{"text": "5:03"}]}, "size": "MUSIC_RESPONSIVE_LIST_ITEM_FIXED_COLUMN_SIZE_SMALL"}}], "playlistItemData": {"playlistSetVideoId": "52152B4946C2F73F", "videoId": "1w7OgIMMRc4", "voteSortValue": 1602393921}, "multiSelectCheckbox": {"checkboxRenderer": {"onSelectionChangeCommand": {"updateMultiSelectStateCommand": {"multiSelectParams": "CAISIlBMQ0ZWSmV5N1phcEo0RWdKWlE3SFhMdjNOdU9ibFFDSnQ=", "multiSelectItem": "Ch8KCzF3N09nSU1NUmM0EhA1MjE1MkI0OTQ2QzJGNzNG"}}, "checkedState": "CHECKBOX_CHECKED_STATE_UNCHECKED"}}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

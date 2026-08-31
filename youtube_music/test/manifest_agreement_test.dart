@@ -245,10 +245,18 @@ void main() {
       expect(harness.context.authProviders, hasLength(1));
       expect(harness.context.libraryProviders, hasLength(1));
       expect(harness.context.metadataSearchProviders, hasLength(1));
-      expect(harness.context.lyricsProviders, isEmpty);
+      expect(harness.context.radioProviders, hasLength(1));
+      expect(harness.context.playlistProviders, hasLength(1));
+      expect(harness.context.lyricsProviders, hasLength(1));
       expect(harness.context.scrobbleProviders, isEmpty);
-      expect(harness.context.playlistProviders, isEmpty);
       expect(harness.context.artistActivityProviders, isEmpty);
+      expect(
+        harness.context.visualsProviders,
+        isEmpty,
+        reason: 'The SDK grew `visuals` alongside `radio` and this plugin '
+            'deliberately does not declare it. Registering one anyway would '
+            'be a capability the manifest never named.',
+      );
     });
 
     test('initialize makes no network request', () async {

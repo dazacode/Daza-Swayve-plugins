@@ -21,7 +21,7 @@ const String kYouTubeMusicPluginId = 'app.swayve.plugins.youtube_music';
 const String kYouTubeMusicPluginName = 'YouTube Music';
 
 /// The plugin version, identical to `plugin.json`'s `version`.
-const Version kYouTubeMusicPluginVersion = Version(0, 2, 1);
+const Version kYouTubeMusicPluginVersion = Version(0, 3, 0);
 
 /// The hostnames this plugin is permitted to reach, identical to
 /// `plugin.json`'s `network.hosts`.
@@ -42,6 +42,18 @@ const List<String> kYouTubeMusicAllowedHosts = <String>[
   // granted, and it is listed in the manifest as well so that the permission
   // screen shows it before anybody agrees to it.
   'lh3.googleusercontent.com',
+  // Where the *editorial* cover art lives. A curated YouTube Music playlist
+  // — the "'80s Rock" and "Chill Hits" shelves the home page is built out of
+  // — publishes its sleeve here rather than on `lh3`, and so do artist
+  // avatars. Verified against two real playlist browses: every thumbnail on
+  // both, header and rows alike, was on this host.
+  //
+  // Without it declared, `YouTubeMusicArtwork` drops those images on the
+  // floor — correctly, since handing the host a URL the manifest does not
+  // cover is a silently broken image — and a wall of curated playlists draws
+  // as a wall of placeholders. Declared here and in the manifest together, so
+  // the permission screen shows it before anybody agrees to it.
+  'yt3.googleusercontent.com',
   // The media servers. A resolved audio URL points at a rotating edge host —
   // `rr2---sn-a5m7lnld.googlevideo.com` and the like — and the HLS fallback at
   // `manifest.googlevideo.com`, so the wildcard is the only honest way to
@@ -78,6 +90,13 @@ final Uri kSearchEndpoint = Uri.parse('$kMusicOrigin/youtubei/v1/search');
 
 /// The InnerTube endpoint that answers a browse.
 final Uri kBrowseEndpoint = Uri.parse('$kMusicOrigin/youtubei/v1/browse');
+
+/// The InnerTube endpoint that answers "what plays after this".
+///
+/// The same host search and browse are asked on, and the same `WEB_REMIX`
+/// envelope: a radio is a music-app concept and the music front end is what
+/// serves it. See `providers/radio_provider.dart`.
+final Uri kNextEndpoint = Uri.parse('$kMusicOrigin/youtubei/v1/next');
 
 /// The origin the playback endpoints are asked against.
 ///
@@ -156,6 +175,111 @@ const String kPlayerDeviceMake = 'Apple';
 const String kPlayerDeviceModel = 'RealityDevice17,1';
 const String kPlayerOsName = 'visionOS';
 const String kPlayerOsVersion = '26.5.23O471';
+
+/// One InnerTube client identity, as a set of fields rather than a name.
+///
+/// A context naming a client without the device it belongs to is one
+/// InnerTube may simply stop recognising — see [kPlayerDeviceMake] — so the
+/// device half travels with the name instead of being remembered separately
+/// at each call site. The device fields are nullable because they are only
+/// worth sending when they were part of what was actually measured to work:
+/// see [kCaptionsClients].
+final class YouTubeMusicClientIdentity {
+  /// Creates a client identity.
+  const YouTubeMusicClientIdentity({
+    required this.name,
+    required this.id,
+    required this.version,
+    this.deviceMake,
+    this.deviceModel,
+    this.osName,
+    this.osVersion,
+  });
+
+  /// The InnerTube `clientName`.
+  final String name;
+
+  /// The numeric client id, sent as `x-youtube-client-name`.
+  final String id;
+
+  /// The `clientVersion`, and the `x-youtube-client-version` header.
+  final String version;
+
+  /// The device this identity claims to be, when it claims one.
+  final String? deviceMake;
+  final String? deviceModel;
+  final String? osName;
+  final String? osVersion;
+
+  @override
+  String toString() => 'YouTubeMusicClientIdentity($name $version)';
+}
+
+/// The clients the *captions* half of a player response is asked as, in the
+/// order they are tried.
+///
+/// ## Why captions are asked for at all, and why per client
+///
+/// A caption track list arrives on the player response, so asking for lyrics
+/// means asking the player endpoint — and the player endpoint answers
+/// differently per client. This list is declared separately from
+/// [kPlayerClientName] so the captions identity stays independently
+/// changeable: the streaming client is chosen for the one property that it
+/// hands back media URLs already signed, which has nothing to do with
+/// captions, and a future replacement for it should not silently become the
+/// lyrics client by accident.
+///
+/// **Leading with the same client as streaming is deliberate, not an
+/// accident of that separation.** [kPlayerClientName] is the identity this
+/// plugin already depends on for every second of playback, which makes it
+/// both the one most likely to keep working and — much more usefully — the
+/// one whose failure is impossible to miss. A captions-only client can be
+/// turned down and lyrics just quietly stop existing, because "no captions"
+/// is the ordinary answer for most recordings and looks like nothing at all.
+/// If the shared client goes, playback breaks first and loudly.
+///
+/// ## Why a chain rather than one client
+///
+/// Because the alternatives are visibly decaying. `ANDROID_VR` answered
+/// perfectly when this was written and yt-dlp dropped it from its default
+/// client list in 2026.08.19 after months of misbehaviour — its defaults are
+/// `visionos,web` now. A single client is a single point of failure whose
+/// failure mode here is silence.
+///
+/// ## Why not `WEB`
+///
+/// Because it does not answer. Measured against the live endpoint: `WEB` — on
+/// the current client version read out of a real `music.youtube.com` page,
+/// with and without a freshly minted visitor identity, and with the page's
+/// own `INNERTUBE_CONTEXT` sent verbatim — came back `UNPLAYABLE` / "The page
+/// needs to be reloaded" and **no `captions` block at all**. That is the
+/// browser clients' attestation wall, the same one [kPlayerClientName]
+/// documents: it cannot be climbed without running Google's own JavaScript.
+/// `MWEB`, `TVHTML5` and `WEB_EMBEDDED_PLAYER` failed the same way.
+///
+/// Every entry below answered `OK` with six caption tracks for the same
+/// video, in the same session, and each is sent as exactly the context that
+/// was measured — which is why only the first carries device fields.
+const List<YouTubeMusicClientIdentity> kCaptionsClients =
+    <YouTubeMusicClientIdentity>[
+  // The streaming client. First for the reason above.
+  YouTubeMusicClientIdentity(
+    name: kPlayerClientName,
+    id: kPlayerClientId,
+    version: kPlayerClientVersion,
+    deviceMake: kPlayerDeviceMake,
+    deviceModel: kPlayerDeviceModel,
+    osName: kPlayerOsName,
+    osVersion: kPlayerOsVersion,
+  ),
+  // Second rather than first precisely because it is on the way out.
+  YouTubeMusicClientIdentity(
+    name: 'ANDROID_VR',
+    id: '28',
+    version: '1.62.27',
+  ),
+  YouTubeMusicClientIdentity(name: 'IOS', id: '5', version: '20.11.6'),
+];
 
 /// The client a visitor identity is minted as.
 ///
@@ -277,6 +401,40 @@ abstract final class YouTubeMusicFeeds {
   /// The charts feed, used for `SwayveSortOrder.popular`.
   static const String charts = 'FEmusic_charts';
 
+  /// The signed-in user's personalized "Mixed for you" feed.
+  ///
+  /// Signed in only, and not gracefully: measured against the live endpoint,
+  /// an anonymous browse of this id answers **HTTP 401**, "You must be signed
+  /// in to perform this operation" — not an empty feed and not the
+  /// "sign in" placeholder [likedSongs] answers with. Nothing may send it
+  /// without a session cookie in hand; see
+  /// `providers/catalog_provider.dart`.
+  static const String mixedForYou = 'FEmusic_mixed_for_you';
+
+  /// YouTube Music's mood and genre directory.
+  ///
+  /// **Two hops, not one.** Measured against the live endpoint: this browse
+  /// carries no playlists at all. It answers with two `gridRenderer`s of
+  /// `musicNavigationButtonRenderer` chips — "Moods & moments" and "Genres" —
+  /// and every one of them carries the *same* browse id,
+  /// [moodsAndGenresCategory], distinguished only by an opaque `params`.
+  /// Browsing a chip's params is what actually returns playlists. See
+  /// `parsing/mood_parser.dart` and `providers/playlist_provider.dart`.
+  static const String moodsAndGenres = 'FEmusic_moods_and_genres';
+
+  /// The browse id every mood/genre chip points at. Meaningless without the
+  /// chip's own `params`.
+  static const String moodsAndGenresCategory =
+      'FEmusic_moods_and_genres_category';
+
+  /// The browse id for the signed-in user's own saved and created playlists.
+  ///
+  /// Signed out it answers 200 with YouTube Music's "Looking for what
+  /// you've liked?" sign-in placeholder — the same shape `looksSignedOut`
+  /// already recognises for [likedSongs], confirmed against the live
+  /// endpoint.
+  static const String likedPlaylists = 'FEmusic_liked_playlists';
+
   /// The browse id for the signed-in user's own "Liked Music" playlist.
   ///
   /// `LM` is the reserved playlist id unofficial YouTube Music clients
@@ -287,6 +445,38 @@ abstract final class YouTubeMusicFeeds {
   /// string. Confirmed against real signed-in accounts, including a
   /// multi-channel one — see `providers/library_provider.dart`.
   static const String likedSongs = 'VLLM';
+}
+
+/// The pieces of a radio request that are not the seed.
+///
+/// A station is asked for on the `next` endpoint by naming a video and a
+/// *radio playlist id* built out of it. The prefixes are YouTube Music's own
+/// and are not derivable from anything else, which is why they are constants
+/// rather than string literals at a call site.
+abstract final class YouTubeMusicRadio {
+  /// The prefix that turns a video id into "radio seeded by this recording".
+  static const String videoSeedPrefix = 'RDAMVM';
+
+  /// The prefix that turns a playlist or album id into "radio seeded by this
+  /// collection".
+  static const String collectionSeedPrefix = 'RDAMPL';
+
+  /// The opaque `params` blob the web app sends when it starts a radio.
+  static const String seedParams = 'wAEB';
+
+  /// The radio playlist id for a video seed.
+  static String forVideo(String videoId) => '$videoSeedPrefix$videoId';
+
+  /// The radio playlist id for an album or playlist seed.
+  ///
+  /// [bareId] must already have had any `VL` browse prefix taken off — see
+  /// `YouTubeMusicIds.barePlaylistId`. `VL` is how a playlist is *browsed*,
+  /// not part of its id, and `RDAMPLVLPL…` is not a station.
+  static String forCollection(String bareId) => '$collectionSeedPrefix$bareId';
+
+  /// Whether [id] already names a station, in which case it is forwarded
+  /// verbatim rather than wrapped again.
+  static bool isStation(String id) => id.startsWith('RD');
 }
 
 /// The InnerTube `params` blobs that scope a search to one kind of result.
@@ -364,6 +554,9 @@ const SwayveSourceDescriptor kYouTubeMusicSource = SwayveSourceDescriptor(
     SwayveCapability.personalLibrary,
     SwayveCapability.sessionCapture,
     SwayveCapability.metadataSearch,
+    SwayveCapability.radio,
+    SwayveCapability.playlistRead,
+    SwayveCapability.lyrics,
   },
   supportedHosts: kYouTubeMusicMetadataSearchHosts,
 );

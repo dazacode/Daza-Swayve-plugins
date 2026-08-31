@@ -30,23 +30,60 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
   /// Creates a provider over [client].
   YouTubeMusicCatalogProvider({
     required InnerTubeClient client,
+    required SwayveCredentialStore credentials,
     this.timeouts = YouTubeMusicTimeouts.manifest,
-  }) : _client = client;
+  })  : _client = client,
+        _credentials = credentials;
 
   final InnerTubeClient _client;
+  final SwayveCredentialStore _credentials;
 
   /// The deadlines this provider works to.
   final YouTubeMusicTimeouts timeouts;
 
   /// The feed that best serves [sort].
-  static String feedFor(SwayveSortOrder? sort) => switch (sort) {
+  ///
+  /// [signedIn] only changes the default. `FEmusic_home` browsed anonymously
+  /// is YouTube Music's generic front page — the same twenty cards for
+  /// everybody — while the same browse carrying a session answers with the
+  /// listener's own. `FEmusic_mixed_for_you` is the further step: the
+  /// personalized mix rows, which exist only for an account.
+  ///
+  /// It is asked for only when there is a session, and that is not
+  /// politeness. Measured against the live endpoint, an anonymous browse of
+  /// `FEmusic_mixed_for_you` answers **HTTP 401** — "You must be signed in to
+  /// perform this operation" — which reaches a caller as
+  /// `SwayvePluginUnavailableException`, i.e. a broken plugin rather than an
+  /// empty shelf.
+  static String feedFor(SwayveSortOrder? sort, {bool signedIn = false}) =>
+      switch (sort) {
         SwayveSortOrder.recent => YouTubeMusicFeeds.newReleases,
         SwayveSortOrder.popular => YouTubeMusicFeeds.charts,
         SwayveSortOrder.relevance ||
         SwayveSortOrder.alphabetical ||
         null =>
-          YouTubeMusicFeeds.home,
+          signedIn ? YouTubeMusicFeeds.mixedForYou : YouTubeMusicFeeds.home,
       };
+
+  /// The stored session, or `null` when nobody has pasted one.
+  ///
+  /// Read fresh on every listing rather than cached at construction: the user
+  /// can sign in while the plugin is running, and a cached "signed out" would
+  /// keep serving the generic front page afterwards.
+  ///
+  /// A browse that carries this is byte-for-byte the anonymous request when
+  /// it is null — see `InnerTubeClient.browse` — so nothing about the
+  /// signed-out path changes by this existing.
+  Future<_Session> _session() async {
+    final String? cookie = await _credentials.readSecret(
+      kSessionCookieSettingId,
+    );
+    if (cookie == null || cookie.trim().isEmpty) return const _Session();
+    return _Session(
+      cookie: cookie,
+      pageId: await _credentials.readSecret(kPageIdSettingId),
+    );
+  }
 
   @override
   Future<SwayvePage<SwayveAlbum>> albums(
@@ -129,9 +166,12 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
       return _tracksFromShelves(resuming, request, cancel);
     }
 
+    final _Session session = await _session();
     final Map<String, Object?> body = await _client.browse(
-      feedFor(request.sort),
+      feedFor(request.sort, signedIn: session.signedIn),
       continuation: request.cursor,
+      sessionCookie: session.cookie,
+      pageId: session.pageId,
       cancel: cancel,
     );
     cancel?.throwIfCancelled();
@@ -310,10 +350,13 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
   ) async {
     cancel?.throwIfCancelled();
     try {
+      final _Session session = await _session();
       return parseFeed(
         await _client.browse(
-          feedFor(request.sort),
+          feedFor(request.sort, signedIn: session.signedIn),
           continuation: cursor,
+          sessionCookie: session.cookie,
+          pageId: session.pageId,
           cancel: cancel,
         ),
         what: 'tracks',
@@ -385,9 +428,12 @@ final class YouTubeMusicCatalogProvider implements SwayveCatalogProvider {
         timeout: timeouts.operation,
         cancel: cancel,
         body: () async {
+          final _Session session = await _session();
           final Map<String, Object?> body = await _client.browse(
-            feedFor(request.sort),
+            feedFor(request.sort, signedIn: session.signedIn),
             continuation: request.cursor,
+            sessionCookie: session.cookie,
+            pageId: session.pageId,
             cancel: cancel,
           );
           cancel?.throwIfCancelled();
@@ -625,4 +671,18 @@ final class _TrackQueue {
           }),
         ),
       );
+}
+
+/// Whatever this plugin knows about the signed-in session, or nothing.
+final class _Session {
+  const _Session({this.cookie, this.pageId});
+
+  /// The stored `session_cookie` secret, or `null`.
+  final String? cookie;
+
+  /// The stored `page_id` secret, or `null` — see [kPageIdSettingId].
+  final String? pageId;
+
+  /// Whether there is a session to send at all.
+  bool get signedIn => cookie != null && cookie!.trim().isNotEmpty;
 }

@@ -25,6 +25,12 @@ const List<String> _albumHeaderKeys = <String>[
   'musicAlbumReleaseHeaderRenderer',
 ];
 
+const List<String> _playlistHeaderKeys = <String>[
+  'musicResponsiveHeaderRenderer',
+  'musicDetailHeaderRenderer',
+  'musicEditablePlaylistDetailHeaderRenderer',
+];
+
 const List<String> _artistHeaderKeys = <String>[
   'musicImmersiveHeaderRenderer',
   'musicVisualHeaderRenderer',
@@ -275,6 +281,84 @@ SwayveArtist? parseArtistDetail(Map<String, Object?> body, String browseId) {
   );
 }
 
+/// Builds a playlist from a browse response's header.
+///
+/// The same three header shapes an album arrives under, because a playlist
+/// arrives under them too: confirmed against the live endpoint, a curated
+/// `RDCLAK…` playlist and a community `PL…` one both answer with a
+/// `musicResponsiveHeaderRenderer` in the first column and a
+/// `musicPlaylistShelfRenderer` of rows in the second — which is why nothing
+/// here parses a track and `feed_parser.dart` is left to do it.
+///
+/// [tracks] are that shelf, already parsed, and supply the count when the
+/// header does not state one.
+///
+/// `null` — never an exception — for a body that is structurally a browse
+/// response but describes no playlist: an id the service no longer resolves.
+SwayvePlaylist? parsePlaylistDetail(
+  Map<String, Object?> body,
+  String browseId, {
+  List<SwayveTrack> tracks = const <SwayveTrack>[],
+}) {
+  _requireBrowseShape(body, 'playlist');
+  final Map<String, Object?>? header = _header(body, _playlistHeaderKeys);
+  if (header == null) return null;
+  final String? title = runsTextAt(header, const <Object>['title', 'runs']);
+  if (title == null || title.isEmpty) return null;
+
+  // Both subtitle lines are read, because they carry different halves of the
+  // description and which half lands where varies per playlist. Measured: a
+  // curated playlist writes `Playlist • 2026` on the first and
+  // `132 songs • 7+ hours` on the second; a community one writes
+  // `8.3K views • 20 tracks • 1 hour, 23 minutes` on the second.
+  final List<Object?> subtitleRuns = listAt(header, const <Object>[
+    'subtitle',
+    'runs',
+  ]);
+  final List<String> secondSegments = subtitleSegments(
+    runsTextAt(header, const <Object>['secondSubtitle', 'runs']),
+  );
+  final List<String> segments = subtitleSegments(
+    runsTextAt(header, const <Object>['subtitle', 'runs']),
+  );
+
+  // The owner, when a run links to a channel. A curated playlist links
+  // nobody — it is YouTube Music's own — and leaving that null is the honest
+  // answer rather than crediting it to the first word of the subtitle, which
+  // is the localized word "Playlist".
+  final List<SwayveArtistRef> owners = <SwayveArtistRef>[
+    ...artistRefsFromRuns(subtitleRuns),
+    ...artistRefsFromRuns(
+      listAt(header, const <Object>['straplineTextOne', 'runs']),
+    ),
+  ];
+
+  final String? description = runsTextAt(header, const <Object>[
+    'description',
+    'musicDescriptionShelfRenderer',
+    'description',
+    'runs',
+  ]);
+
+  return SwayvePlaylist(
+    id: YouTubeMusicIds.mediaId(browseId),
+    title: title,
+    description: description,
+    ownerName: owners.isEmpty ? null : owners.first.name,
+    trackCount: countFromSegments(secondSegments) ??
+        countFromSegments(segments) ??
+        (tracks.isEmpty ? null : tracks.length),
+    artwork: YouTubeMusicArtwork.fromRenderer(
+          header,
+          size: SwayveArtworkSize.large,
+        ) ??
+        _artworkOfTracks(tracks),
+    extra: <String, Object?>{
+      'browseId': YouTubeMusicIds.playlistBrowseId(browseId),
+    },
+  );
+}
+
 /// The header image of any browse response, or `null`.
 ///
 /// Used by the artwork provider, which does not care whether the entity is an
@@ -288,6 +372,7 @@ SwayveImageRef? parseHeaderArtwork(
   final Map<String, Object?>? header = _header(body, const <String>[
     ..._albumHeaderKeys,
     ..._artistHeaderKeys,
+    ..._playlistHeaderKeys,
   ]);
   if (header == null) return null;
   return YouTubeMusicArtwork.fromRenderer(header, size: size);

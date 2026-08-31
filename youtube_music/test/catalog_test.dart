@@ -71,6 +71,43 @@ void main() {
       expect(harness.lastBody['continuation'], 'next-page');
     });
 
+    test('a signed-in listener gets their own feed, with their session',
+        () async {
+      await harness.credentials.writeSecret(
+        kSessionCookieSettingId,
+        'SID=abc; __Secure-3PAPISID=secret',
+      );
+      harness.http.enqueueJson(fixture('browse_home.json'));
+      await harness.catalog.albums(SwayveBrowseRequest.first);
+
+      expect(
+        harness.lastBody['browseId'],
+        'FEmusic_mixed_for_you',
+        reason: 'The personalized mix rows, which exist only for an account. '
+            'Measured: an anonymous browse of this id answers HTTP 401, which '
+            'is why it is only ever sent with a session in hand.',
+      );
+      expect(
+        harness.http.lastRequest!.headers['cookie'],
+        'SID=abc; __Secure-3PAPISID=secret',
+        reason: 'Without it, `FEmusic_home` is the same twenty generic cards '
+            'for everybody and their own feed is unreachable.',
+      );
+    });
+
+    test('signed out, the feed request is byte-for-byte what it always was',
+        () async {
+      harness.http.enqueueJson(fixture('browse_home.json'));
+      await harness.catalog.albums(SwayveBrowseRequest.first);
+
+      expect(harness.lastBody['browseId'], 'FEmusic_home');
+      expect(harness.http.lastRequest!.headers.containsKey('cookie'), isFalse);
+      expect(
+        harness.http.lastRequest!.headers.containsKey('authorization'),
+        isFalse,
+      );
+    });
+
     test('sort order selects a feed and never fails', () async {
       for (final MapEntry<SwayveSortOrder?, String> expected
           in <SwayveSortOrder?, String>{

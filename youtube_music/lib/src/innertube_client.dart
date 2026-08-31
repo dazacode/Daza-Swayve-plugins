@@ -134,6 +134,111 @@ final class InnerTubeClient {
         extraHeaders: _authenticatedHeaders(sessionCookie, pageId: pageId),
       );
 
+  /// Asks "what plays after this" for [videoId] within [playlistId].
+  ///
+  /// The request the web app makes when a radio is started: the seed video,
+  /// the station's own playlist id, and the opaque `params` blob that says
+  /// "build me a station" rather than "open this playlist".
+  ///
+  /// Sent as the ordinary [envelope]: `next` is a music-app endpoint and
+  /// `WEB_REMIX` is the client that serves it.
+  ///
+  /// Note what is deliberately *not* sent: `isAudioOnly`. Measured against
+  /// the live endpoint, sending it changes nothing at all — the same fifty
+  /// `MUSIC_VIDEO_TYPE_OMV` rows come back either way. Audio-only is a
+  /// client-side filter on each row's own `musicVideoType`; see
+  /// `parsing/watch_parser.dart`.
+  Future<Map<String, Object?>> next(
+    String videoId, {
+    required String playlistId,
+    String? params,
+    SwayveCancellationToken? cancel,
+  }) =>
+      postJson(
+        kNextEndpoint,
+        <String, Object?>{
+          'videoId': videoId,
+          'playlistId': playlistId,
+          if (params != null) 'params': params,
+        },
+        cancel: cancel,
+      );
+
+  /// Fetches the page of a station after [continuation].
+  ///
+  /// Context and cursor and nothing else — a continuation names the whole
+  /// request that produced it, so re-stating the seed would be describing a
+  /// different one.
+  Future<Map<String, Object?>> nextContinuation(
+    String continuation, {
+    SwayveCancellationToken? cancel,
+  }) =>
+      postJson(
+        kNextEndpoint,
+        <String, Object?>{'continuation': continuation},
+        cancel: cancel,
+      );
+
+  /// Resolves [videoId] to a player response for the sake of its caption
+  /// tracks, asked as [client].
+  ///
+  /// A separate call from [player] rather than a flag on it, and asked as a
+  /// separately declared identity — see [kCaptionsClients] for which clients
+  /// answer this at all, which do not, and why the list is a chain rather
+  /// than one name. The caller decides how far down that chain to walk; this
+  /// makes exactly one request. Nothing here reads the streaming half of the
+  /// response.
+  Future<Map<String, Object?>> captionsPlayer(
+    String videoId, {
+    required YouTubeMusicClientIdentity client,
+    SwayveCancellationToken? cancel,
+  }) async {
+    final String? visitor = await visitorData(cancel: cancel);
+    return postJson(
+      kPlayerEndpoint,
+      <String, Object?>{
+        'videoId': videoId,
+        'contentCheckOk': true,
+        'racyCheckOk': true,
+      },
+      cancel: cancel,
+      envelopeOverride: _captionsEnvelope(client, visitor),
+      extraHeaders: <String, String>{
+        'x-youtube-client-name': client.id,
+        'x-youtube-client-version': client.version,
+        if (visitor != null) 'x-goog-visitor-id': visitor,
+      },
+    );
+  }
+
+  /// GETs [url] and returns its body as text.
+  ///
+  /// The one non-InnerTube fetch this client makes: a caption track is served
+  /// as XML from a signed `timedtext` URL, not as JSON from an endpoint. It
+  /// still goes through [SwayveHttpClient] and still refuses a host outside
+  /// [kYouTubeMusicAllowedHosts] before the request is made, exactly as
+  /// [postJson] does — the whole point of this type is that there is no
+  /// second way out of the plugin.
+  Future<String> getText(Uri url, {SwayveCancellationToken? cancel}) async {
+    if (!isAllowedHost(url.host)) {
+      throw SwayvePluginUnsupportedException(
+        'YouTube Music will not contact ${url.host}: it is not one of the '
+        'hosts declared in the plugin manifest.',
+      );
+    }
+    final SwayveHttpResponse response = await _http.get(
+      url,
+      headers: <String, String>{
+        'accept': '*/*',
+        'accept-language': _host.locale,
+      },
+      timeout: timeouts.request,
+      cancel: cancel,
+    );
+    if (!response.isSuccess) throwForStatus(response, url);
+    return response.bodyAsString;
+  }
+
   /// The visitor identity every player request carries.
   ///
   /// ## Why this exists
@@ -316,6 +421,35 @@ final class InnerTubeClient {
           },
           'user': <String, Object?>{'lockedSafetyMode': false},
           'request': <String, Object?>{'useSsl': true},
+        },
+      };
+
+  /// The envelope the captions half of a player response is asked with.
+  ///
+  /// Built from [client] rather than from constants, because [kCaptionsClients]
+  /// is a chain and this is called once per link. The device fields are sent
+  /// only when the identity carries them: each entry in that list is sent as
+  /// exactly the context measured to answer, and inventing a device for a
+  /// client that was proven without one would be changing the request that
+  /// was actually tested.
+  Map<String, Object?> _captionsEnvelope(
+    YouTubeMusicClientIdentity client,
+    String? visitor,
+  ) =>
+      <String, Object?>{
+        'context': <String, Object?>{
+          'client': <String, Object?>{
+            'clientName': client.name,
+            'clientVersion': client.version,
+            if (client.deviceMake != null) 'deviceMake': client.deviceMake,
+            if (client.deviceModel != null) 'deviceModel': client.deviceModel,
+            if (client.osName != null) 'osName': client.osName,
+            if (client.osVersion != null) 'osVersion': client.osVersion,
+            'hl': language,
+            'gl': region,
+            if (visitor != null) 'visitorData': visitor,
+          },
+          'user': <String, Object?>{'lockedSafetyMode': false},
         },
       };
 

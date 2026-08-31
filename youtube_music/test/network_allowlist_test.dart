@@ -72,6 +72,53 @@ void main() {
       YouTubeMusicIds.mediaId('VLPLZ4mM3wKuMh8'),
     );
 
+    // Radio: the `next` endpoint, its continuation, and the `MPTR` browse
+    // behind the Related tab.
+    harness.http.enqueueJson(fixture('next_radio.json'));
+    final SwayveRadio? radio = await harness.radio.startRadio(
+      YouTubeMusicIds.mediaId('dQw4w9WgXcQ'),
+    );
+    await harness.radio.radioTracks(radio!, SwayveBrowseRequest.first);
+    harness.http.enqueueJson(fixture('next_radio_continuation.json'));
+    await harness.radio.radioTracks(
+      radio,
+      const SwayveBrowseRequest(cursor: 'more'),
+    );
+    harness.http
+      ..enqueueJson(fixture('next_radio.json'))
+      ..enqueueJson(fixture('browse_related.json'));
+    await harness.radio.related(YouTubeMusicIds.mediaId('dQw4w9WgXcQ'));
+
+    // Playlists, including the two-hop mood directory.
+    harness.http.enqueueJson(fixture('browse_home.json'));
+    await harness.playlists.playlists(SwayveBrowseRequest.first);
+    harness.http.enqueueJson(fixture('browse_playlist_curated.json'));
+    await harness.playlists.playlistTracks(
+      YouTubeMusicIds.mediaId('RDCLAK5uy_lvHI2Z7dSfpD5g8wvmePjWPfYwq5IgkLo'),
+      SwayveBrowseRequest.first,
+    );
+    harness.http
+      ..enqueueJson(fixture('browse_moods_and_genres.json'))
+      ..enqueueJson(fixture('browse_charts_no_songs.json'))
+      ..enqueueJson(fixture('browse_charts_no_songs.json'));
+    await harness.playlists.playlists(
+      const SwayveBrowseRequest(sort: SwayveSortOrder.alphabetical),
+    );
+
+    // Lyrics. The one surface in this plugin that GETs a URL out of a
+    // response body rather than POSTing to an endpoint it built itself,
+    // which is exactly the shape of request an allowlist exists to catch.
+    harness.http
+      ..enqueueJson(fixture('player_visitor_id.json'))
+      ..enqueueJson(fixture('player_captions.json'))
+      ..enqueueText(fixtureText('timedtext_transcript.xml'));
+    await harness.lyrics.lyrics(
+      SwayveTrack(
+        id: YouTubeMusicIds.mediaId('dQw4w9WgXcQ'),
+        title: 'Never Gonna Give You Up',
+      ),
+    );
+
     // The authenticated surfaces: they carry a cookie header, but the URL
     // they hit is the same declared `music.youtube.com` browse endpoint
     // every other browse in this file already targets.
@@ -148,6 +195,39 @@ void main() {
       YouTubeMusicIds.mediaId('kJQP7kiw5Fk'),
     );
     surfaced.add(audio.uri!);
+
+    // A radio's rows carry artwork the host will fetch, and a related shelf's
+    // rows come off a page whose thumbnails live on a *different*
+    // `googleusercontent` host from the album sleeves — which is exactly the
+    // kind of quiet widening this test exists to notice.
+    harness.http.enqueueJson(fixture('next_radio.json'));
+    final SwayveRadio? radio = await harness.radio.startRadio(
+      YouTubeMusicIds.mediaId('dQw4w9WgXcQ'),
+    );
+    if (radio?.artwork != null) surfaced.add(radio!.artwork!.uri);
+    final SwayvePage<SwayveTrack> station = await harness.radio.radioTracks(
+      radio!,
+      SwayveBrowseRequest.first,
+    );
+    for (final SwayveTrack track in station.items) {
+      if (track.artwork != null) surfaced.add(track.artwork!.uri);
+      if (track.externalUrl != null) surfaced.add(track.externalUrl!);
+    }
+
+    harness.http
+      ..enqueueJson(fixture('next_radio.json'))
+      ..enqueueJson(fixture('browse_related.json'));
+    for (final SwayveTrack track in await harness.radio.related(
+      YouTubeMusicIds.mediaId('dQw4w9WgXcQ'),
+    )) {
+      if (track.artwork != null) surfaced.add(track.artwork!.uri);
+    }
+
+    harness.http.enqueueJson(fixture('browse_playlist_curated.json'));
+    final SwayvePlaylist? playlist = await harness.playlists.playlist(
+      YouTubeMusicIds.mediaId('RDCLAK5uy_lvHI2Z7dSfpD5g8wvmePjWPfYwq5IgkLo'),
+    );
+    if (playlist?.artwork != null) surfaced.add(playlist!.artwork!.uri);
 
     expect(surfaced, isNotEmpty);
     for (final Uri uri in surfaced) {

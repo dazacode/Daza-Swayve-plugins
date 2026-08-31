@@ -68,6 +68,10 @@ Set<SwayveCapability> get manifestCapabilities => <SwayveCapability>{
 /// A committed fixture, decoded.
 Object? fixture(String name) => jsonDecode(fixtureText(name));
 
+/// A committed fixture as a JSON object.
+Map<String, Object?> fixtureMap(String name) =>
+    fixture(name)! as Map<String, Object?>;
+
 /// A committed fixture, as raw text.
 String fixtureText(String name) =>
     File('${pluginRoot.path}/test/fixtures/$name').readAsStringSync();
@@ -152,6 +156,15 @@ final class PluginHarness {
   /// The registered metadata-search provider.
   YouTubeMusicMetadataSearchProvider get metadataSearch =>
       plugin.metadataSearchProvider!;
+
+  /// The registered radio provider.
+  YouTubeMusicRadioProvider get radio => plugin.radioProvider!;
+
+  /// The registered playlist provider.
+  YouTubeMusicPlaylistProvider get playlists => plugin.playlistProvider!;
+
+  /// The registered lyrics provider.
+  YouTubeMusicLyricsProvider get lyrics => plugin.lyricsProvider!;
 
   /// The in-memory credential store behind `context.credentials`, for
   /// scripting a stored `session_cookie` without going through a settings UI

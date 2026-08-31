@@ -10,20 +10,27 @@ export 'src/config.dart'
         VisualsTimeouts,
         isAllowedHost,
         kDurationTolerance,
-        kTidalAccessTokenSettingId,
+        kAnimatedCoverEdge,
         kTidalApiOrigin,
+        kTidalClientIdSettingId,
+        kTidalClientSecretSettingId,
+        kTidalLegacyApiOrigin,
+        kTidalLegacyClientToken,
+        kTidalResourcesOrigin,
+        kTidalTokenEndpoint,
         kUserAgent,
         kVisualsAllowedHosts,
         kVisualsPluginId,
         kVisualsPluginName,
         kVisualsPluginVersion;
-export 'src/tidal_client.dart' show TidalClient, TidalVideo;
+export 'src/tidal_auth.dart' show TidalTokenSource;
+export 'src/tidal_client.dart' show TidalClient, animatedCoverUri;
 export 'src/visuals_plugin.dart' show VisualsPlugin;
 export 'src/visuals_provider.dart'
     show
-        AppleMusicVisualsSource,
         SourceAgnosticVisualsProvider,
-        TidalVisualsSource,
+        TidalLegacyVisualsSource,
+        TidalOfficialVisualsSource,
         VisualsSource;
 
 /// Creates the compiled plugin instance.

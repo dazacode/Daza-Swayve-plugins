@@ -1,0 +1,18 @@
+{
+  "data": [
+    {
+      "type": "searchResults",
+      "id": "q"
+    }
+  ],
+  "included": [
+    {
+      "type": "albums",
+      "id": "1",
+      "attributes": {
+        "title": "RENAISSANCE",
+        "barcodeId": "00602448"
+      }
+    }
+  ]
+}

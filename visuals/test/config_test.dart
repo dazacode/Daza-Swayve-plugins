@@ -6,9 +6,11 @@ import 'package:visuals/visuals.dart';
 void main() {
   test('manifest hosts accept official TIDAL API and media subdomains', () {
     expect(isAllowedHost('openapi.tidal.com'), isTrue);
+    expect(isAllowedHost('auth.tidal.com'), isTrue);
+    expect(isAllowedHost('api.tidal.com'), isTrue);
     expect(isAllowedHost('resources.tidal.com'), isTrue);
-    expect(isAllowedHost('api.music.apple.com'), isTrue);
     expect(isAllowedHost('tidal.com.evil.example'), isFalse);
+    expect(isAllowedHost('api.music.apple.com'), isFalse);
   });
 
   test('visuals plugin identity exposes only the shared visuals capability',

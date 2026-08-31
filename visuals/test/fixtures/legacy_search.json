@@ -1,0 +1,64 @@
+{
+  "tracks": {
+    "items": [
+      {
+        "title": "ALIEN SUPERSTAR",
+        "duration": 216,
+        "artists": [
+          {
+            "name": "Beyonce"
+          }
+        ],
+        "album": {
+          "title": "RENAISSANCE",
+          "videoCover": "b7899d25-11d5-40ad-a99e-0ae721dee412",
+          "artists": [
+            {
+              "name": "Beyonce"
+            }
+          ]
+        }
+      },
+      {
+        "title": "Something Else Entirely",
+        "duration": 200,
+        "artists": [
+          {
+            "name": "Another Artist"
+          }
+        ],
+        "album": {
+          "title": "Other Record",
+          "videoCover": "ffffffff-1111-2222-3333-444444444444",
+          "artists": [
+            {
+              "name": "Another Artist"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "albums": {
+    "items": [
+      {
+        "title": "RENAISSANCE",
+        "videoCover": "b7899d25-11d5-40ad-a99e-0ae721dee412",
+        "artists": [
+          {
+            "name": "Beyonce"
+          }
+        ]
+      },
+      {
+        "title": "Dangerously In Love",
+        "videoCover": null,
+        "artists": [
+          {
+            "name": "Beyonce"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
-import 'apple_music_client.dart';
+import 'tidal_auth.dart';
 import 'tidal_client.dart';
 
 /// Boundary for adding another official visuals source without changing the
@@ -16,70 +16,74 @@ abstract interface class VisualsSource {
   });
 }
 
-/// The verified TIDAL source implementation.
-final class TidalVisualsSource implements VisualsSource {
+/// The official TIDAL Developer Platform source.
+///
+/// Tried first when the plugin has been given application credentials. It
+/// stands aside — silently, returning null rather than throwing — when it has
+/// none, because this plugin resolves covers without credentials too and an
+/// unconfigured optional source is not a failure anybody asked to hear about.
+final class TidalOfficialVisualsSource implements VisualsSource {
   /// Creates the source.
-  TidalVisualsSource({
+  TidalOfficialVisualsSource({
     required TidalClient client,
-    required String? Function() accessToken,
+    required TidalTokenSource tokens,
   })  : _client = client,
-        _accessToken = accessToken;
+        _tokens = tokens;
 
   final TidalClient _client;
-  final String? Function() _accessToken;
+  final TidalTokenSource _tokens;
 
   @override
   Future<SwayveVisual?> visual(
     SwayveTrack track, {
     SwayveCancellationToken? cancel,
-  }) {
-    final String? token = _accessToken()?.trim();
-    if (token == null || token.isEmpty) {
-      throw const SwayvePluginAuthRequiredException(
-        'Configure an official TIDAL access token to resolve visuals.',
-      );
+  }) async {
+    if (!_tokens.isConfigured) {
+      // Half a credential is somebody who tried and stopped. Saying so is
+      // more use than the silence a wholly unconfigured source gets.
+      if (_tokens.isHalfConfigured) {
+        throw const SwayvePluginAuthRequiredException(
+          'The TIDAL application needs both a client id and a client secret.',
+        );
+      }
+      return null;
     }
-    return _client.visual(track, accessToken: token, cancel: cancel);
+
+    final String token = await _tokens.token(cancel: cancel);
+    try {
+      return await _client.officialCover(
+        track,
+        accessToken: token,
+        cancel: cancel,
+      );
+    } on SwayvePluginAuthRequiredException {
+      // The token was accepted when it was minted and is not now. Drop it and
+      // let the next lookup mint a fresh one rather than failing every
+      // request until the app restarts.
+      _tokens.invalidate();
+      rethrow;
+    }
   }
 }
 
-/// Apple Music's official catalog preview-video source.
-final class AppleMusicVisualsSource implements VisualsSource {
-  AppleMusicVisualsSource({
-    required AppleMusicClient client,
-    required String? Function() developerToken,
-    required String? Function() storefront,
-  })  : _client = client,
-        _developerToken = developerToken,
-        _storefront = storefront;
+/// The credential-free TIDAL catalog source.
+///
+/// This is the one that actually carries the feature for most people: it
+/// needs no account, no application and no configuration, and the animated
+/// cover it finds is the same asset the official API would name. See this
+/// plugin's README for the boundary being drawn around it.
+final class TidalLegacyVisualsSource implements VisualsSource {
+  /// Creates the source.
+  TidalLegacyVisualsSource({required TidalClient client}) : _client = client;
 
-  final AppleMusicClient _client;
-  final String? Function() _developerToken;
-  final String? Function() _storefront;
+  final TidalClient _client;
 
   @override
   Future<SwayveVisual?> visual(
     SwayveTrack track, {
     SwayveCancellationToken? cancel,
-  }) {
-    final token = _developerToken()?.trim();
-    if (token == null || token.isEmpty) {
-      throw const SwayvePluginAuthRequiredException(
-        'Configure an Apple Music developer token to resolve visuals.',
-      );
-    }
-    final rawStorefront = _storefront()?.trim().toLowerCase();
-    final storefront =
-        rawStorefront != null && RegExp(r'^[a-z]{2}$').hasMatch(rawStorefront)
-            ? rawStorefront
-            : 'us';
-    return _client.visual(
-      track,
-      developerToken: token,
-      storefront: storefront,
-      cancel: cancel,
-    );
-  }
+  }) =>
+      _client.legacyCover(track, cancel: cancel);
 }
 
 /// The SDK provider that tries registered source adapters in order.

@@ -15,26 +15,49 @@ const Version kVisualsPluginVersion = Version(0, 1, 0);
 /// The hostnames this plugin may contact or hand back as playable media.
 ///
 /// `openapi.tidal.com` is the official TIDAL Developer Platform API. The
-/// wildcard covers the HTTPS media host returned by an official video
-/// manifest without permitting a look-alike domain such as
-/// `tidal.com.evil.example`.
+/// wildcard covers `auth.tidal.com` (the OAuth token endpoint), the legacy
+/// `api.tidal.com` catalog search, and `resources.tidal.com`, which serves
+/// the animated cover itself — without permitting a look-alike domain such
+/// as `tidal.com.evil.example`.
 const List<String> kVisualsAllowedHosts = <String>[
   'openapi.tidal.com',
   '*.tidal.com',
-  'api.music.apple.com',
 ];
 
-/// The secret setting containing the TIDAL OAuth access token.
-const String kTidalAccessTokenSettingId = 'tidal_access_token';
+/// The secret setting holding the TIDAL application's client id.
+const String kTidalClientIdSettingId = 'tidal_client_id';
 
-/// The Apple Music developer token setting.
-const String kAppleMusicDeveloperTokenSettingId = 'apple_music_developer_token';
-
-/// The Apple Music storefront setting, for example `us`.
-const String kAppleMusicStorefrontSettingId = 'apple_music_storefront';
+/// The secret setting holding the TIDAL application's client secret.
+const String kTidalClientSecretSettingId = 'tidal_client_secret';
 
 /// Official TIDAL API origin.
 final Uri kTidalApiOrigin = Uri.parse('https://openapi.tidal.com');
+
+/// The OAuth token endpoint that turns a client id and secret into a bearer
+/// token. Covered by the `*.tidal.com` entry above.
+final Uri kTidalTokenEndpoint =
+    Uri.parse('https://auth.tidal.com/v1/oauth2/token');
+
+/// The legacy catalog search, used only when the official API has no animated
+/// cover to offer. See this plugin's README for why it is here at all.
+final Uri kTidalLegacyApiOrigin = Uri.parse('https://api.tidal.com');
+
+/// The shared client token the legacy catalog search requires.
+///
+/// Not a credential belonging to anybody: the legacy endpoint refuses a
+/// request without this header, and the same value is what every open-source
+/// client sends. It grants no account access and carries no user identity.
+const String kTidalLegacyClientToken = 'vNVdglQOjFJJGG2U';
+
+/// Where an animated cover is served from, once its id is known.
+final Uri kTidalResourcesOrigin = Uri.parse('https://resources.tidal.com');
+
+/// The square edge length requested for an animated cover.
+///
+/// TIDAL publishes 80, 160, 320, 640 and 1280. 1280 is roughly 700 KB for a
+/// typical cover and is what the surface behind a now-playing screen wants;
+/// anything smaller is visibly soft once it fills a phone.
+const int kAnimatedCoverEdge = 1280;
 
 /// The user-agent sent to TIDAL's official API.
 const String kUserAgent =

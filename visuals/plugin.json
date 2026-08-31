@@ -2,7 +2,7 @@
   "schemaVersion": 7,
   "id": "app.swayve.plugins.visuals",
   "name": "Moving Visuals",
-  "description": "Finds official moving visuals for whatever is playing by matching the recording against TIDAL's catalog and video manifest API.",
+  "description": "Finds the official animated cover for whatever is playing by matching the recording against TIDAL's catalog.",
   "version": "0.1.0",
   "author": {
     "name": "Swayve",
@@ -37,28 +37,21 @@
   "network": {
     "hosts": [
       "openapi.tidal.com",
-      "*.tidal.com",
-      "api.music.apple.com"
+      "*.tidal.com"
     ]
   },
   "settings": [
     {
-      "id": "tidal_access_token",
+      "id": "tidal_client_id",
       "type": "secret",
-      "label": "TIDAL access token",
-      "description": "An OAuth access token issued for the official TIDAL Developer Platform. It is stored as a secret and never logged."
+      "label": "TIDAL client id",
+      "description": "Optional. The client id of an application registered on the TIDAL developer portal. Animated covers are found without it; adding it asks the official API first."
     },
     {
-      "id": "apple_music_developer_token",
+      "id": "tidal_client_secret",
       "type": "secret",
-      "label": "Apple Music developer token",
-      "description": "An Apple Music API developer token. It is stored as a secret and never logged."
-    },
-    {
-      "id": "apple_music_storefront",
-      "type": "text",
-      "label": "Apple Music storefront",
-      "description": "Two-letter Apple Music storefront code, such as us."
+      "label": "TIDAL client secret",
+      "description": "Optional, and required only alongside the client id. Stored as a secret and never logged."
     }
   ],
   "timeouts": {
@@ -68,7 +61,8 @@
   "keywords": [
     "visuals",
     "canvas",
-    "music-video",
+    "animated-cover",
+    "motion-artwork",
     "tidal"
   ],
   "icon": "assets/icon.svg"

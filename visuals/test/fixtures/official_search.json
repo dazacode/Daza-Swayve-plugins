@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "type": "searchResults",
+      "id": "q"
+    }
+  ],
+  "included": [
+    {
+      "type": "albums",
+      "id": "1",
+      "attributes": {
+        "title": "RENAISSANCE",
+        "videoCover": "b7899d25-11d5-40ad-a99e-0ae721dee412"
+      }
+    },
+    {
+      "type": "artists",
+      "id": "2",
+      "attributes": {
+        "name": "Beyonce"
+      }
+    }
+  ]
+}

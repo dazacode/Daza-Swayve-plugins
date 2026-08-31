@@ -1,0 +1,142 @@
+{
+  "responseContext": {
+    "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D"
+  },
+  "header": {
+    "musicImmersiveHeaderRenderer": {
+      "title": {
+        "runs": [
+          {
+            "text": "Fenwick Rowe"
+          }
+        ]
+      },
+      "thumbnail": {
+        "musicThumbnailRenderer": {
+          "thumbnail": {
+            "thumbnails": [
+              {
+                "url": "https://yt3.ggpht.com/fenwickRowe=s900-c-k-c0x00ffffff-no-rj",
+                "width": 900,
+                "height": 900
+              }
+            ]
+          }
+        }
+      },
+      "subscriptionButton": {
+        "subscribeButtonRenderer": {
+          "shortSubscriberCountText": {
+            "runs": [
+              {
+                "text": "8.1K"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "contents": {
+    "singleColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "content": {
+              "sectionListRenderer": {
+                "contents": []
+              }
+            }
+          }
+        },
+        {
+          "tabRenderer": {
+            "selected": true,
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "musicShelfRenderer": {
+                      "title": {
+                        "runs": [
+                          {
+                            "text": "Songs"
+                          }
+                        ]
+                      },
+                      "contents": [
+                        {
+                          "musicResponsiveListItemRenderer": {
+                            "thumbnail": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/fenwick1=w60-h60-l90-rj",
+                                      "width": 60,
+                                      "height": 60
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "overlay": {
+                              "musicItemThumbnailOverlayRenderer": {
+                                "content": {
+                                  "musicPlayButtonRenderer": {
+                                    "playNavigationEndpoint": {
+                                      "watchEndpoint": {
+                                        "videoId": "fenwickRw01",
+                                        "playlistId": "OLAK5uy_kAsterValeAllSongs",
+                                        "watchEndpointMusicSupportedConfigs": {
+                                          "watchEndpointMusicConfig": {
+                                            "musicVideoType": "MUSIC_VIDEO_TYPE_ATV"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "flexColumns": [
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Copper Wire"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Fenwick Rowe"
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ],
+                            "playlistItemData": {
+                              "videoId": "fenwickRw01"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

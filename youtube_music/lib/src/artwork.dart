@@ -125,10 +125,20 @@ abstract final class YouTubeMusicArtwork {
   ///
   /// Returns `null` when the array is empty **or** when every candidate lives
   /// on a host the manifest does not declare. The sleeve host is declared, so
-  /// that second case is now rare rather than the norm it used to be; artist
-  /// portraits served from `yt3.ggpht.com` are the remaining example, and they
-  /// stay dropped because widening the allowlist for a decorative image is not
-  /// a trade worth asking the user to agree to.
+  /// that second case is now rare rather than the norm it used to be.
+  ///
+  /// `yt3.ggpht.com` used to be the standing example of it, and was left
+  /// undeclared on purpose: the reasoning was that an artist portrait is a
+  /// decoration on a search row, and widening the network reach a user has
+  /// granted in order to draw a nicer row is not a trade worth asking anybody
+  /// to agree to. It is recorded here rather than deleted because it was a
+  /// sound argument about a picture that has since changed jobs. Once the
+  /// plugin started answering for a whole artist page, that same image stopped
+  /// being decoration on somebody else's row and became the identity of the
+  /// page — drawn large, beside the name — and dropping it meant a large share
+  /// of artists opened onto a grey circle with two initials in it. The host is
+  /// declared now; see [kYouTubeMusicAllowedHosts] for the entry and the same
+  /// note from the other side.
   static SwayveImageRef? fromThumbnails(
     List<Object?> thumbnails, {
     SwayveArtworkSize size = SwayveArtworkSize.medium,

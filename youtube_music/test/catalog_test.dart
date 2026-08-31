@@ -249,16 +249,271 @@ void main() {
   });
 
   group('artist lookup', () {
-    test('reads the immersive header', () async {
-      harness.http.enqueueJson(fixture('browse_artist.json'));
+    /// Fetches the fixture artist through the provider.
+    Future<SwayveArtist> lookup(String name, String browseId) async {
+      harness.http.enqueueJson(fixture(name));
       final SwayveArtist? artist = await harness.catalog.artist(
-        YouTubeMusicIds.mediaId('UCq3rGZ1Zs9d0dTqRPcJHXyA'),
+        YouTubeMusicIds.mediaId(browseId),
+      );
+      expect(artist, isNotNull, reason: '$name should resolve');
+      return artist!;
+    }
+
+    /// The single section of [artist] with [kind], failing if there is not
+    /// exactly one.
+    SwayveArtistSection sectionOf(
+      SwayveArtist artist,
+      SwayveArtistSectionKind kind,
+    ) {
+      final Iterable<SwayveArtistSection> matches =
+          artist.sections.where((SwayveArtistSection s) => s.kind == kind);
+      expect(matches, hasLength(1), reason: 'one $kind section');
+      return matches.single;
+    }
+
+    test('reads the immersive header', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyA',
       );
 
-      expect(artist, isNotNull);
-      expect(artist!.name, 'Aster Vale');
-      expect(artist.extra['subscriberLabel'], '1.2M subscribers');
-      expect(artist.extra['description'], contains('invented band'));
+      expect(artist.name, 'Aster Vale');
+      expect(artist.description, contains('invented band'));
+      expect(
+        artist.subscriberLabel,
+        '1.24M subscribers',
+        reason: 'The header carries three spellings of the same count. The '
+            'long one is preferred because the SDK field is a label a host '
+            'draws as-is, and "1.2M" on its own is a number with no noun.',
+      );
+      expect(
+        artist.monthlyListenerLabel,
+        '3,410,882 monthly listeners',
+        reason: 'The field this whole pass began over: parsed nowhere before, '
+            'and the one statistic somebody noticed was missing.',
+      );
+      expect(
+        artist.image!.uri.host,
+        'yt3.ggpht.com',
+        reason: 'The avatar host the allowlist deliberately used to exclude. '
+            'Without it declared, a large share of artists open onto a grey '
+            'circle with two initials in it.',
+      );
+    });
+
+    test('the header endpoints become play and radio ids', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyA',
+      );
+
+      expect(
+        artist.playAll?.value,
+        'OLAK5uy_kAsterValeAllSongs',
+        reason: 'The button names a video and a playlist. The playlist wins: '
+            '"play this artist" means the catalogue, not the one recording '
+            'the service would happen to start with.',
+      );
+      expect(artist.startRadio?.value, 'RDAMVMasterVale01');
+    });
+
+    test('every shelf is parsed, in the order the page put them', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyA',
+      );
+
+      expect(
+        artist.sections.map((SwayveArtistSection s) => s.kind).toList(),
+        <SwayveArtistSectionKind>[
+          SwayveArtistSectionKind.topSongs,
+          SwayveArtistSectionKind.albums,
+          SwayveArtistSectionKind.singles,
+          SwayveArtistSectionKind.videos,
+          SwayveArtistSectionKind.playlists,
+          SwayveArtistSectionKind.relatedArtists,
+        ],
+        reason: 'Payload order is editorial — a page leads with the songs '
+            'somebody came for and closes with somewhere to go next — and the '
+            'trailing description shelf holds no items, so it is dropped '
+            'rather than kept as an empty section.',
+      );
+    });
+
+    test('shelves are classified by their contents, never their title', () {
+      // The titles in the fixture are English. Nothing in the parser reads
+      // them, which is the property this asserts: the classification above
+      // came from endpoints and item shapes alone, and the titles only ride
+      // along for display.
+      const List<String> englishTitles = <String>[
+        'Songs',
+        'Albums',
+        'Singles',
+        'Videos',
+        'Featured on',
+        'Fans might also like',
+      ];
+      final String raw = fixtureText('browse_artist.json');
+      for (final String title in englishTitles) {
+        expect(raw, contains('"$title"'));
+      }
+    });
+
+    test('top songs keep their ranking and gain the page credit', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyA',
+      );
+      final SwayveArtistSection songs =
+          sectionOf(artist, SwayveArtistSectionKind.topSongs);
+
+      expect(songs.title, 'Songs');
+      expect(
+        songs.tracks.map((SwayveTrack t) => t.title),
+        <String>['Glasshouse', 'Ninth Street'],
+        reason: 'First is biggest. Re-sorting is what the library list this '
+            'replaces was already doing wrong.',
+      );
+      expect(
+        songs.tracks.last.artists.single.name,
+        'Aster Vale',
+        reason: 'The second row spends its flex column on a play count, '
+            'because the page above it is already titled with the name. A '
+            'host filing that row on its own wrote "Unknown artist" onto it.',
+      );
+      expect(songs.more?.value, 'VLOLAK5uy_kAsterValeAllSongs');
+    });
+
+    test('albums and singles are told apart by their subtitles', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyA',
+      );
+
+      expect(
+        sectionOf(artist, SwayveArtistSectionKind.albums)
+            .albums
+            .map((SwayveAlbum a) => a.title),
+        <String>['Low Ceilings', 'Harbour Lights'],
+      );
+      expect(
+        sectionOf(artist, SwayveArtistSectionKind.singles)
+            .albums
+            .map((SwayveAlbum a) => a.title),
+        <String>['Ninth Street', 'Undertow'],
+        reason: 'Both shelves are made of identical tiles pointing at album '
+            'browse ids. The only difference in the payload is that an album '
+            'tile writes "Album • 2023" and a single tile writes the year '
+            'alone — a shape, which survives translation, rather than the '
+            'word "Single", which does not.',
+      );
+      expect(
+        sectionOf(artist, SwayveArtistSectionKind.albums).more?.value,
+        'MPADUCq3rGZ1Zs9d0dTqRPcJHXyA',
+        reason: 'From the carousel header\'s moreContentButton.',
+      );
+    });
+
+    test('videos are a shelf of tracks, not of songs', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyA',
+      );
+      final SwayveArtistSection videos =
+          sectionOf(artist, SwayveArtistSectionKind.videos);
+
+      expect(videos.tracks.single.kind, SwayveTrackKind.video);
+      expect(
+        sectionOf(artist, SwayveArtistSectionKind.topSongs).tracks.first.kind,
+        SwayveTrackKind.song,
+        reason: 'Both shelves hold tracks. What separates them is the '
+            'musicVideoType each row already states, which ItemCollector has '
+            'turned into a SwayveTrackKind before the shelf is classified.',
+      );
+    });
+
+    test('featured-on and related artists land in their own lists', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyA',
+      );
+
+      expect(
+        sectionOf(artist, SwayveArtistSectionKind.playlists)
+            .playlists
+            .single
+            .title,
+        'Slow Burn',
+      );
+      final SwayveArtist related =
+          sectionOf(artist, SwayveArtistSectionKind.relatedArtists)
+              .artists
+              .single;
+      expect(related.name, 'Marrow Choir');
+      expect(
+        related.sections,
+        isEmpty,
+        reason: 'An artist minted from a tile carries a tile\'s worth. Only a '
+            'lookup fetches a page, and nothing here fetched one.',
+      );
+    });
+
+    test('an artist with only songs still parses', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist_songs_only.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyB',
+      );
+
+      expect(artist.name, 'Fenwick Rowe');
+      expect(
+        artist.sections.single.kind,
+        SwayveArtistSectionKind.topSongs,
+        reason: 'The first tab of this response is empty, so a parser reading '
+            'tabs[0] flatly would find no page at all.',
+      );
+      expect(
+        artist.subscriberLabel,
+        '8.1K',
+        reason: 'The short spelling is the last resort rather than absent: a '
+            'bare number is worse than a sentence and better than nothing.',
+      );
+      expect(
+        artist.monthlyListenerLabel,
+        isNull,
+        reason: 'Not published for every artist, and an absent fact stays '
+            'absent rather than being filled in from somewhere else.',
+      );
+      expect(artist.banner, isNull);
+    });
+
+    test('a visual header is a banner plus a wordmark', () async {
+      final SwayveArtist artist = await lookup(
+        'browse_artist_visual_header.json',
+        'UCq3rGZ1Zs9d0dTqRPcJHXyC',
+      );
+
+      expect(artist.name, 'The Quiet Ordinary');
+      expect(
+        artist.banner!.uri.host,
+        'yt3.googleusercontent.com',
+        reason: 'On this renderer `thumbnail` is the wide header image, not '
+            'the portrait — the field name is the same and the picture is '
+            'not.',
+      );
+      expect(artist.banner!.width, 2560);
+      expect(
+        artist.image!.uri.toString(),
+        contains('quietOrdinaryWordmark'),
+        reason: 'foregroundThumbnail is the artist\'s name set as a logo. It '
+            'is used as the avatar for the reason both reference clients use '
+            'it that way: a circle cropped out of a 2560x424 banner is a '
+            'piece of somebody\'s shoulder.',
+      );
+      expect(
+        artist.sections.single.kind,
+        SwayveArtistSectionKind.albums,
+        reason: 'The shelves below a visual header are the ordinary ones.',
+      );
     });
 
     test('a header-less response is null, not an error', () async {

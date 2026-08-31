@@ -1,0 +1,133 @@
+{
+  "responseContext": {
+    "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D"
+  },
+  "header": {
+    "musicVisualHeaderRenderer": {
+      "title": {
+        "runs": [
+          {
+            "text": "The Quiet Ordinary"
+          }
+        ]
+      },
+      "thumbnail": {
+        "musicThumbnailRenderer": {
+          "thumbnail": {
+            "thumbnails": [
+              {
+                "url": "https://yt3.googleusercontent.com/asterValeBanner=w2560-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj",
+                "width": 2560,
+                "height": 424
+              }
+            ]
+          }
+        }
+      },
+      "foregroundThumbnail": {
+        "musicThumbnailRenderer": {
+          "thumbnail": {
+            "thumbnails": [
+              {
+                "url": "https://yt3.ggpht.com/quietOrdinaryWordmark=w1000-h1000-l90-rj",
+                "width": 1000,
+                "height": 1000
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "contents": {
+    "singleColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "selected": true,
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "musicCarouselShelfRenderer": {
+                      "header": {
+                        "musicCarouselShelfBasicHeaderRenderer": {
+                          "title": {
+                            "runs": [
+                              {
+                                "text": "Albums"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "contents": [
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/quiet1=w226-h226-l90-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Weekday Afternoon",
+                                  "navigationEndpoint": {
+                                    "browseEndpoint": {
+                                      "browseId": "MPREb_quietOrdinA1",
+                                      "browseEndpointContextSupportedConfigs": {
+                                        "browseEndpointContextMusicConfig": {
+                                          "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "Album"
+                                },
+                                {
+                                  "text": " • "
+                                },
+                                {
+                                  "text": "2024"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "MPREb_quietOrdinA1",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

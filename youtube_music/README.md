@@ -16,7 +16,7 @@ that must keep working without a single `if (plugin.id == …)`.
 | **Platforms** | android, ios, windows, linux |
 | **Capabilities** | `search`, `catalog`, `streaming`, `webview`, `artwork`, `authentication`, `personal_library`, `session_capture` |
 | **Permissions** | `network`, `webview`, `external_auth` |
-| **Network hosts** | `music.youtube.com`, `www.youtube.com`, `i.ytimg.com`, `lh3.googleusercontent.com`, `*.googlevideo.com` |
+| **Network hosts** | `music.youtube.com`, `www.youtube.com`, `i.ytimg.com`, `lh3.googleusercontent.com`, `yt3.googleusercontent.com`, `yt3.ggpht.com`, `*.googlevideo.com` |
 | **Streamable** | yes |
 | **Downloadable** | yes — a deliberate reversal of this plugin's earlier embed-only design, see below |
 | **Dependencies** | `swayve_plugin_sdk`. That is the entire list. |
@@ -289,14 +289,24 @@ allowlist, and the consequences are visible:
 Two deliberate changes, both called out here because a manifest is a promise:
 
 1. **`network.hosts`** is `["music.youtube.com", "www.youtube.com",
-   "i.ytimg.com", "lh3.googleusercontent.com", "*.googlevideo.com"]` rather than
-   the example's `["music.youtube.com", "*.googlevideo.com", "i.ytimg.com"]`.
+   "i.ytimg.com", "lh3.googleusercontent.com", "yt3.googleusercontent.com",
+   "yt3.ggpht.com", "*.googlevideo.com"]` rather than the example's
+   `["music.youtube.com", "*.googlevideo.com", "i.ytimg.com"]`.
    * `www.youtube.com` was **added**. It is where the official embedded player
      lives, and the plugin hands its URL to the host. It is also where the
      player endpoint answers, the music front end having refused the client
      this plugin has to use.
    * `lh3.googleusercontent.com` was **added**, for the square cover art. See
      the artwork section above for why it was left out for as long as it was.
+   * `yt3.googleusercontent.com` and `yt3.ggpht.com` were **added**, in that
+     order and for the same picture: they are two names for one avatar store,
+     and which of them an artist's portrait arrives under is decided by
+     whatever wrote the payload. The second was held back on the reasoning
+     that a portrait is decoration on a search row and that widening granted
+     reach to draw a nicer row is not a trade worth asking for. That stopped
+     being true when the plugin began answering for a whole artist page, where
+     the avatar is the identity of the page rather than trim on somebody
+     else's row — see `config.dart`, which keeps both halves of the argument.
    * `*.googlevideo.com` is **kept**, and this is the entry worth reading
      twice: it is the media CDN a resolved audio URL points at. The plugin was
      originally written to refuse stream extraction entirely and this host was
@@ -373,8 +383,11 @@ provider did not mint, and every entry point returns `null` (catalog, artwork)
 or `SwayvePluginUnsupportedException` (playback) without making a request.
 
 `extra` carries only things the host must not interpret and that are not
-already a field: a track's originating `playlistId`, an artist's
-`description` and `subscriberLabel`, a playlist's `VL`-prefixed browse id.
+already a field: a track's originating `playlistId` and a playlist's
+`VL`-prefixed browse id. An artist's description and subscriber count used to
+live here too, and moved onto `SwayveArtist`'s own fields once the SDK grew
+them — `extra` is where a fact goes when the contract has nowhere for it, not a
+second home for facts the contract now names.
 
 Result classification is also **by endpoint, never by shelf title**. A shelf
 headed "Songs" is headed "Canciones" for a Spanish user; keying off it would
@@ -382,6 +395,13 @@ make the plugin work in English and quietly return nothing everywhere else.
 Every item declares what it is in its navigation endpoint (`watchEndpoint`, or
 a `browseEndpoint` with a `pageType` of `MUSIC_PAGE_TYPE_ALBUM` / `_ARTIST` /
 `_PLAYLIST`), and those tokens are not localized.
+
+The artist page's **shelves** are classified the same way, one level up: a
+shelf takes its kind from what its first item turned out to be, not from the
+heading above it. The two shelves that need a second question after that are
+albums against singles — told apart by whether the tile's subtitle is
+`Album • 2023` or a bare year, a *shape* rather than a word — and songs against
+videos, which each row's own `musicVideoType` has already answered.
 
 ---
 
@@ -400,7 +420,7 @@ never asked for fails here rather than on a user's phone.
 |---|---|
 | `manifest_agreement_test.dart` | Identity, constants, hosts, timeouts and the `media` block all match `plugin.json`; the entrypoint matches the directory; exactly the declared capabilities are registered; `initialize` makes no request and fails loudly without the `network` permission; `dispose` is safe twice. |
 | `search_test.dart` | A realistic payload normalizes into `SwayveTrack`/`Album`/`Artist`/`Playlist` with the right ids, artists, album refs, durations and explicit flags; an unreadable row is skipped and reported as `partial`; the continuation token round-trips as a cursor; `kinds` is filtered on the wire *and* in the result; `limit` is a ceiling per kind; the `region` setting reaches the wire and a mid-session change is picked up. |
-| `catalog_test.dart` | Feeds partition by kind; `limit` and cursors work; each `SwayveSortOrder` selects a feed and none fails; album and artist lookup read their headers; a foreign or wrong-kind id returns `null` **without a request**; id classification and `SwayveMediaId` round-tripping. |
+| `catalog_test.dart` | Feeds partition by kind; `limit` and cursors work; each `SwayveSortOrder` selects a feed and none fails; album lookup reads its header and its listing; a foreign or wrong-kind id returns `null` **without a request**; id classification and `SwayveMediaId` round-tripping. Artist lookup gets its own group: the header's subscriber, monthly-listener, description, avatar, banner, play and radio fields; all six shelves parsed in payload order and classified by their contents rather than their (English) titles; albums told from singles by subtitle shape; songs told from videos by `musicVideoType`; a page with only songs, and one whose header is `musicVisualHeaderRenderer`. |
 | `artwork_test.dart` | Each `SwayveArtworkSize` maps onto its own `i.ytimg.com` variant with no request at all; images on undeclared hosts are dropped; images on declared hosts are kept. |
 | `stream_test.dart` | Audio resolution: a preferred rendition is chosen by codec support and bitrate ceiling, the visitor identity is minted once and reused (and re-minted on a refused session), duration and expiry are read honestly, and the resolved source's `downloadable: true` agrees with the manifest. Video/embed resolution: `resolvePlayback` returns a `webEmbed` with the expected URL and controls and makes no request; an in-app web view is preferred; an iframe-only host still gets an embed; **an empty `supportedEmbeds` throws `SwayvePluginUnsupportedException`**; an embed's `SwayveAvailability` is stream-only, never claiming a download right. Degradation: extraction closing falls back to the embed and logs a warning; a host with no embed gets unavailable instead; a non-track id and a foreign id are refused without a request. |
 | `failure_modes_test.dart` | 429 → rate-limited with `retryAfter` (seconds, HTTP-date, and unparseable); 5xx and transport failure → unavailable; an exotic error → unavailable with the original as `cause`; 403 → unavailable, *not* auth-required, on the anonymous surface these tests exercise; garbage, truncated and wrong-shaped bodies → malformed, never `TypeError`; a hang → timeout; a cancelled token → cancelled, on every provider. |

@@ -1,8 +1,16 @@
 {
-  "responseContext": { "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D" },
+  "responseContext": {
+    "visitorData": "CgtleGFtcGxlMTIzNBiFtsayBg%3D%3D"
+  },
   "header": {
     "musicImmersiveHeaderRenderer": {
-      "title": { "runs": [{ "text": "Aster Vale" }] },
+      "title": {
+        "runs": [
+          {
+            "text": "Aster Vale"
+          }
+        ]
+      },
       "description": {
         "runs": [
           {
@@ -15,17 +23,88 @@
           "thumbnail": {
             "thumbnails": [
               {
-                "url": "https://lh3.googleusercontent.com/aVfixtureC=w540-h540-p-l90-rj",
-                "width": 540,
-                "height": 540
+                "url": "https://yt3.ggpht.com/asterValeAvatar=s900-c-k-c0x00ffffff-no-rj",
+                "width": 900,
+                "height": 900
               }
             ]
           }
         }
       },
+      "monthlyListenerCount": {
+        "runs": [
+          {
+            "text": "3,410,882 monthly listeners"
+          }
+        ]
+      },
       "subscriptionButton": {
         "subscribeButtonRenderer": {
-          "subscriberCountText": { "runs": [{ "text": "1.2M subscribers" }] }
+          "subscriberCountText": {
+            "runs": [
+              {
+                "text": "1.2M subscribers"
+              }
+            ]
+          },
+          "longSubscriberCountText": {
+            "runs": [
+              {
+                "text": "1.24M subscribers"
+              }
+            ]
+          },
+          "shortSubscriberCountText": {
+            "runs": [
+              {
+                "text": "1.2M"
+              }
+            ]
+          }
+        }
+      },
+      "playButton": {
+        "buttonRenderer": {
+          "text": {
+            "runs": [
+              {
+                "text": "Play"
+              }
+            ]
+          },
+          "navigationEndpoint": {
+            "watchEndpoint": {
+              "videoId": "asterVale01",
+              "playlistId": "OLAK5uy_kAsterValeAllSongs",
+              "watchEndpointMusicSupportedConfigs": {
+                "watchEndpointMusicConfig": {
+                  "musicVideoType": "MUSIC_VIDEO_TYPE_ATV"
+                }
+              }
+            }
+          }
+        }
+      },
+      "startRadioButton": {
+        "buttonRenderer": {
+          "text": {
+            "runs": [
+              {
+                "text": "Radio"
+              }
+            ]
+          },
+          "navigationEndpoint": {
+            "watchEndpoint": {
+              "videoId": "asterVale01",
+              "playlistId": "RDAMVMasterVale01",
+              "watchEndpointMusicSupportedConfigs": {
+                "watchEndpointMusicConfig": {
+                  "musicVideoType": "MUSIC_VIDEO_TYPE_ATV"
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -36,7 +115,684 @@
         {
           "tabRenderer": {
             "selected": true,
-            "content": { "sectionListRenderer": { "contents": [] } }
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "musicShelfRenderer": {
+                      "title": {
+                        "runs": [
+                          {
+                            "text": "Songs",
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "VLOLAK5uy_kAsterValeAllSongs",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_PLAYLIST"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "contents": [
+                        {
+                          "musicResponsiveListItemRenderer": {
+                            "thumbnail": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterSong=w60-h60-l90-rj",
+                                      "width": 60,
+                                      "height": 60
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "overlay": {
+                              "musicItemThumbnailOverlayRenderer": {
+                                "content": {
+                                  "musicPlayButtonRenderer": {
+                                    "playNavigationEndpoint": {
+                                      "watchEndpoint": {
+                                        "videoId": "asterVale01",
+                                        "playlistId": "OLAK5uy_kAsterValeAllSongs",
+                                        "watchEndpointMusicSupportedConfigs": {
+                                          "watchEndpointMusicConfig": {
+                                            "musicVideoType": "MUSIC_VIDEO_TYPE_ATV"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "flexColumns": [
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Glasshouse"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Aster Vale",
+                                        "navigationEndpoint": {
+                                          "browseEndpoint": {
+                                            "browseId": "UCq3rGZ1Zs9d0dTqRPcJHXyA",
+                                            "browseEndpointContextSupportedConfigs": {
+                                              "browseEndpointContextMusicConfig": {
+                                                "pageType": "MUSIC_PAGE_TYPE_ARTIST"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "text": " • "
+                                      },
+                                      {
+                                        "text": "Low Ceilings",
+                                        "navigationEndpoint": {
+                                          "browseEndpoint": {
+                                            "browseId": "MPREb_asterValeA1",
+                                            "browseEndpointContextSupportedConfigs": {
+                                              "browseEndpointContextMusicConfig": {
+                                                "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ],
+                            "playlistItemData": {
+                              "videoId": "asterVale01"
+                            }
+                          }
+                        },
+                        {
+                          "musicResponsiveListItemRenderer": {
+                            "thumbnail": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterSong=w60-h60-l90-rj",
+                                      "width": 60,
+                                      "height": 60
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "overlay": {
+                              "musicItemThumbnailOverlayRenderer": {
+                                "content": {
+                                  "musicPlayButtonRenderer": {
+                                    "playNavigationEndpoint": {
+                                      "watchEndpoint": {
+                                        "videoId": "asterVale02",
+                                        "playlistId": "OLAK5uy_kAsterValeAllSongs",
+                                        "watchEndpointMusicSupportedConfigs": {
+                                          "watchEndpointMusicConfig": {
+                                            "musicVideoType": "MUSIC_VIDEO_TYPE_ATV"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "flexColumns": [
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Ninth Street"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "4,203,911 plays"
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ],
+                            "playlistItemData": {
+                              "videoId": "asterVale02"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "musicCarouselShelfRenderer": {
+                      "header": {
+                        "musicCarouselShelfBasicHeaderRenderer": {
+                          "title": {
+                            "runs": [
+                              {
+                                "text": "Albums"
+                              }
+                            ]
+                          },
+                          "moreContentButton": {
+                            "buttonRenderer": {
+                              "navigationEndpoint": {
+                                "browseEndpoint": {
+                                  "browseId": "MPADUCq3rGZ1Zs9d0dTqRPcJHXyA"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "contents": [
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterAlbum1=w226-h226-l90-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Low Ceilings",
+                                  "navigationEndpoint": {
+                                    "browseEndpoint": {
+                                      "browseId": "MPREb_asterValeA1",
+                                      "browseEndpointContextSupportedConfigs": {
+                                        "browseEndpointContextMusicConfig": {
+                                          "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "Album"
+                                },
+                                {
+                                  "text": " • "
+                                },
+                                {
+                                  "text": "2023"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "MPREb_asterValeA1",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterAlbum2=w226-h226-l90-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Harbour Lights",
+                                  "navigationEndpoint": {
+                                    "browseEndpoint": {
+                                      "browseId": "MPREb_asterValeA2",
+                                      "browseEndpointContextSupportedConfigs": {
+                                        "browseEndpointContextMusicConfig": {
+                                          "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "Album"
+                                },
+                                {
+                                  "text": " • "
+                                },
+                                {
+                                  "text": "2021"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "MPREb_asterValeA2",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "musicCarouselShelfRenderer": {
+                      "header": {
+                        "musicCarouselShelfBasicHeaderRenderer": {
+                          "title": {
+                            "runs": [
+                              {
+                                "text": "Singles"
+                              }
+                            ]
+                          },
+                          "moreContentButton": {
+                            "buttonRenderer": {
+                              "navigationEndpoint": {
+                                "browseEndpoint": {
+                                  "browseId": "MPADUCq3rGZ1Zs9d0dTqRPcJHXyB"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "contents": [
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterSingle1=w226-h226-l90-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Ninth Street",
+                                  "navigationEndpoint": {
+                                    "browseEndpoint": {
+                                      "browseId": "MPREb_asterValeS1",
+                                      "browseEndpointContextSupportedConfigs": {
+                                        "browseEndpointContextMusicConfig": {
+                                          "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "2022"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "MPREb_asterValeS1",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterSingle2=w226-h226-l90-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Undertow",
+                                  "navigationEndpoint": {
+                                    "browseEndpoint": {
+                                      "browseId": "MPREb_asterValeS2",
+                                      "browseEndpointContextSupportedConfigs": {
+                                        "browseEndpointContextMusicConfig": {
+                                          "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "2020"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "MPREb_asterValeS2",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_ALBUM"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "musicCarouselShelfRenderer": {
+                      "header": {
+                        "musicCarouselShelfBasicHeaderRenderer": {
+                          "title": {
+                            "runs": [
+                              {
+                                "text": "Videos"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "contents": [
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterVideo1=w226-h226-l90-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Glasshouse (official video)",
+                                  "navigationEndpoint": {
+                                    "watchEndpoint": {
+                                      "videoId": "asterVale03",
+                                      "playlistId": "RDAMVMasterVale03",
+                                      "watchEndpointMusicSupportedConfigs": {
+                                        "watchEndpointMusicConfig": {
+                                          "musicVideoType": "MUSIC_VIDEO_TYPE_OMV"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "Aster Vale"
+                                },
+                                {
+                                  "text": " • "
+                                },
+                                {
+                                  "text": "2.1M views"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "watchEndpoint": {
+                                "videoId": "asterVale03",
+                                "playlistId": "RDAMVMasterVale03",
+                                "watchEndpointMusicSupportedConfigs": {
+                                  "watchEndpointMusicConfig": {
+                                    "musicVideoType": "MUSIC_VIDEO_TYPE_OMV"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "musicCarouselShelfRenderer": {
+                      "header": {
+                        "musicCarouselShelfBasicHeaderRenderer": {
+                          "title": {
+                            "runs": [
+                              {
+                                "text": "Featured on"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "contents": [
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/asterMix1=w226-h226-l90-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Slow Burn",
+                                  "navigationEndpoint": {
+                                    "browseEndpoint": {
+                                      "browseId": "VLPLasterValeMix1",
+                                      "browseEndpointContextSupportedConfigs": {
+                                        "browseEndpointContextMusicConfig": {
+                                          "pageType": "MUSIC_PAGE_TYPE_PLAYLIST"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "YouTube Music"
+                                },
+                                {
+                                  "text": " • "
+                                },
+                                {
+                                  "text": "50 songs"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "VLPLasterValeMix1",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_PLAYLIST"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "musicCarouselShelfRenderer": {
+                      "header": {
+                        "musicCarouselShelfBasicHeaderRenderer": {
+                          "title": {
+                            "runs": [
+                              {
+                                "text": "Fans might also like"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "contents": [
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://yt3.ggpht.com/marrowChoir=s226-c-k-c0x00ffffff-no-rj",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Marrow Choir",
+                                  "navigationEndpoint": {
+                                    "browseEndpoint": {
+                                      "browseId": "UCotherArtist0000000001",
+                                      "browseEndpointContextSupportedConfigs": {
+                                        "browseEndpointContextMusicConfig": {
+                                          "pageType": "MUSIC_PAGE_TYPE_ARTIST"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "2.1M subscribers"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "UCotherArtist0000000001",
+                                "browseEndpointContextSupportedConfigs": {
+                                  "browseEndpointContextMusicConfig": {
+                                    "pageType": "MUSIC_PAGE_TYPE_ARTIST"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "musicDescriptionShelfRenderer": {
+                      "description": {
+                        "runs": [
+                          {
+                            "text": "Aster Vale formed in 2011."
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
           }
         }
       ]

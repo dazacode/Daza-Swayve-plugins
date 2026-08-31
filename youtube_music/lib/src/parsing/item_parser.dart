@@ -44,6 +44,25 @@ final class ItemCollector {
   /// Whether at least one item was skipped because it could not be read.
   bool skippedItems = false;
 
+  /// What the *first* item that parsed turned out to be, or `null` when
+  /// nothing parsed.
+  ///
+  /// Recorded because a caller filing a whole shelf under one heading has to
+  /// decide from something, and the payload offers exactly two candidates: the
+  /// shelf's title and what is in it. The title is localized — "Albums" is
+  /// "Álbumes" and "एल्बम" — so keying off it yields a parser that classifies
+  /// correctly in English and silently classifies nothing anywhere else, which
+  /// is the same trap this class's own comment describes for individual items.
+  ///
+  /// The first item rather than a majority vote, because a shelf is
+  /// homogeneous in every response measured — a service does not put releases
+  /// and artists in one row — so counting would only invent a tie-break for a
+  /// case that does not arise. *Which* item is first is meaningful for the
+  /// reason payload order is meaningful everywhere else here: it is the order
+  /// somebody chose.
+  YouTubeMusicIdKind? get firstKind => _firstKind;
+  YouTubeMusicIdKind? _firstKind;
+
   /// Whether nothing at all was collected.
   bool get isEmpty =>
       tracks.isEmpty && albums.isEmpty && artists.isEmpty && playlists.isEmpty;
@@ -80,6 +99,7 @@ final class ItemCollector {
       skippedItems = true;
       return;
     }
+    _firstKind ??= endpoint.kind;
     switch (endpoint.kind) {
       case YouTubeMusicIdKind.track:
         tracks.add(

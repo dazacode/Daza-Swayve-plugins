@@ -54,6 +54,26 @@ const List<String> kYouTubeMusicAllowedHosts = <String>[
   // as a wall of placeholders. Declared here and in the manifest together, so
   // the permission screen shows it before anybody agrees to it.
   'yt3.googleusercontent.com',
+  // The other name the same avatar store answers to. `yt3.ggpht.com` and
+  // `yt3.googleusercontent.com` serve the same images from the same place
+  // behind two hostnames; which one an artist's portrait arrives under is
+  // decided by whatever wrote the payload, and nothing in a response gives any
+  // warning of it.
+  //
+  // Declared later than its twin, and the reasoning it replaces is worth
+  // recording rather than deleting. This host used to be deliberately left out
+  // — see `artwork.dart` — on the grounds that an artist portrait was a
+  // decoration on somebody else's search row, and widening the network reach a
+  // user has granted in order to draw a nicer row is not a trade worth asking
+  // anybody to agree to. That was right about the trade and is no longer right
+  // about the picture. On an artist page the avatar is not decoration; it is
+  // the identity of the page, drawn large beside the name, and while this host
+  // was undeclared a large share of artists opened onto a grey circle with two
+  // initials in it. The cost is the same as it was and what it buys is not.
+  //
+  // Listed in the manifest alongside the rest, so the permission screen still
+  // shows it before anybody agrees to it.
+  'yt3.ggpht.com',
   // The media servers. A resolved audio URL points at a rotating edge host —
   // `rr2---sn-a5m7lnld.googlevideo.com` and the like — and the HLS fallback at
   // `manifest.googlevideo.com`, so the wildcard is the only honest way to

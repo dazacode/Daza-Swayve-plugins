@@ -1,6 +1,7 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
+import 'spotify_app_auth.dart';
 import 'spotify_auth.dart';
 import 'spotify_client.dart';
 import 'tidal_auth.dart';
@@ -19,6 +20,7 @@ final class VisualsPlugin implements SwayvePlugin {
   TidalTokenSource? _tokens;
   SpotifyCanvasClient? _spotify;
   SpotifyTokenSource? _spotifyTokens;
+  SpotifyAppTokenSource? _spotifyAppTokens;
   SourceAgnosticVisualsProvider? _visuals;
 
   /// The registered visuals provider, or `null` before initialization.
@@ -36,6 +38,9 @@ final class VisualsPlugin implements SwayvePlugin {
 
   /// The Spotify web-player token source, or `null` before initialization.
   SpotifyTokenSource? get spotifyTokens => _spotifyTokens;
+
+  /// The Spotify application token source, or `null` before initialization.
+  SpotifyAppTokenSource? get spotifyAppTokens => _spotifyAppTokens;
 
   @override
   SwayvePluginIdentity get identity => const SwayvePluginIdentity(
@@ -78,9 +83,18 @@ final class VisualsPlugin implements SwayvePlugin {
       timeouts: timeouts,
     );
     _spotifyTokens = spotifyTokens;
+    final SpotifyAppTokenSource spotifyAppTokens = SpotifyAppTokenSource(
+      http: context.http,
+      clientId: () => context.settings.value<String>(kSpotifyClientIdSettingId),
+      clientSecret: () =>
+          context.settings.value<String>(kSpotifyClientSecretSettingId),
+      timeouts: timeouts,
+    );
+    _spotifyAppTokens = spotifyAppTokens;
     final SpotifyCanvasClient spotify = SpotifyCanvasClient(
       http: context.http,
       tokens: spotifyTokens,
+      appTokens: spotifyAppTokens,
       timeouts: timeouts,
     );
     _spotify = spotify;
@@ -95,7 +109,11 @@ final class VisualsPlugin implements SwayvePlugin {
     // when neither of the two above did, which for most people is always.
     _visuals = SourceAgnosticVisualsProvider(
       <VisualsSource>[
-        SpotifyCanvasVisualsSource(client: spotify, tokens: spotifyTokens),
+        SpotifyCanvasVisualsSource(
+          client: spotify,
+          tokens: spotifyTokens,
+          appTokens: spotifyAppTokens,
+        ),
         TidalOfficialVisualsSource(client: client, tokens: tokens),
         TidalLegacyVisualsSource(client: client),
       ],
@@ -118,6 +136,7 @@ final class VisualsPlugin implements SwayvePlugin {
     _tokens = null;
     _spotify = null;
     _spotifyTokens = null;
+    _spotifyAppTokens = null;
     _visuals = null;
   }
 }

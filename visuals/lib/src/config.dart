@@ -29,6 +29,7 @@ const List<String> kVisualsAllowedHosts = <String>[
   'openapi.tidal.com',
   '*.tidal.com',
   'open.spotify.com',
+  'accounts.spotify.com',
   'api.spotify.com',
   'spclient.wg.spotify.com',
   '*.scdn.co',
@@ -70,6 +71,20 @@ final Uri kTidalResourcesOrigin = Uri.parse('https://resources.tidal.com');
 /// plugin never asks for it on anybody's behalf.
 const String kSpotifySpDcSettingId = 'spotify_sp_dc';
 
+/// The secret setting holding a Spotify application's client id.
+///
+/// An application credential, not a personal one — the same kind of thing as
+/// the TIDAL pair, and used for the same job. See `spotify_app_auth.dart` for
+/// why the canvas lookup needs this *as well as* the session cookie.
+const String kSpotifyClientIdSettingId = 'spotify_client_id';
+
+/// The secret setting holding that application's client secret.
+const String kSpotifyClientSecretSettingId = 'spotify_client_secret';
+
+/// Where a Spotify application credential is exchanged for a bearer token.
+final Uri kSpotifyAccountsTokenEndpoint =
+    Uri.parse('https://accounts.spotify.com/api/token');
+
 /// The optional setting overriding the embedded TOTP secret version.
 ///
 /// Exists so a rotation can be survived by typing a number rather than by
@@ -85,7 +100,10 @@ final Uri kSpotifyTokenEndpoint =
 final Uri kSpotifyServerTimeEndpoint =
     Uri.parse('https://open.spotify.com/api/server-time');
 
-/// The public Web API, used only to resolve a recording to a track URI.
+/// The documented Web API search, used only to resolve a recording to a
+/// track URI, and reachable only with an application credential — a
+/// web-player token is answered `429` here on the first request and every one
+/// after it.
 final Uri kSpotifySearchEndpoint =
     Uri.parse('https://api.spotify.com/v1/search');
 

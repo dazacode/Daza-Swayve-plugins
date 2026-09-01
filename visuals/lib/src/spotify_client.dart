@@ -6,6 +6,7 @@ import 'canvas_protobuf.dart';
 import 'config.dart';
 import 'errors.dart';
 import 'matching.dart';
+import 'spotify_app_auth.dart';
 import 'spotify_auth.dart';
 
 /// Finds the canvas Spotify holds for a recording.
@@ -29,12 +30,18 @@ final class SpotifyCanvasClient {
   SpotifyCanvasClient({
     required SwayveHttpClient http,
     required SpotifyTokenSource tokens,
+    required SpotifyAppTokenSource appTokens,
     this.timeouts = VisualsTimeouts.manifest,
   })  : _http = http,
-        _tokens = tokens;
+        _tokens = tokens,
+        _appTokens = appTokens;
 
   final SwayveHttpClient _http;
   final SpotifyTokenSource _tokens;
+
+  /// The application credential that searches. See `spotify_app_auth.dart`
+  /// for why the session cookie cannot do this job.
+  final SpotifyAppTokenSource _appTokens;
 
   /// The per-request budget.
   final VisualsTimeouts timeouts;
@@ -51,20 +58,27 @@ final class SpotifyCanvasClient {
     SwayveTrack track, {
     SwayveCancellationToken? cancel,
   }) async {
-    final String token = await _tokens.token(cancel: cancel);
+    // Search first, and with the application credential. Ordered this way on
+    // purpose: the session cookie is the more sensitive of the two and there
+    // is no reason to mint anything from it for a recording that turns out
+    // not to be findable.
+    final String searchToken = await _appTokens.token(cancel: cancel);
     cancel?.throwIfCancelled();
 
     final String? trackUri = await _resolveTrackUri(
       track,
-      accessToken: token,
+      accessToken: searchToken,
       cancel: cancel,
     );
     if (trackUri == null) return null;
     cancel?.throwIfCancelled();
 
+    final String canvasToken = await _tokens.token(cancel: cancel);
+    cancel?.throwIfCancelled();
+
     final List<CanvasEntry> entries = await _canvases(
       trackUri,
-      accessToken: token,
+      accessToken: canvasToken,
       cancel: cancel,
     );
     if (entries.isEmpty) return null;
@@ -249,9 +263,22 @@ final class SpotifyCanvasClient {
     cancel?.throwIfCancelled();
 
     if (response.statusCode == 401) {
-      _tokens.invalidate();
+      _appTokens.invalidate();
       throw const SwayvePluginAuthRequiredException(
-        'Spotify rejected the access token for the catalogue search.',
+        'Spotify rejected the application token for the catalogue search.',
+      );
+    }
+    if (response.statusCode == 429) {
+      // Worth its own message rather than the generic rate-limit one. This is
+      // exactly what a web-player token is answered here, always and from the
+      // first request, and mistaking it for ordinary throttling is what made
+      // "no canvas for this recording" look like a fact about the song.
+      _appTokens.invalidate();
+      throw SwayvePluginRateLimitedException(
+        'Spotify refused the catalogue search. If this happens on every '
+        'lookup, the client id and secret are not a registered application '
+        'credential.',
+        retryAfter: _retryAfterOf(response.headers),
       );
     }
     if (response.statusCode == 404) return null;
@@ -284,4 +311,10 @@ String _queryTerm(String value) {
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
   return cleaned.isEmpty ? '' : '"$cleaned"';
+}
+
+/// The `retry-after` a response asked for, when it named one.
+Duration? _retryAfterOf(Map<String, String> headers) {
+  final int? seconds = int.tryParse(headers['retry-after']?.trim() ?? '');
+  return seconds == null || seconds < 0 ? null : Duration(seconds: seconds);
 }

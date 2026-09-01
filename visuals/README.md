@@ -36,7 +36,29 @@ Off until `spotify_sp_dc` is set, and silent when it is not: an unconfigured
 source that announced itself would be noise for the large majority of people
 who will never turn this on.
 
-**What the credential is.** `sp_dc` is a session cookie for a real Spotify
+**It needs two credentials, not one.** `spotify_sp_dc` fetches the canvas;
+`spotify_client_id` and `spotify_client_secret` — a free application
+registered at developer.spotify.com — find the recording. Both are required,
+and the split is not tidiness.
+
+The canvas endpoint is keyed on a `spotify:track:…` URI, and the host never
+hands a visuals provider an id from another catalogue, so the recording has to
+be searched for. The obvious move was to search with the same web-player token
+the canvas call already needs. That does not work: `api.spotify.com` answers a
+web-player token with `429 API rate limit exceeded` on the first request and
+every one after it, regardless of headers. The public Web API is not a door
+that token opens.
+
+The failure was maximally unhelpful — the account session worked, the canvas
+endpoint worked, and the only broken step in between produced no URI, so the
+plugin declined and reported "no canvas for this recording" with complete
+confidence. Two credentials, each used where it is actually entitled, is the
+fix. It also keeps the session cookie touching as little as possible:
+searching a public catalogue is not something anybody's account needs to be
+involved in, and the cookie is never minted at all for a song that could not
+be found.
+
+**What the session credential is.** `sp_dc` is a session cookie for a real Spotify
 account, not an application credential like the TIDAL pair above it. Whoever
 holds it can act as that account. Nothing in Swayve obtains one for you and
 nothing prompts for it — a person who wants canvases copies it out of their
@@ -51,23 +73,44 @@ asserting exactly that.
 
 **How the lookup works.** Three requests:
 
-1. `GET open.spotify.com/api/token` with the cookie and a six-digit TOTP,
+1. `POST accounts.spotify.com/api/token` with the application credential, for
+   the documented search below. Standard client-credentials, nothing unusual.
+2. `GET open.spotify.com/api/token` with the cookie and a six-digit TOTP,
    which the web player's token endpoint now demands. The code is computed
    locally from a version-numbered constant compiled into the public web
    player — see `lib/src/spotify_totp.dart` for why that constant is embedded
    here rather than downloaded from one of the community mirrors, one of which
    Spotify had taken down in early 2026, breaking every client depending on it
    at once.
-2. `GET api.spotify.com/v1/search` to resolve the recording to a
+3. `GET api.spotify.com/v1/search` to resolve the recording to a
    `spotify:track:…` URI. The SDK never hands a visuals provider an id from
    somebody else's catalogue, so this hop is unavoidable; it is also where
    nearly all the risk of a wrong answer lives, which is why the result goes
    through the same conservative rules in `lib/src/matching.dart` that the
    TIDAL sources use, and why Spotify's own search rank contributes nothing to
    the score.
-3. `POST spclient.wg.spotify.com/canvaz-cache/v0/canvases`, protobuf in and
+4. `POST spclient.wg.spotify.com/canvaz-cache/v0/canvases`, protobuf in and
    protobuf out. Both messages are small enough to encode and decode by hand;
-   `lib/src/canvas_protobuf.dart` carries the schema.
+   `lib/src/canvas_protobuf.dart` carries the schema. The live response
+   carries fields the published schema does not mention, so the decoder skips
+   what it does not recognise rather than refusing the message.
+
+**A rejected cookie does not look like a rejection.** `open.spotify.com`
+answers a bad `sp_dc` with `200` and a complete, valid, *anonymous* token —
+the same one it gives a logged-out browser — and an anonymous session can see
+no canvases at all. Accepting it meant every request afterwards succeeded and
+returned nothing. The plugin checks `isAnonymous` and treats it as the auth
+failure it is.
+
+**Failures are raised, not swallowed.** An earlier version answered null on an
+auth failure so the lookup could fall through to TIDAL. It falls through
+either way — `SourceAgnosticVisualsProvider` only surfaces a failure when no
+source produced anything — but answering null told the host "this recording
+has no canvas", which it caches for ten minutes. Swayve deliberately declines
+to cache a negative when a provider threw, precisely so that correcting a
+setting takes effect without an app restart; swallowing the exception
+re-created the restart-to-apply behaviour it had removed, and made the most
+likely failure invisible.
 
 **None of this is documented, and it will break.** The endpoints are internal
 and the TOTP secret is rotated at Spotify's discretion. That is survivable

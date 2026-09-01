@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
+import 'spotify_app_auth.dart';
 import 'spotify_auth.dart';
 import 'spotify_client.dart';
 import 'tidal_auth.dart';
@@ -118,28 +119,68 @@ final class SpotifyCanvasVisualsSource implements VisualsSource {
   SpotifyCanvasVisualsSource({
     required SpotifyCanvasClient client,
     required SpotifyTokenSource tokens,
+    required SpotifyAppTokenSource appTokens,
   })  : _client = client,
-        _tokens = tokens;
+        _tokens = tokens,
+        _appTokens = appTokens;
 
   final SpotifyCanvasClient _client;
   final SpotifyTokenSource _tokens;
+  final SpotifyAppTokenSource _appTokens;
 
   @override
   Future<SwayveVisual?> visual(
     SwayveTrack track, {
     SwayveCancellationToken? cancel,
   }) async {
+    // Not configured is the one case that answers null. It is a statement
+    // about this install, not about this recording, and it is the state
+    // almost every install is in.
     if (!_tokens.isConfigured) return null;
+
+    // The cookie alone is not enough, and saying so beats going quiet. Half a
+    // configuration is somebody who tried: they pasted the cookie, the field
+    // for it exists, and nothing on screen would otherwise explain why the
+    // background never moves. Thrown rather than returned so the host records
+    // it and declines to cache a negative — see the rethrow below.
+    if (!_appTokens.isConfigured) {
+      throw const SwayvePluginAuthRequiredException(
+        'Spotify canvases need a Spotify application client id and secret '
+        'as well as the sp_dc cookie. The cookie fetches the canvas; the '
+        'application credential finds the recording.',
+      );
+    }
+
     try {
       return await _client.canvas(track, cancel: cancel);
     } on SwayvePluginAuthRequiredException {
-      // The cookie was accepted once and is not now, or the embedded TOTP
-      // version has been rotated. Drop the cached token so a corrected
-      // setting takes effect without an app restart, then let the provider
-      // fall through to TIDAL rather than failing the whole lookup: a canvas
-      // nobody can fetch is a reason to show something else, not nothing.
+      // The cookie has expired, or the embedded TOTP version has been
+      // rotated. Drop the cached token so a corrected setting takes effect
+      // without an app restart.
       _tokens.invalidate();
-      return null;
+
+      // Then rethrow, rather than answering null as an earlier version of
+      // this did. Returning null here looked kinder — the provider falls
+      // through to TIDAL either way, because `SourceAgnosticVisualsProvider`
+      // only surfaces a failure when no source produced anything — but it
+      // was wrong twice over.
+      //
+      // A host distinguishes "this recording has no canvas" from "this
+      // source could not answer", and it must: the first is worth
+      // remembering and the second is not. Swayve's own catalogue caches a
+      // negative answer for ten minutes and deliberately declines to cache
+      // one when a provider threw, precisely so that configuring a plugin
+      // takes effect without restarting the app. Swallowing this exception
+      // handed it a confident "no canvas for this song" the moment a cookie
+      // was wrong, poisoned that cache for ten minutes, and re-created the
+      // restart-to-apply behaviour the host had gone out of its way to
+      // remove.
+      //
+      // It also made the failure invisible. A rejected cookie is the single
+      // most likely thing to go wrong here, and it produced no error, no
+      // warning and no log line anywhere — the symptom was a background that
+      // silently stayed still.
+      rethrow;
     }
   }
 }

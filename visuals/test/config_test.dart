@@ -15,6 +15,7 @@ void main() {
 
   test('manifest hosts accept every Spotify endpoint the canvas path uses', () {
     expect(isAllowedHost('open.spotify.com'), isTrue);
+    expect(isAllowedHost('accounts.spotify.com'), isTrue);
     expect(isAllowedHost('api.spotify.com'), isTrue);
     expect(isAllowedHost('spclient.wg.spotify.com'), isTrue);
     // Where the canvas video itself is served from.
@@ -26,8 +27,11 @@ void main() {
     expect(isAllowedHost('spotify.com.evil.example'), isFalse);
     expect(isAllowedHost('scdn.co.evil.example'), isFalse);
     // The apex is spelled out rather than wildcarded, so an unlisted
-    // subdomain is not admitted by accident.
-    expect(isAllowedHost('accounts.spotify.com'), isFalse);
+    // subdomain is not admitted by accident. Each Spotify host this plugin
+    // reaches is named individually — `accounts` had to be added by hand
+    // when the application credential arrived, which is the point.
+    expect(isAllowedHost('partner.spotify.com'), isFalse);
+    expect(isAllowedHost('spotify.com'), isFalse);
     expect(isAllowedHost('evil-scdn.co'), isFalse);
   });
 
@@ -41,6 +45,7 @@ void main() {
       kSpotifyServerTimeEndpoint,
       kSpotifySearchEndpoint,
       kSpotifyCanvasEndpoint,
+      kSpotifyAccountsTokenEndpoint,
     ]) {
       expect(
         isAllowedHost(endpoint.host),

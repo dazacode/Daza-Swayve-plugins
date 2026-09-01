@@ -64,6 +64,7 @@ const String kVisualsPluginManifestJson = r'''
       "openapi.tidal.com",
       "*.tidal.com",
       "open.spotify.com",
+      "accounts.spotify.com",
       "api.spotify.com",
       "spclient.wg.spotify.com",
       "*.scdn.co"
@@ -87,6 +88,18 @@ const String kVisualsPluginManifestJson = r'''
       "type": "secret",
       "label": "Spotify sp_dc cookie",
       "description": "The sp_dc cookie from a browser signed in to Spotify. Unlocks canvases. Stored as a secret, sent only to open.spotify.com. Leave empty for TIDAL covers."
+    },
+    {
+      "id": "spotify_client_id",
+      "type": "secret",
+      "label": "Spotify client id",
+      "description": "Required for canvases, alongside the cookie. A Spotify application registered free at developer.spotify.com; it finds the recording."
+    },
+    {
+      "id": "spotify_client_secret",
+      "type": "secret",
+      "label": "Spotify client secret",
+      "description": "The other half of the Spotify application credential. Stored as a secret and never logged."
     },
     {
       "id": "spotify_totp_version",

@@ -158,11 +158,28 @@ final class SpotifyTokenSource {
 
     final Object? token = decoded['accessToken'];
     if (token is! String || token.isEmpty) {
-      // The endpoint answers 200 with an anonymous, canvas-less token when it
-      // does not like the cookie, so an absent accessToken is an auth
-      // problem rather than a malformed response.
       throw const SwayvePluginAuthRequiredException(
         'Spotify returned no access token for this sp_dc cookie.',
+      );
+    }
+
+    // The check this endpoint actually requires, and the one whose absence
+    // made a wrong cookie indistinguishable from a song with no canvas.
+    //
+    // A rejected cookie is not an HTTP error here. The endpoint answers 200
+    // with a complete, valid, *anonymous* token — the same token it hands a
+    // logged-out browser — and an anonymous session can see no canvases at
+    // all. Accepting it meant every request afterwards succeeded and returned
+    // nothing, so the lookup reported "no canvas for this recording" with
+    // total confidence when what had happened was "you are not signed in".
+    //
+    // Verified against the live endpoint: called with no cookie whatsoever it
+    // returns 200, an accessToken, and isAnonymous: true.
+    if (decoded['isAnonymous'] == true) {
+      throw const SwayvePluginAuthRequiredException(
+        'Spotify issued an anonymous session, which cannot see canvases. The '
+        'sp_dc cookie was not accepted — it has probably expired, or was '
+        'copied incompletely.',
       );
     }
 

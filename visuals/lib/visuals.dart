@@ -12,7 +12,10 @@ export 'src/config.dart'
         VisualsTimeouts,
         isAllowedHost,
         kAnimatedCoverEdge,
+        kSpotifyAccountsTokenEndpoint,
         kSpotifyCanvasEndpoint,
+        kSpotifyClientIdSettingId,
+        kSpotifyClientSecretSettingId,
         kSpotifySearchEndpoint,
         kSpotifySearchLimit,
         kSpotifyServerTimeEndpoint,
@@ -44,6 +47,7 @@ export 'src/matching.dart'
         normalizeForMatch,
         titlesAgree,
         tokenOverlap;
+export 'src/spotify_app_auth.dart' show SpotifyAppTokenSource;
 export 'src/spotify_auth.dart' show SpotifyTokenSource;
 export 'src/spotify_client.dart' show SpotifyCanvasClient;
 export 'src/spotify_totp.dart'

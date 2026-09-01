@@ -113,6 +113,7 @@ final class VisualsPlugin implements SwayvePlugin {
           client: spotify,
           tokens: spotifyTokens,
           appTokens: spotifyAppTokens,
+          log: context.log,
         ),
         TidalOfficialVisualsSource(client: client, tokens: tokens),
         TidalLegacyVisualsSource(client: client),
@@ -121,13 +122,29 @@ final class VisualsPlugin implements SwayvePlugin {
     );
     context.registerVisualsProvider(_visuals!);
     final List<String> active = <String>[
-      if (spotifyTokens.isConfigured) 'Spotify canvases',
+      if (spotifyTokens.isConfigured && spotifyAppTokens.isConfigured)
+        'Spotify canvases',
       if (tokens.isConfigured) 'official TIDAL catalog',
       'credential-free TIDAL catalog',
     ];
     context.log.info(
       'Moving visuals ready, in order: ${active.join(', ')}.',
     );
+    // Said separately, because a half-configured source is the one state
+    // somebody is actively in the middle of and most needs told about.
+    if (spotifyTokens.isConfigured && !spotifyAppTokens.isConfigured) {
+      context.log.warn(
+        'Spotify canvases are off: the sp_dc cookie is set, but the Spotify '
+        'application client id and secret are not. Both are needed — the '
+        'cookie fetches the canvas, the application credential finds the '
+        'recording.',
+      );
+    } else if (!spotifyTokens.isConfigured && spotifyAppTokens.isConfigured) {
+      context.log.warn(
+        'Spotify canvases are off: the application credential is set, but '
+        'the sp_dc cookie is not.',
+      );
+    }
   }
 
   @override

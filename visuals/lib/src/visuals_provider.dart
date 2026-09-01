@@ -120,13 +120,22 @@ final class SpotifyCanvasVisualsSource implements VisualsSource {
     required SpotifyCanvasClient client,
     required SpotifyTokenSource tokens,
     required SpotifyAppTokenSource appTokens,
+    SwayvePluginLogger? log,
   })  : _client = client,
         _tokens = tokens,
-        _appTokens = appTokens;
+        _appTokens = appTokens,
+        _log = log;
 
   final SpotifyCanvasClient _client;
   final SpotifyTokenSource _tokens;
   final SpotifyAppTokenSource _appTokens;
+
+  /// Where this source narrates what it did, when the host gave it somewhere.
+  ///
+  /// Optional so tests can build one without a context, but in the app it is
+  /// always present — and it is the difference between "the background isn't
+  /// moving" being a mystery and being a sentence in a diagnostic report.
+  final SwayvePluginLogger? _log;
 
   @override
   Future<SwayveVisual?> visual(
@@ -136,7 +145,12 @@ final class SpotifyCanvasVisualsSource implements VisualsSource {
     // Not configured is the one case that answers null. It is a statement
     // about this install, not about this recording, and it is the state
     // almost every install is in.
-    if (!_tokens.isConfigured) return null;
+    if (!_tokens.isConfigured) {
+      _log?.info(
+        'Spotify canvases: skipped, no sp_dc cookie is set.',
+      );
+      return null;
+    }
 
     // The cookie alone is not enough, and saying so beats going quiet. Half a
     // configuration is somebody who tried: they pasted the cookie, the field
@@ -152,12 +166,19 @@ final class SpotifyCanvasVisualsSource implements VisualsSource {
     }
 
     try {
-      return await _client.canvas(track, cancel: cancel);
+      final SwayveVisual? found = await _client.canvas(track, cancel: cancel);
+      _log?.info(
+        found == null
+            ? 'Spotify canvases: no canvas for "${track.title}".'
+            : 'Spotify canvases: found one for "${track.title}".',
+      );
+      return found;
     } on SwayvePluginAuthRequiredException {
       // The cookie has expired, or the embedded TOTP version has been
       // rotated. Drop the cached token so a corrected setting takes effect
       // without an app restart.
       _tokens.invalidate();
+      _log?.warn('Spotify canvases: the session was refused.');
 
       // Then rethrow, rather than answering null as an earlier version of
       // this did. Returning null here looked kinder — the provider falls

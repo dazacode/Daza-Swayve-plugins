@@ -34,6 +34,8 @@ export 'src/config.dart'
         kVisualsPluginName,
         kVisualsPluginVersion;
 export 'src/hmac_sha1.dart' show hmacSha1, sha1;
+export 'src/manifest.dart'
+    show kVisualsPluginManifestJson, visualsPluginManifest;
 export 'src/matching.dart'
     show
         artistsAgree,

@@ -1,6 +1,8 @@
 import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
+import 'spotify_auth.dart';
+import 'spotify_client.dart';
 import 'tidal_auth.dart';
 import 'tidal_client.dart';
 import 'visuals_provider.dart';
@@ -15,6 +17,8 @@ final class VisualsPlugin implements SwayvePlugin {
 
   TidalClient? _client;
   TidalTokenSource? _tokens;
+  SpotifyCanvasClient? _spotify;
+  SpotifyTokenSource? _spotifyTokens;
   SourceAgnosticVisualsProvider? _visuals;
 
   /// The registered visuals provider, or `null` before initialization.
@@ -26,6 +30,12 @@ final class VisualsPlugin implements SwayvePlugin {
   /// The bearer-token source backing the official catalog, or `null` before
   /// initialization.
   TidalTokenSource? get tokens => _tokens;
+
+  /// The Spotify canvas client, or `null` before initialization.
+  SpotifyCanvasClient? get spotifyClient => _spotify;
+
+  /// The Spotify web-player token source, or `null` before initialization.
+  SpotifyTokenSource? get spotifyTokens => _spotifyTokens;
 
   @override
   SwayvePluginIdentity get identity => const SwayvePluginIdentity(
@@ -60,24 +70,45 @@ final class VisualsPlugin implements SwayvePlugin {
     );
     _tokens = tokens;
 
-    // Order is the whole of the fallback policy. The official API answers
-    // first when it has been given credentials to answer with; the
-    // credential-free catalog answers when it has not, or when the official
-    // catalog knows the release but names no animated cover for it.
+    final SpotifyTokenSource spotifyTokens = SpotifyTokenSource(
+      http: context.http,
+      spDc: () => context.settings.value<String>(kSpotifySpDcSettingId),
+      totpVersion: () =>
+          context.settings.value<String>(kSpotifyTotpVersionSettingId),
+      timeouts: timeouts,
+    );
+    _spotifyTokens = spotifyTokens;
+    final SpotifyCanvasClient spotify = SpotifyCanvasClient(
+      http: context.http,
+      tokens: spotifyTokens,
+      timeouts: timeouts,
+    );
+    _spotify = spotify;
+
+    // Order is the whole of the fallback policy, and every source in it
+    // stands aside silently when it has not been configured.
+    //
+    // Spotify's canvas goes first because it is the most specific thing any
+    // of these can return: authored for one recording rather than attached to
+    // a release. TIDAL's official API answers next when it has been given
+    // credentials to answer with; the credential-free TIDAL catalog answers
+    // when neither of the two above did, which for most people is always.
     _visuals = SourceAgnosticVisualsProvider(
       <VisualsSource>[
+        SpotifyCanvasVisualsSource(client: spotify, tokens: spotifyTokens),
         TidalOfficialVisualsSource(client: client, tokens: tokens),
         TidalLegacyVisualsSource(client: client),
       ],
       timeouts: timeouts,
     );
     context.registerVisualsProvider(_visuals!);
+    final List<String> active = <String>[
+      if (spotifyTokens.isConfigured) 'Spotify canvases',
+      if (tokens.isConfigured) 'official TIDAL catalog',
+      'credential-free TIDAL catalog',
+    ];
     context.log.info(
-      tokens.isConfigured
-          ? 'Moving visuals ready: official TIDAL catalog, with the '
-              'credential-free catalog behind it.'
-          : 'Moving visuals ready: credential-free TIDAL catalog. Add TIDAL '
-              'application credentials to try the official API first.',
+      'Moving visuals ready, in order: ${active.join(', ')}.',
     );
   }
 
@@ -85,6 +116,8 @@ final class VisualsPlugin implements SwayvePlugin {
   Future<void> dispose() async {
     _client = null;
     _tokens = null;
+    _spotify = null;
+    _spotifyTokens = null;
     _visuals = null;
   }
 }

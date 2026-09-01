@@ -7,11 +7,19 @@ surface and playing the returned media.
 
 ## What it looks for
 
-An **animated cover**: the sleeve with a few seconds of motion in it, which a
-label uploads alongside the still artwork. It is an album asset — every track
-on a release shares one — and it is what belongs behind a now-playing screen.
-The plugin returns it as `SwayveVisualKind.motionArtwork` with an aspect ratio
-of 1, because every cover TIDAL serves at this path is square.
+A **moving cover** — scenery for the now-playing screen, not something anybody
+navigates to. Two things qualify, and the plugin returns both as
+`SwayveVisualKind.motionArtwork`:
+
+- A **canvas**: the short portrait loop an artist attaches to one specific
+  recording on Spotify. Reported at 9:16, the shape it was authored for.
+- An **animated cover**: the sleeve with a few seconds of motion in it, which
+  a label uploads alongside the still artwork. It is an album asset — every
+  track on a release shares one. Reported at 1:1, because every cover TIDAL
+  serves at this path is square.
+
+A canvas is the more specific of the two — made for the song rather than the
+release — which is why it is tried first when it is available at all.
 
 It does **not** look for music videos any more. An earlier version resolved
 `/v2/videoManifests` with `usage=PLAYBACK`, which was wrong on three counts:
@@ -22,7 +30,57 @@ HLS/DASH manifests to its own player SDK.
 
 ## Sources, in order
 
-### 1. Official TIDAL Developer Platform — optional
+### 1. Spotify canvas — optional, off by default
+
+Off until `spotify_sp_dc` is set, and silent when it is not: an unconfigured
+source that announced itself would be noise for the large majority of people
+who will never turn this on.
+
+**What the credential is.** `sp_dc` is a session cookie for a real Spotify
+account, not an application credential like the TIDAL pair above it. Whoever
+holds it can act as that account. Nothing in Swayve obtains one for you and
+nothing prompts for it — a person who wants canvases copies it out of their
+own browser knowingly. It is a `secret` setting, so it lives in the platform
+credential store; it is never logged and never appears in an exception
+message.
+
+**Where it goes.** To `open.spotify.com`, once, to mint a short-lived access
+token. The two requests that follow carry that token instead. The cookie
+itself never reaches the search or canvas endpoints, and there is a test
+asserting exactly that.
+
+**How the lookup works.** Three requests:
+
+1. `GET open.spotify.com/api/token` with the cookie and a six-digit TOTP,
+   which the web player's token endpoint now demands. The code is computed
+   locally from a version-numbered constant compiled into the public web
+   player — see `lib/src/spotify_totp.dart` for why that constant is embedded
+   here rather than downloaded from one of the community mirrors, one of which
+   Spotify had taken down in early 2026, breaking every client depending on it
+   at once.
+2. `GET api.spotify.com/v1/search` to resolve the recording to a
+   `spotify:track:…` URI. The SDK never hands a visuals provider an id from
+   somebody else's catalogue, so this hop is unavoidable; it is also where
+   nearly all the risk of a wrong answer lives, which is why the result goes
+   through the same conservative rules in `lib/src/matching.dart` that the
+   TIDAL sources use, and why Spotify's own search rank contributes nothing to
+   the score.
+3. `POST spclient.wg.spotify.com/canvaz-cache/v0/canvases`, protobuf in and
+   protobuf out. Both messages are small enough to encode and decode by hand;
+   `lib/src/canvas_protobuf.dart` carries the schema.
+
+**None of this is documented, and it will break.** The endpoints are internal
+and the TOTP secret is rotated at Spotify's discretion. That is survivable
+here in a way it would not be for a streaming source: when it breaks, this
+source returns null, the two TIDAL sources behind it answer instead, and the
+now-playing screen shows what it would have shown anyway. `spotify_totp_version`
+exists so a rotation can be survived by typing a number rather than waiting
+for a release.
+
+**Most tracks have no canvas.** They are authored per release by the artist,
+not generated, so a null answer here is the common case and not a fault.
+
+### 2. Official TIDAL Developer Platform — optional
 
 Used first when the plugin has been given TIDAL application credentials.
 `tidal_client_id` and `tidal_client_secret` are `secret` settings; from them
@@ -38,7 +96,7 @@ at any moment from settings that are stored.
 Both settings are optional. With neither set, this source stands aside
 silently rather than reporting a failure nobody asked to hear about.
 
-### 2. TIDAL catalog search — no credentials
+### 3. TIDAL catalog search — no credentials
 
 `GET https://api.tidal.com/v1/search` with `types=TRACKS,ALBUMS`, reading
 `videoCover` from the album, then requesting
@@ -56,10 +114,18 @@ this feature: its playback endpoints are scoped to subscriber sessions and
 restricted to TIDAL's own player, and no unauthenticated documented route to
 an animated cover exists. The alternative sources are worse rather than
 better — Apple Music's motion artwork needs a web-player JWT scraped out of a
-JavaScript bundle, and Spotify Canvas needs the listener's own account cookie
-plus a rotating TOTP secret fetched from a third party. Against those, a
-catalog search and a static file on a public CDN is the smallest thing that
-works.
+JavaScript bundle, and Spotify's canvas needs the listener's own account
+cookie plus a rotating TOTP secret. Against those, a catalog search and a
+static file on a public CDN is the smallest thing that works, which is why it
+remains the source that carries this feature for almost everybody.
+
+Spotify has since been added anyway, as source 1 below, and the two objections
+above did not both survive. "A rotating TOTP secret fetched from a third
+party" no longer applies: the secret is a constant in this repository and
+nothing is fetched at runtime. "The listener's own account cookie" applies
+exactly as stated, and is not solved — it is *accepted*, off by default, in
+return for the one thing no other source can offer. Read the section below
+before turning it on.
 
 The `X-Tidal-Token` header this sends is a shared client token, not a
 credential belonging to anybody. It grants no account access and carries no
@@ -70,8 +136,31 @@ and leave the official one above unaffected.
 
 Every request goes through `SwayvePluginContext.http`. This plugin owns no
 socket and has no `package:http`, `dio`, browser automation, HTML parser, or
-page scraper. Nothing is scraped: both sources are JSON APIs, and the media is
-a plain progressive MP4.
+page scraper. Nothing is scraped: every source is a JSON or protobuf API, and
+the media is a plain progressive MP4.
+
+The pubspec still declares exactly one dependency, the SDK, and the Spotify
+source did not change that. Three things it needed would ordinarily have
+arrived as packages and are vendored instead:
+
+- **HMAC-SHA1** (`lib/src/hmac_sha1.dart`), rather than `package:crypto`. Two
+  functions from RFC 3174 and RFC 2104, pinned in tests to the published
+  vectors — a wrong HMAC would otherwise produce a well-formed six-digit
+  number that simply gets refused, with nothing in the logs to say why.
+- **Protobuf** (`lib/src/canvas_protobuf.dart`), rather than
+  `package:protobuf` and a generator step, for two messages with six scalar
+  fields between them.
+- **TOTP** (`lib/src/spotify_totp.dart`), rather than an OTP package.
+
+A plugin that pulls in its own packages is a plugin whose supply chain the
+host cannot see, and that is a worse trade than a hundred lines of
+well-specified arithmetic.
+
+One deliberate exception to this plugin's usual honesty about itself: the
+requests to `open.spotify.com` send a browser user-agent rather than
+`Swayve-Visuals/…`. The token endpoint belongs to the web player rather than
+to a documented API and refuses anything that does not look like a browser.
+Declaring ourselves there would be more honest and would not work.
 
 The matcher is deliberately conservative, and more so than the music-video
 matcher it replaces. A wrong music video is a wrong video; a wrong animated
@@ -86,7 +175,10 @@ rather than a near miss. So:
   album;
 - a cover id that is not five hexadecimal groups yields no visual rather than a
   guessed URL, since that id becomes a URL path;
-- a media host outside `plugin.json`'s allowlist is refused.
+- a media host outside `plugin.json`'s allowlist is refused;
+- a Spotify hit must agree on title, artist *and* duration before its URI is
+  looked up, and a canvas naming a different track than the one asked about is
+  discarded rather than shown.
 
 ## Apple Music
 

@@ -4,6 +4,7 @@ import 'package:swayve_plugin_sdk/swayve_plugin_sdk.dart';
 
 import 'config.dart';
 import 'errors.dart';
+import 'matching.dart';
 
 /// Finds TIDAL's animated cover for a recording.
 ///
@@ -391,15 +392,15 @@ _TidalCover? _bestCover(List<_TidalCover> candidates, SwayveTrack track) {
 /// *sleeve* moving behind the right song, which reads as a bug rather than a
 /// near miss. So an artist has to agree before anything else is considered.
 double _matchScore(_TidalCover candidate, SwayveTrack track) {
-  final String wantedArtist = _normalize(track.artistsLabel);
+  final String wantedArtist = normalizeForMatch(track.artistsLabel);
   if (wantedArtist.isNotEmpty && candidate.artists.isNotEmpty) {
     final bool artistAgrees = candidate.artists.any((String name) {
-      final String found = _normalize(name);
+      final String found = normalizeForMatch(name);
       if (found.isEmpty) return false;
       return wantedArtist == found ||
           wantedArtist.contains(found) ||
           found.contains(wantedArtist) ||
-          _tokenOverlap(wantedArtist, found) >= 0.5;
+          tokenOverlap(wantedArtist, found) >= 0.5;
     });
     if (!artistAgrees) return 0;
   }
@@ -410,18 +411,20 @@ double _matchScore(_TidalCover candidate, SwayveTrack track) {
   // majority of correct answers.
   final String? candidateTrack = candidate.trackTitle;
   if (candidateTrack != null) {
-    final String wanted = _normalize(track.title);
-    final String found = _normalize(candidateTrack);
+    final String wanted = normalizeForMatch(track.title);
+    final String found = normalizeForMatch(candidateTrack);
     if (wanted.isNotEmpty && found.isNotEmpty) {
       final bool titleMatches = wanted == found ||
           found.contains(wanted) ||
           wanted.contains(found) ||
-          _tokenOverlap(wanted, found) >= 0.7;
+          tokenOverlap(wanted, found) >= 0.7;
       if (!titleMatches) return 0;
       final Duration? wantedLength = track.duration;
       final Duration? foundLength = candidate.duration;
       if (wantedLength != null && foundLength != null) {
-        if ((wantedLength - foundLength).abs() > kDurationTolerance) return 0;
+        if ((wantedLength - foundLength).abs() > kMatchDurationTolerance) {
+          return 0;
+        }
       }
       double score = wanted == found ? 100 : 80;
       if (wantedLength != null && foundLength != null) {
@@ -434,32 +437,17 @@ double _matchScore(_TidalCover candidate, SwayveTrack track) {
   // An album hit with an agreeing artist. Ranked below any track hit, because
   // a track hit proved the recording is on that release and this only proves
   // the artist has a release with a moving cover.
-  final String wantedAlbum = _normalize(track.album?.title ?? '');
-  final String foundAlbum = _normalize(candidate.albumTitle);
+  final String wantedAlbum = normalizeForMatch(track.album?.title ?? '');
+  final String foundAlbum = normalizeForMatch(candidate.albumTitle);
   if (wantedAlbum.isNotEmpty && foundAlbum.isNotEmpty) {
     if (wantedAlbum == foundAlbum) return 70;
     if (foundAlbum.contains(wantedAlbum) || wantedAlbum.contains(foundAlbum)) {
       return 60;
     }
-    if (_tokenOverlap(wantedAlbum, foundAlbum) >= 0.6) return 50;
+    if (tokenOverlap(wantedAlbum, foundAlbum) >= 0.6) return 50;
     // The track named an album and this is a different one. Declining is the
     // whole point of knowing the album name.
     return 0;
   }
   return 0;
-}
-
-String _normalize(String value) => value
-    .toLowerCase()
-    .replaceAll(RegExp(r'\([^)]*\)|\[[^\]]*\]'), ' ')
-    .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
-    .trim();
-
-double _tokenOverlap(String left, String right) {
-  final Set<String> a =
-      left.split(' ').where((String s) => s.isNotEmpty).toSet();
-  final Set<String> b =
-      right.split(' ').where((String s) => s.isNotEmpty).toSet();
-  if (a.isEmpty || b.isEmpty) return 0;
-  return a.intersection(b).length / a.union(b).length;
 }

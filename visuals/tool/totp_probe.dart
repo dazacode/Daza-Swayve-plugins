@@ -1,3 +1,7 @@
+// ignore_for_file: avoid_print
+//
+// A developer probe, not shipped code: printing is the entire point of it.
+//
 // Prints a live Spotify token-endpoint URL for the embedded TOTP version.
 // Sends nothing itself and needs no credential: the point is to find out
 // whether Spotify accepts the *code*, which it answers for anonymous callers.

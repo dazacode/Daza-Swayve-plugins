@@ -22,11 +22,11 @@ void main() {
 
       expect(page.items, hasLength(2));
       expect(
-          page.items.map((playlist) => playlist.title),
-          containsAll(<String>[
-            'A Real Album',
-            'A Plain Playlist',
-          ]),
+        page.items.map((playlist) => playlist.title),
+        containsAll(<String>[
+          'A Real Album',
+          'A Plain Playlist',
+        ]),
       );
     });
 

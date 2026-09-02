@@ -1,0 +1,79 @@
+name: swayve_plugin_registry
+description: >
+  The list of first-party compiled Swayve plugins, in one place. Host apps
+  depend on this package instead of on each compiled plugin individually.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  # A git dependency, not a path one. The SDK lives in swayve-plugins; this
+  # package and the plugins it catalogues live here, so neither has a local
+  # path back to the SDK — they depend on it via git, and so must this.
+  #
+  # That agreement is load-bearing rather than tidiness. Pub requires every
+  # request for one package, anywhere in a resolution, to agree on a single
+  # source, and a path dependency and a git dependency to "the same" code are
+  # not interchangeable to the resolver however identical their content. A
+  # host app pulling in both this registry and (through it) those plugins
+  # would hit an unresolvable conflict if this were a path dependency.
+  # Matching the plugins' own source here means no host app ever has to work
+  # around that itself with `dependency_overrides`.
+  #
+  # The cost is local development convenience: testing an SDK change against
+  # this registry in the same uncommitted session needs a
+  # `pubspec_overrides.yaml` (local-only, never committed) rather than working
+  # automatically the way an in-repo path dependency would. swayve-plugins'
+  # `docs/development.md` documents that pattern.
+  swayve_plugin_sdk:
+    git:
+      url: https://github.com/dazacode/swayve-plugins.git
+      path: packages/swayve_plugin_sdk
+      ref: 3d1ffa237bfc7c0b3f7acb0651682fc9448e5bbd
+  # These plugins are now siblings of this package in the same repository, but
+  # they stay git dependencies pinned by commit rather than becoming
+  # `path: ../soundcloud`. Two reasons. A pinned commit means a fresh checkout,
+  # CI included, resolves the exact plugin code this registry was last verified
+  # against — the same reasoning as swayve-client's own pin of this package.
+  # And switching to path dependencies changes how every consumer of this
+  # registry resolves them, which is a deliberate change to make on its own,
+  # not a side effect of moving a directory.
+  #
+  # Their SDK ref and the one above are kept identical on purpose: both plugins
+  # declare that same ref for their own SDK dependency, and pub requires every
+  # request for one package to agree on a single source. Drift between the
+  # three is the conflict this whole arrangement exists to avoid.
+  soundcloud:
+    git:
+      url: https://github.com/dazacode/Daza-Swayve-plugins.git
+      path: soundcloud
+      ref: 18a5c6973739a3abfc3f07881551a26a886d4c54
+  youtube_music:
+    git:
+      url: https://github.com/dazacode/Daza-Swayve-plugins.git
+      path: youtube_music
+      ref: 18a5c6973739a3abfc3f07881551a26a886d4c54
+  lyrics:
+    git:
+      url: https://github.com/dazacode/Daza-Swayve-plugins.git
+      path: lyrics
+      ref: 18a5c6973739a3abfc3f07881551a26a886d4c54
+  visuals:
+    git:
+      url: https://github.com/dazacode/Daza-Swayve-plugins.git
+      path: visuals
+      ref: 18a5c6973739a3abfc3f07881551a26a886d4c54
+  # Unlike the plugins above, this one lives in its own repository rather than
+  # alongside this package — see that plugin's own README for why. Pinned to
+  # the same swayve_plugin_sdk commit as everything else above, for the same
+  # reason.
+  ibroadcast:
+    git:
+      url: https://github.com/dazacode/ibroadcast-swayve-plugin.git
+      ref: 58c7f0f80e1c3a712cf4f5adbebfbc555fd3529e
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

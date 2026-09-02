@@ -16,17 +16,31 @@ there.
 
 | Plugin | What it does |
 |---|---|
-| [`example`](example/) | The SDK's own reference/teaching plugin — pure Dart, fully offline, small enough to read end to end. Start here if you're writing a new plugin: copy the directory, then work through `swayve-plugins/docs/development.md`. |
 | [`youtube_music`](youtube_music/) | YouTube Music search, browsing and playback, via YouTube's unofficial InnerTube API. |
 | [`soundcloud`](soundcloud/) | SoundCloud search, browsing and playback, via SoundCloud's public unauthenticated API. |
+| [`lyrics`](lyrics/) | Lyrics lookup. |
+| [`visuals`](visuals/) | Visual accompaniment for the now-playing surface. |
+
+Plus one package that is not a plugin:
+
+| Package | What it does |
+|---|---|
+| [`swayve_plugin_registry`](swayve_plugin_registry/) | The list of first-party compiled plugins, in one place. Host apps depend on this instead of on each plugin individually. |
 
 Each is an independent Dart package — there is no pub workspace here, the
 same as `swayve-plugins` itself. `cd` into one and `dart pub get` there.
 
+**Writing a plugin?** Start from
+[`dazacode/swayve-plugin-example`](https://github.com/dazacode/swayve-plugin-example),
+not from anything here. It is the reference plugin — offline, fully tested,
+small enough to read in one sitting — and it ships a manifest reference
+covering every field the schema defines. The plugins in this repository are
+real integrations with real API quirks, which makes them poor first reads.
+
 ## Quick start
 
 ```bash
-cd youtube_music        # or soundcloud, or example
+cd youtube_music        # or soundcloud, lyrics, visuals
 dart pub get
 dart analyze             # zero issues
 dart test                 # offline, deterministic, no network
@@ -63,11 +77,14 @@ that file.
 
 A `runtime: compiled` plugin's Dart code has to be linked into the host
 binary at build time. For Swayve itself, that means one more entry in
-`swayve-plugins`' `packages/swayve_plugin_registry` — see
+[`swayve_plugin_registry`](swayve_plugin_registry/) in this repository — see
 [`docs/architecture.md`](https://github.com/dazacode/swayve-plugins/blob/main/docs/architecture.md)
 and [`docs/platforms.md`](https://github.com/dazacode/swayve-plugins/blob/main/docs/platforms.md)
-there for why. The registry depends on the plugins here the same way they
-depend on the SDK: a pinned `git:` dependency, not a path.
+there for why. The registry lives here, alongside the plugins it catalogues,
+rather than in `swayve-plugins` — the platform repository has no business
+knowing which plugins exist. It still depends on them the same way they depend
+on the SDK: a pinned `git:` dependency, not a path. See the comment in its
+`pubspec.yaml` for why that stays true even now they are siblings.
 
 ## CI
 

@@ -1,0 +1,48 @@
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # GitHub Actions, pinned by commit SHA in the workflows. Dependabot bumps the
+  # SHA and its version comment together; without this, a pinned action is
+  # frozen on whatever version it was pinned at, patches included.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # ---------------------------------------------------------------------------
+  # Dart packages. This repo is NOT a pub workspace: every plugin's pubspec.yaml
+  # resolves independently, so each plugin directory needs its own entry. Add a
+  # new directory here whenever a plugin is added.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: pub
+    directories:
+      - "/example"
+      - "/lyrics"
+      - "/soundcloud"
+      - "/visuals"
+      - "/youtube_music"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "deps"

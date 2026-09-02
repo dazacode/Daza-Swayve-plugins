@@ -25,5 +25,5 @@ dependencies:
       ref: 3d1ffa237bfc7c0b3f7acb0651682fc9448e5bbd
 
 dev_dependencies:
-  lints: ^5.0.0
+  lints: ^6.1.0
   test: ^1.25.0

@@ -1,0 +1,8 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    prefer_final_locals: true
+    always_declare_return_types: true
+    require_trailing_commas: true
+    unawaited_futures: true

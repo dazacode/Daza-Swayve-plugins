@@ -25,17 +25,19 @@ updates:
           - "*"
 
   # ---------------------------------------------------------------------------
-  # Dart packages. This repo is NOT a pub workspace: every plugin's pubspec.yaml
-  # resolves independently, so each plugin directory needs its own entry. Add a
-  # new directory here whenever a plugin is added.
+  # Dart packages. This repo is NOT a pub workspace: every pubspec.yaml resolves
+  # independently, so each directory needs its own entry. Add a new directory
+  # here whenever a plugin is added.
   # ---------------------------------------------------------------------------
   - package-ecosystem: pub
     directories:
-      - "/example"
       - "/lyrics"
       - "/soundcloud"
       - "/visuals"
       - "/youtube_music"
+      # Not a plugin: the registry that names them. It carries the pinned git
+      # dependencies, so it is the one pubspec here that most needs watching.
+      - "/swayve_plugin_registry"
     schedule:
       interval: weekly
       day: monday

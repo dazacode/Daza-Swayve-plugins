@@ -103,7 +103,7 @@
       "id": "page_id",
       "type": "secret",
       "label": "YouTube channel ID (optional)",
-      "description": "Only needed if your liked songs live on a secondary YouTube channel rather than your account's default one. Use the bookmarklet below on music.youtube.com to find it. Leave blank to use your default channel."
+      "description": "Only needed if your liked songs live on a secondary YouTube channel. Use the bookmarklet below on music.youtube.com to find its ID; blank uses your default."
     },
     {
       "id": "include_videos",

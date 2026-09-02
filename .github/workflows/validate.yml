@@ -77,6 +77,13 @@ jobs:
         with:
           repository: dazacode/swayve-plugins
           path: swayve-plugins
+          # Pinned rather than left on `main`. Four of the five plugins here
+          # pin this same SDK commit in their pubspecs, so this is the validator
+          # and schema that match what they actually build against — validating
+          # against a moving `main` is how a plugin passes CI one day and fails
+          # the next without anything in this repo changing. Bump it together
+          # with the pubspec refs, never on its own.
+          ref: 3d1ffa237bfc7c0b3f7acb0651682fc9448e5bbd
 
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
         with:

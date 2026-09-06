@@ -18,7 +18,8 @@
     "android",
     "ios",
     "windows",
-    "linux"
+    "linux",
+    "macos"
   ],
   "capabilities": [
     "search",

@@ -13,7 +13,7 @@ that must keep working without a single `if (plugin.id == …)`.
 |---|---|
 | **Id** | `app.swayve.plugins.youtube_music` |
 | **Runtime** | `compiled` — the source lives here and is compiled into a Swayve build |
-| **Platforms** | android, ios, windows, linux |
+| **Platforms** | android, ios, windows, linux, macos |
 | **Capabilities** | `search`, `catalog`, `streaming`, `webview`, `artwork`, `authentication`, `personal_library`, `session_capture` |
 | **Permissions** | `network`, `webview`, `external_auth` |
 | **Network hosts** | `music.youtube.com`, `www.youtube.com`, `i.ytimg.com`, `lh3.googleusercontent.com`, `yt3.googleusercontent.com`, `yt3.ggpht.com`, `*.googlevideo.com` |
